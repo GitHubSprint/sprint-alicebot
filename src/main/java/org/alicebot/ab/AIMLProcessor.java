@@ -468,6 +468,26 @@ public class AIMLProcessor
         }
         return result;
     }
+    
+    /**
+     * FastText ML integration 
+     * implements <predictf model="tak-nie-model" nbest="2" threshold="0.0" score="1.0" parameter="hello"/>
+     * @param node current XML parse node
+     * @param ps AIML parse state
+     * @return 
+     */
+    private static String predictf(Node node, ParseState ps) throws IOException
+    {        
+        String model = getAttributeOrTagValue(node, ps, "model");  
+        String nBest = getAttributeOrTagValue(node, ps, "nbest");
+        String threshold = getAttributeOrTagValue(node, ps, "nbest");          
+        String score = getAttributeOrTagValue(node, ps, "score");          
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+                        
+        log.info("predictf model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score + " value: " + ps.chatSession.predicates.get(parameter));
+        String out = SprintUtils.predictSupervisedModel(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
+        return out;
+    }
 
     /** get the value of an AIML predicate.
      * implements <get name="predicate"></get>  and <get var="varname"></get>
@@ -526,7 +546,13 @@ public class AIMLProcessor
         return dateAsString;
     }
     
-    
+    /**
+     * Implements jar plugin integration
+     * @param node current XML parse node
+     * @param ps AIML parse state
+     * @return
+     * @throws IOException 
+     */
     private static String plugin(Node node, ParseState ps) throws IOException
     {
         
@@ -1136,6 +1162,8 @@ public class AIMLProcessor
             return date(node, ps);
         else if (nodeName.equals("plugin")) //slaw
             return plugin(node, ps);
+        else if (nodeName.equals("predictf")) //slaw
+            return predictf(node, ps);
         else if (nodeName.equals("interval"))
             return interval(node, ps);
         //else if (nodeName.equals("gossip"))       // removed from AIML 2.0

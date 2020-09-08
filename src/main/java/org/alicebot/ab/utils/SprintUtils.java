@@ -5,7 +5,10 @@
  */
 package org.alicebot.ab.utils;
 
+import com.mayabot.nlp.fasttext.FastText;
+import com.mayabot.nlp.fasttext.ScoreLabelPair;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
@@ -13,6 +16,8 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.text.Normalizer;
+import java.util.Arrays;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +50,50 @@ public class SprintUtils {
                              
         return temp;
     }  
+    
+    /**
+     * Predict fastText label tranined suprvised model
+     * @param model name of model (all models should be installed to ./models/
+     * @param nBest number of responses
+     * @param threshold
+     * @param score score percent (e.g. 50 = 50% prediction) 
+     * @param parameter 
+     * @return 
+     */
+    public static String predictSupervisedModel(String model, String nBest, String threshold, String score, String parameter, String sessionId)
+    {
+        String out = "";
+        
+        
+        try {                                    
+            String path = new File(".").getCanonicalPath().replace("\\", "/");            
+            String sModel = path + "/models/" + model;
+            int iNbest = Integer.parseInt(nBest); 
+            float fThreshold = Float.parseFloat(threshold);
+            int iScore = Integer.parseInt(score);
+            
+            FastText fastText = FastText.Companion.loadModel(new File(sModel), true); 
+            List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), iNbest, fThreshold);
+            
+            
+            for(ScoreLabelPair pair : result)
+            {
+                log.info("Request: sessionId: " + sessionId + " parameter: " + parameter + " RESPONSE score: " + pair.getScore() + " label: " + pair.getLabel() + " MinScore: " + iScore);
+                if(pair.getScore() * 100 > iScore)
+                    out= "ML_" + pair.getScore() + "|" + pair.getLabel(); 
+                else
+                    out= "KO|" + pair.getScore();                     
+            }                        
+            
+        } catch (Exception e) {
+            
+            out = "ERROR|" + e.getMessage();
+            log.error("predictSupervisedModel ERROR : " + e, e);
+        }
+        
+        return out;
+    }
+    
     
     /**
      * Java jar integration method. 
