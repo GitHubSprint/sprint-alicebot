@@ -62,7 +62,7 @@ public class SprintUtils {
      */
     public static String predictSupervisedModel(String model, String nBest, String threshold, String score, String parameter, String sessionId)
     {
-        String out = "";
+        String out = "KO|Empty";
         
         
         try {                                    
@@ -70,24 +70,33 @@ public class SprintUtils {
             String sModel = path + "/models/" + model;
             int iNbest = Integer.parseInt(nBest); 
             float fThreshold = Float.parseFloat(threshold);
-            int iScore = Integer.parseInt(score);
+            int iMinScore = Integer.parseInt(score);
+            
+            
+            log.info("Request: sessionId: " + sessionId + " Model: " + sModel + " Nbest: " + iNbest + " Threshold: " + fThreshold + " MinScore: " + iMinScore + " parameter: " + parameter);
             
             FastText fastText = FastText.Companion.loadModel(new File(sModel), true); 
             List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), iNbest, fThreshold);
-            
-            
+                  
+            log.info("Response sessionId: " + sessionId + " result.size: " + result.size());
             for(ScoreLabelPair pair : result)
             {
-                log.info("Request: sessionId: " + sessionId + " parameter: " + parameter + " RESPONSE score: " + pair.getScore() + " label: " + pair.getLabel() + " MinScore: " + iScore);
-                if(pair.getScore() * 100 > iScore)
-                    out= "ML_" + pair.getScore() + "|" + pair.getLabel(); 
+                int iScore = (int) (pair.getScore() * 100); 
+                
+                log.info("Response sessionId: " + sessionId + " parameter: " + parameter + " RESPONSE score: " + pair.getScore() + " iScore: " + iScore + " label: " + pair.getLabel() + " MinScore: " + iMinScore);
+                
+                if(iScore >= iMinScore)
+                {                    
+                    out= "MLOK" + iScore + "|" + pair.getLabel(); 
+                    break;
+                }
                 else
-                    out= "KO|" + pair.getScore();                     
+                    out= "MLKO" + iScore + "|" + parameter;                     
             }                        
             
         } catch (Exception e) {
             
-            out = "ERROR|" + e.getMessage();
+            out = "ERR|" + e.getMessage();
             log.error("predictSupervisedModel ERROR : " + e, e);
         }
         

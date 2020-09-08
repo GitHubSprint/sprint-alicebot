@@ -480,7 +480,7 @@ public class AIMLProcessor
     {        
         String model = getAttributeOrTagValue(node, ps, "model");  
         String nBest = getAttributeOrTagValue(node, ps, "nbest");
-        String threshold = getAttributeOrTagValue(node, ps, "nbest");          
+        String threshold = getAttributeOrTagValue(node, ps, "threshold");          
         String score = getAttributeOrTagValue(node, ps, "score");          
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
                         
