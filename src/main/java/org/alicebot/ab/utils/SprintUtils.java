@@ -58,6 +58,7 @@ public class SprintUtils {
      * @param threshold
      * @param score score percent (e.g. 50 = 50% prediction) 
      * @param parameter 
+     * @param sessionId Bot SessionId
      * @return 
      */
     public static String predictSupervisedModel(String model, String nBest, String threshold, String score, String parameter, String sessionId)

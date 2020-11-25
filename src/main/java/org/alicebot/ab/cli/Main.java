@@ -45,7 +45,7 @@ public class Main {
     public static void main (String[] args) {
         
         
-        MagicStrings.root_path ="D:\\Sprint\\SRC\\chatbot\\chatbots";
+        MagicStrings.root_path ="D:\\Sprint\\SRC\\sprint-bot-server\\chatbots";
         
         if(System.getProperty("os.name").equals("Linux"))
                     MagicStrings.root_path = "/opt/resources";
@@ -58,7 +58,7 @@ public class Main {
         mainFunction(args);
     }
     public static void mainFunction (String[] args) {
-        String botName = "vectra";
+        String botName = "testowa";
         String action = "chat";
         log.info(MagicStrings.programNameVersion);                
         
