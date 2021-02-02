@@ -97,7 +97,7 @@ public class SprintUtils {
             
         } catch (Exception e) {
             
-            out = "ERR|" + e.getMessage();
+            out = "ERR " + e.getMessage();
             log.error("predictSupervisedModel ERROR : " + e, e);
         }
         
@@ -134,10 +134,7 @@ public class SprintUtils {
             // Create a new instance from the loaded class
             Constructor<?> constructor = beanClass.getConstructor();             
 
-            Object beanObj = constructor.newInstance();
-
-            //ChatBotRequest request = new ChatBotRequest(methodName, parameter, sessionId);
-
+            Object beanObj = constructor.newInstance();        
             // Getting a method from the loaded class and invoke it
             
             // public String processCustomResultPocessor(String session, String parameter, String method);
@@ -149,7 +146,7 @@ public class SprintUtils {
             
         } catch (Exception e) 
         {
-            out = "ERROR|" + e.getMessage();
+            out = "ERR " + e.getMessage();
             log.error("callPlugin file: " + f + " parameter : " +parameter + " ERROR : " + e, e);
         }
         

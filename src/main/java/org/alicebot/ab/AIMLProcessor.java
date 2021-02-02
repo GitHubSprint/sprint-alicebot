@@ -51,10 +51,6 @@ public class AIMLProcessor
     /**
      * when parsing an AIML file, process a category element.
      *
-     * @param n        current XML parse node.
-     * @param categories                      list of categories found so far.
-     * @param topic                           value of topic in case this category is wrapped in a <topic> tag
-     * @param aimlFile                        name of AIML file being parsed.
      */
     public static AIMLProcessorExtension extension;
     private static void categoryProcessor(Node n, ArrayList<Category> categories, String topic, String aimlFile, String language) {
@@ -440,6 +436,8 @@ public class AIMLProcessor
         return value;
     }
     
+    //////////////////////start sprint custom methods
+    
     /**
      * gets all variables
      * @param node  current XML parse node
@@ -488,6 +486,37 @@ public class AIMLProcessor
         String out = SprintUtils.predictSupervisedModel(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
         return out;
     }
+    
+    /**
+     * Implements jar plugin integration 
+     * @param node current XML parse node
+     * @param ps AIML parse state
+     * @return
+     * @throws IOException 
+     */
+    private static String plugin(Node node, ParseState ps) throws IOException
+    {
+        
+        String file = getAttributeOrTagValue(node, ps, "file");  
+        String classLoad = getAttributeOrTagValue(node, ps, "class");
+        
+        String method = getAttributeOrTagValue(node, ps, "method");  
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        
+        String path = new File(".").getCanonicalPath().replace("\\", "/");
+        log.info("method: " + method + " parameter: " + parameter + " value: " + ps.chatSession.predicates.get(parameter));
+        String out = SprintUtils.callPlugin(path + "/lib/" + file, classLoad, method, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
+           
+        if(parameter !=null && out.startsWith(parameter))
+        {
+            out.substring(parameter.length());
+        }
+
+        
+        return out;
+    }
+    
+    ///////////////////////end sprint custom methods
 
     /** get the value of an AIML predicate.
      * implements <get name="predicate"></get>  and <get var="varname"></get>
@@ -546,34 +575,7 @@ public class AIMLProcessor
         return dateAsString;
     }
     
-    /**
-     * Implements jar plugin integration
-     * @param node current XML parse node
-     * @param ps AIML parse state
-     * @return
-     * @throws IOException 
-     */
-    private static String plugin(Node node, ParseState ps) throws IOException
-    {
-        
-        String file = getAttributeOrTagValue(node, ps, "file");  
-        String classLoad = getAttributeOrTagValue(node, ps, "class");
-        
-        String method = getAttributeOrTagValue(node, ps, "method");  
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        
-        String path = new File(".").getCanonicalPath().replace("\\", "/");
-        log.info("method: " + method + " parameter: " + parameter + " value: " + ps.chatSession.predicates.get(parameter));
-        String out = SprintUtils.callPlugin(path + "/lib/" + file, classLoad, method, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
-           
-        if(parameter !=null && out.startsWith(parameter))
-        {
-            out.substring(parameter.length());
-        }
-
-        
-        return out;
-    }
+    
 
     /**
      *    <interval><style>years</style></style><jformat>MMMMMMMMM dd, yyyy</jformat><from>August 2, 1960</from><to><date><jformat>MMMMMMMMM dd, yyyy</jformat></date></to></interval>
@@ -1121,98 +1123,103 @@ public class AIMLProcessor
 
 
     private static String recursEval(Node node, ParseState ps) {
-        try {
-        String nodeName = node.getNodeName();
-        if (nodeName.equals("#text")) return node.getNodeValue();
-        else if (nodeName.equals("#comment")) {
-            //log.info("recursEval comment = "+node.getTextContent());
-            return "";
-        }
-        else if (nodeName.equals("template"))
-            return evalTagContent(node, ps, null);
-        else if (nodeName.equals("random"))
-            return random(node, ps);
-        else if (nodeName.equals("condition"))
-            return loopCondition(node, ps);
-        else if (nodeName.equals("srai"))
-            return srai(node, ps);
-        else if (nodeName.equals("sr"))
-              return respond(ps.leaf.starBindings.inputStars.star(0), ps.that, ps.topic, ps.chatSession, sraiCount);
-        else if (nodeName.equals("sraix"))
-            return sraix(node, ps);
-        else if (nodeName.equals("set"))
-            return set(node, ps);
-        else if (nodeName.equals("get"))
-            return get(node, ps);       
-        else if (nodeName.equals("map"))  // AIML 2.0 -- see also <set> in pattern
-            return map(node, ps);
-        else if (nodeName.equals("bot"))
-            return bot(node, ps);
-        else if (nodeName.equals("id"))
-            return id(node, ps);
-        else if (nodeName.equals("size"))
-            return size(node, ps);
-        else if (nodeName.equals("vocabulary")) // AIML 2.0
-            return vocabulary(node, ps);
-        else if (nodeName.equals("program"))
-            return program(node, ps);
-         else if(nodeName.equals("getall"))
-            return getall(node, ps); //slaw
-        else if (nodeName.equals("date")) //slaw
-            return date(node, ps);
-        else if (nodeName.equals("plugin")) //slaw
-            return plugin(node, ps);
-        else if (nodeName.equals("predictf")) //slaw
-            return predictf(node, ps);
-        else if (nodeName.equals("interval"))
-            return interval(node, ps);
-        //else if (nodeName.equals("gossip"))       // removed from AIML 2.0
-        //    return gossip(node, ps);
-        else if (nodeName.equals("think"))
-            return think(node, ps);
-        else if (nodeName.equals("system"))
-            return system(node, ps);
-        else if (nodeName.equals("explode"))
-            return explode(node, ps);
-        else if (nodeName.equals("normalize"))
-            return normalize(node, ps);
-        else if (nodeName.equals("denormalize"))
-            return denormalize(node, ps);
-        else if (nodeName.equals("uppercase"))
-            return uppercase(node, ps);
-        else if (nodeName.equals("lowercase"))
-            return lowercase(node, ps);
-        else if (nodeName.equals("formal"))
-            return formal(node, ps);
-        else if (nodeName.equals("sentence"))
-            return sentence(node, ps);
-        else if (nodeName.equals("person"))
-            return person(node, ps);
-        else if (nodeName.equals("person2"))
-            return person2(node, ps);
-        else if (nodeName.equals("gender"))
-            return gender(node, ps);
-        else if (nodeName.equals("star"))
-            return inputStar(node, ps);
-        else if (nodeName.equals("thatstar"))
-            return thatStar(node, ps);
-        else if (nodeName.equals("topicstar"))
-            return topicStar(node, ps);
-        else if (nodeName.equals("that"))
-            return that(node, ps);
-        else if (nodeName.equals("input"))
-            return input(node, ps);
-        else if (nodeName.equals("request"))
-            return request(node, ps);
-        else if (nodeName.equals("response"))
-            return response(node, ps);
-        else if (nodeName.equals("learn") || nodeName.equals("learnf"))
-            return learn(node, ps);
-        else if (extension != null && extension.extensionTagSet().contains(nodeName)) return extension.recursEval(node, ps) ;
-        else return (genericXML(node, ps));
-        } catch (Exception ex) {
+        try 
+        {
+            String nodeName = node.getNodeName();
+            if (nodeName.equals("#text")) 
+                return node.getNodeValue();
+            else if (nodeName.equals("#comment")) {                
+                return "";
+            }
+            else if (nodeName.equals("template"))
+                return evalTagContent(node, ps, null);
+            else if (nodeName.equals("random"))
+                return random(node, ps);
+            else if (nodeName.equals("condition"))
+                return loopCondition(node, ps);
+            else if (nodeName.equals("srai"))
+                return srai(node, ps);
+            else if (nodeName.equals("sr"))
+                  return respond(ps.leaf.starBindings.inputStars.star(0), ps.that, ps.topic, ps.chatSession, sraiCount);
+            else if (nodeName.equals("sraix"))
+                return sraix(node, ps);
+            else if (nodeName.equals("set"))
+                return set(node, ps);
+            else if (nodeName.equals("get"))
+                return get(node, ps);       
+            else if (nodeName.equals("map"))  // AIML 2.0 -- see also <set> in pattern
+                return map(node, ps);
+            else if (nodeName.equals("bot"))
+                return bot(node, ps);
+            else if (nodeName.equals("id"))
+                return id(node, ps);
+            else if (nodeName.equals("size"))
+                return size(node, ps);
+            else if (nodeName.equals("vocabulary")) // AIML 2.0
+                return vocabulary(node, ps);
+            else if (nodeName.equals("program"))
+                return program(node, ps);
+            //sprint modyfikcation start
+            else if(nodeName.equals("getall"))
+                return getall(node, ps); //sprint
+            else if (nodeName.equals("date")) //sprint
+                return date(node, ps);
+            else if (nodeName.equals("plugin")) //sprint
+                return plugin(node, ps);
+            else if (nodeName.equals("predictf")) //sprint
+                return predictf(node, ps);
+            //sprint modyfikcation stop
+            else if (nodeName.equals("interval"))
+                return interval(node, ps);
+            //else if (nodeName.equals("gossip"))       // removed from AIML 2.0
+            //    return gossip(node, ps);
+            else if (nodeName.equals("think"))
+                return think(node, ps);
+            else if (nodeName.equals("system"))
+                return system(node, ps);
+            else if (nodeName.equals("explode"))
+                return explode(node, ps);
+            else if (nodeName.equals("normalize"))
+                return normalize(node, ps);
+            else if (nodeName.equals("denormalize"))
+                return denormalize(node, ps);
+            else if (nodeName.equals("uppercase"))
+                return uppercase(node, ps);
+            else if (nodeName.equals("lowercase"))
+                return lowercase(node, ps);
+            else if (nodeName.equals("formal"))
+                return formal(node, ps);
+            else if (nodeName.equals("sentence"))
+                return sentence(node, ps);
+            else if (nodeName.equals("person"))
+                return person(node, ps);
+            else if (nodeName.equals("person2"))
+                return person2(node, ps);
+            else if (nodeName.equals("gender"))
+                return gender(node, ps);
+            else if (nodeName.equals("star"))
+                return inputStar(node, ps);
+            else if (nodeName.equals("thatstar"))
+                return thatStar(node, ps);
+            else if (nodeName.equals("topicstar"))
+                return topicStar(node, ps);
+            else if (nodeName.equals("that"))
+                return that(node, ps);
+            else if (nodeName.equals("input"))
+                return input(node, ps);
+            else if (nodeName.equals("request"))
+                return request(node, ps);
+            else if (nodeName.equals("response"))
+                return response(node, ps);
+            else if (nodeName.equals("learn") || nodeName.equals("learnf"))
+                return learn(node, ps);
+            else if (extension != null && extension.extensionTagSet().contains(nodeName)) return extension.recursEval(node, ps) ;
+            else return (genericXML(node, ps));
+        } 
+        catch (Exception ex) 
+        {
             ex.printStackTrace();
-            return "";
+            return "ERR " + ex.getMessage();
         }
     }
 
