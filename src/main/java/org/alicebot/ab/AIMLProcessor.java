@@ -512,11 +512,12 @@ public class AIMLProcessor
         
         String out = Boolean.toString(matcher.matches());
         
-        if(matcher.matches() && group != null)
-            out =  matcher.group(group);
-        else
-            out = "ERR";
-        
+        if(group != null)
+            if(matcher.matches())
+                out =  matcher.group(group);
+            else
+                out = "ERR";
+
         return out;
     }
     
