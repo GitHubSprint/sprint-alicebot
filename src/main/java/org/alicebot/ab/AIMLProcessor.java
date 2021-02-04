@@ -26,6 +26,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
@@ -484,6 +486,19 @@ public class AIMLProcessor
                         
         log.info("predictf model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score + " value: " + ps.chatSession.predicates.get(parameter));
         String out = SprintUtils.predictSupervisedModel(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
+        return out;
+    }
+    private static String regex(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String pattern = getAttributeOrTagValue(node, ps, "pattern");
+                                
+        log.info("regex pattern: " + pattern + "parameter name: " + parameter + "  parameter: " + ps.chatSession.predicates.get(parameter));
+        
+        Pattern compiledPattern = Pattern.compile("[A-Z 0-9-./\\s]+");
+        Matcher matcher = compiledPattern.matcher(ps.chatSession.predicates.get(parameter));
+        
+        String out = Boolean.toString(matcher.matches());
         return out;
     }
     
@@ -1168,6 +1183,8 @@ public class AIMLProcessor
                 return plugin(node, ps);
             else if (nodeName.equals("predictf")) //sprint
                 return predictf(node, ps);
+            else if (nodeName.equals("regex")) //sprint
+                return regex(node, ps);
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
                 return interval(node, ps);
