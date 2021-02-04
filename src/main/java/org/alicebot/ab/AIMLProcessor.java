@@ -513,11 +513,13 @@ public class AIMLProcessor
         String out = Boolean.toString(matcher.matches());
         
         if(group != null)
+        {
             if(matcher.matches())
                 out =  matcher.group(group);
             else
                 out = "ERR";
-
+        }
+        
         return out;
     }
     
