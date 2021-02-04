@@ -497,7 +497,7 @@ public class AIMLProcessor
         String pattern = getAttributeOrTagValue(node, ps, "pattern");
         Integer group = null;
         
-        log.info("regex pattern: " + pattern + "parameter name: " + parameter + " group: " + group + "  parameter: " + ps.chatSession.predicates.get(parameter));
+        
         
         try 
         { 
@@ -517,8 +517,14 @@ public class AIMLProcessor
             if(matcher.matches())
                 out =  matcher.group(group);
             else
-                out = "ERR";
+                out = "";
         }
+        
+        log.info("regex pattern: " + pattern 
+                + "parameter name: " + parameter 
+                + " group: " + group 
+                + "  parameter: " + ps.chatSession.predicates.get(parameter)
+                + " output: " + out);
         
         return out;
     }
