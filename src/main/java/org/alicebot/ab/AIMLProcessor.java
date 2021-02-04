@@ -496,16 +496,11 @@ public class AIMLProcessor
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String pattern = getAttributeOrTagValue(node, ps, "pattern");
         Integer group = null;
-        
-        
-        
+                        
         try 
         { 
             group = Integer.parseInt(getAttributeOrTagValue(node, ps, "group")); 
-        } catch (Exception e) 
-        {
-            log.error("regex parseInt exception: " + e.getMessage());
-        }                                        
+        } catch (Exception e) {}                                              
         
         Pattern compiledPattern = Pattern.compile(pattern);
         Matcher matcher = compiledPattern.matcher(ps.chatSession.predicates.get(parameter));
