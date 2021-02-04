@@ -488,21 +488,34 @@ public class AIMLProcessor
         String out = SprintUtils.predictSupervisedModel(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
         return out;
     }
+    
+    
+    
     private static String regex(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String pattern = getAttributeOrTagValue(node, ps, "pattern");
         Integer group = null;
-        try { group = Integer.parseInt(getAttributeOrTagValue(node, ps, "group")); } catch (Exception e) {}
-                                
+        
         log.info("regex pattern: " + pattern + "parameter name: " + parameter + " group: " + group + "  parameter: " + ps.chatSession.predicates.get(parameter));
         
-        Pattern compiledPattern = Pattern.compile("[A-Z 0-9-./\\s]+");
+        try 
+        { 
+            group = Integer.parseInt(getAttributeOrTagValue(node, ps, "group")); 
+        } catch (Exception e) 
+        {
+            log.error("regex parseInt exception: " + e.getMessage());
+        }                                        
+        
+        Pattern compiledPattern = Pattern.compile(pattern);
         Matcher matcher = compiledPattern.matcher(ps.chatSession.predicates.get(parameter));
         
         String out = Boolean.toString(matcher.matches());
         
-        if (group != null) return matcher.group(group);
+        if(matcher.matches() && group != null)
+            out =  matcher.group(group);
+        else
+            out = "ERR";
         
         return out;
     }
