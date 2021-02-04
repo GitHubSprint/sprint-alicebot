@@ -492,13 +492,18 @@ public class AIMLProcessor
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String pattern = getAttributeOrTagValue(node, ps, "pattern");
+        Integer group = null;
+        try { group = Integer.parseInt(getAttributeOrTagValue(node, ps, "group")); } catch (Exception e) {}
                                 
-        log.info("regex pattern: " + pattern + "parameter name: " + parameter + "  parameter: " + ps.chatSession.predicates.get(parameter));
+        log.info("regex pattern: " + pattern + "parameter name: " + parameter + " group: " + group + "  parameter: " + ps.chatSession.predicates.get(parameter));
         
         Pattern compiledPattern = Pattern.compile("[A-Z 0-9-./\\s]+");
         Matcher matcher = compiledPattern.matcher(ps.chatSession.predicates.get(parameter));
         
         String out = Boolean.toString(matcher.matches());
+        
+        if (group != null) return matcher.group(group);
+        
         return out;
     }
     
