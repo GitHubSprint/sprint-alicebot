@@ -63,7 +63,7 @@ public class SprintUtils {
      */
     public static String predictSupervisedModel(String model, String nBest, String threshold, String score, String parameter, String sessionId)
     {
-        String out = "KO|Empty";
+        String out = "ERR Null";
         
         
         try {                                    
@@ -88,11 +88,11 @@ public class SprintUtils {
                 
                 if(iScore >= iMinScore)
                 {                    
-                    out= "MLOK" + iScore + "|" + pair.getLabel(); 
+                    out= pair.getLabel() + " " + pair.getScore(); 
                     break;
                 }
                 else
-                    out= "MLKO" + iScore + "|" + parameter;                     
+                    out= parameter + " " + pair.getScore();                     
             }                        
             
         } catch (Exception e) {
