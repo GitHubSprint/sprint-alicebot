@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import pl.sprint.sprintvalidator.Validator;
 
 /**
  * The core AIML parser and interpreter.
@@ -490,7 +491,13 @@ public class AIMLProcessor
     }
     
     
-    
+    /**
+     * Regex
+     * @param node
+     * @param ps
+     * @return
+     * @throws IOException 
+     */
     private static String regex(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
@@ -515,10 +522,167 @@ public class AIMLProcessor
                 out = "";
         }
         
-        log.info("regex pattern: " + pattern 
+        log.info("regex pattern name: " + pattern 
                 + "parameter name: " + parameter 
-                + " group: " + group 
+                + "  group: " + group 
                 + "  parameter: " + ps.chatSession.predicates.get(parameter)
+                + " output: " + out);
+        
+        return out;
+    }
+    
+    /**
+     * Levenshtein distance words compare 
+     * @param node
+     * @param ps
+     * @return distance in %
+     * @throws IOException 
+     */
+    private static String compare(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String word = getAttributeOrTagValue(node, ps, "word");        
+                        
+        
+        Integer comp = (int)(Validator.compareWords(ps.chatSession.predicates.get(parameter), ps.chatSession.predicates.get(word)) * 100);
+                
+        
+        String out = comp.toString(); 
+                        
+        log.info("compare word name: " + word 
+                + "parameter name: " + parameter                 
+                + "  parameter: " + ps.chatSession.predicates.get(parameter)
+                + "  word: " + ps.chatSession.predicates.get(word)
+                + " output: " + out);
+        
+        return out;
+    }
+    
+    /**
+     * Validate PESEL
+     * @param node
+     * @param ps
+     * @return PESEL or ""
+     * @throws IOException 
+     */
+    
+    private static String pesel(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String pesel = ps.chatSession.predicates.get(parameter);                                           
+                
+        String out = Validator.pesel(pesel); 
+        if(out == null)
+            out = ""; 
+                        
+        log.info("pesel "
+                + " parameter name: " + parameter                 
+                + " parameter: " + pesel
+                + " output: " + out);
+        
+        return out;
+    }
+    
+    /**
+     * Returns sex form PESEL
+     * @param node
+     * @param ps
+     * @return M = Men, K = Woman, "" = invalid pesel
+     * @throws IOException 
+     */    
+    private static String sexpesel(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String pesel = ps.chatSession.predicates.get(parameter);                                           
+                
+        String out = Validator.getSexByPesel(pesel); 
+        if(out == null)
+            out = ""; 
+                        
+        log.info("sexpesel "
+                + " parameter name: " + parameter                 
+                + " parameter: " + pesel
+                + " output: " + out);
+        
+        return out;
+    }
+    private static String nip(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String nip = ps.chatSession.predicates.get(parameter);                                           
+            
+        String out = ""; 
+        if(Validator.isNipValid(nip))
+            out = nip;                  
+                        
+        log.info("nip "
+                + " parameter name: " + parameter                 
+                + " parameter: " + nip
+                + " output: " + out);
+        
+        return out;
+    }
+    
+    private static String nums(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String nums = ps.chatSession.predicates.get(parameter);                                           
+                
+        String out = Validator.nums(nums); 
+        if(out == null)
+            out = ""; 
+                        
+        log.info("nums "
+                + " parameter name: " + parameter                 
+                + " parameter: " + nums
+                + " output: " + out);
+        
+        return out;
+    }
+    
+    /**
+     * Check is valid phone number 9 digits
+     * @param node
+     * @param ps
+     * @return
+     * @throws IOException 
+     */
+    
+    private static String phone(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String phone = ps.chatSession.predicates.get(parameter);                                           
+                
+        String out = Validator.phone(phone); 
+        if(out == null)
+            out = ""; 
+                        
+        log.info("phone "
+                + " parameter name: " + parameter                 
+                + " parameter: " + phone
+                + " output: " + out);
+        
+        return out;
+    }
+    private static String datetext(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
+        String format = getAttributeOrTagValue(node, ps, "format");
+        boolean isPast = Boolean.parseBoolean(getAttributeOrTagValue(node, ps, "ispast"));
+                
+        String _date = ps.chatSession.predicates.get(parameter);  
+              
+               
+        
+        String out = Validator.dateFormat(_date, format, isPast); 
+        if(out == null)
+            out = ""; 
+                        
+        log.info("datetext "
+                + " parameter name: " + parameter                                
+                + " date: " + _date
+                + " format: " + format
+                + " isPast: " + isPast
                 + " output: " + out);
         
         return out;
@@ -1196,6 +1360,8 @@ public class AIMLProcessor
                 return vocabulary(node, ps);
             else if (nodeName.equals("program"))
                 return program(node, ps);
+            
+                
             //sprint modyfikcation start
             else if(nodeName.equals("getall"))
                 return getall(node, ps); //sprint
@@ -1207,6 +1373,22 @@ public class AIMLProcessor
                 return predictf(node, ps);
             else if (nodeName.equals("regex")) //sprint
                 return regex(node, ps);
+            else if (nodeName.equals("pesel")) //sprint NEW
+                return pesel(node, ps);
+            else if (nodeName.equals("nip")) //sprint NEW
+                return nip(node, ps);
+            else if (nodeName.equals("compare")) //sprint NEW
+                return compare(node, ps);
+            else if (nodeName.equals("nums")) //sprint NEW
+                return nums(node, ps);
+            else if (nodeName.equals("phone")) //sprint NEW
+                return phone(node, ps);
+            else if (nodeName.equals("sexpesel")) //sprint NEW
+                return sexpesel(node, ps);
+            else if (nodeName.equals("datetext")) //sprint NEW
+                return datetext(node, ps);
+            
+
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
                 return interval(node, ps);
