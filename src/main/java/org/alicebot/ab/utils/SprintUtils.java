@@ -88,11 +88,11 @@ public class SprintUtils {
                 
                 if(iScore >= iMinScore)
                 {                    
-                    out= pair.getLabel() + " " + pair.getScore(); 
+                    out= pair.getLabel() + " " + iScore; 
                     break;
                 }
                 else
-                    out= parameter + " " + pair.getScore();                     
+                    out= parameter + " " + iScore;                     
             }                        
             
         } catch (Exception e) {
