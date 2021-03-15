@@ -541,21 +541,33 @@ public class AIMLProcessor
     private static String compare(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        String word = getAttributeOrTagValue(node, ps, "word");        
-                        
+        String word = getAttributeOrTagValue(node, ps, "word");
+        String minAccuracy = getAttributeOrTagValue(node, ps, "minaccuracy");
+       
+        String param = ps.chatSession.predicates.get(parameter);
+        int min = 90; 
         
-        Integer comp = (int)(Validator.compareWords(ps.chatSession.predicates.get(parameter), ps.chatSession.predicates.get(word)) * 100);
+        try {
+            min = Integer.parseInt(minAccuracy); 
+        } catch (Exception e) {
+            log.error("compare parseInt Exceltion setting to default 90.");
+            min = 90; 
+        }                
+        
+        int comp = (int)(Validator.compareWords(param, ps.chatSession.predicates.get(word)) * 100);
                 
         
-        String out = comp.toString(); 
+        if(comp < min)
+            param = "";
                         
         log.info("compare word name: " + word 
                 + "parameter name: " + parameter                 
                 + "  parameter: " + ps.chatSession.predicates.get(parameter)
+                + "  compare value: " + comp
                 + "  word: " + ps.chatSession.predicates.get(word)
-                + " output: " + out);
+                + " param: " + param);
         
-        return out;
+        return param;
     }
     
     /**
@@ -1244,6 +1256,41 @@ public class AIMLProcessor
         if (loopCnt >= MagicNumbers.max_loops) result = MagicStrings.too_much_looping();
         return result;
     }
+    /**
+     * implements {@code <comparecondition> with <loop/>}
+     * re-evaluate the compare conditional statement until the response does not contain {@code <loop/>}
+     *
+     * @param node     current XML parse node
+     * @param ps       AIML parse state
+     * @return         result of conditional expression
+     */
+    private static String loopCmpareCondition(Node node, ParseState ps) {
+        boolean loop = true;
+        
+        String minAccuracy = getAttributeOrTagValue(node, ps, "minaccuracy");        
+        int min = 90;         
+        try {
+            min = Integer.parseInt(minAccuracy); 
+        } catch (Exception e) {
+            log.error("compare parseInt Exceltion setting to default 90.");
+            min = 90; 
+        }    
+        
+        String result="";
+        int loopCnt = 0;
+        while (loop && loopCnt < MagicNumbers.max_loops) {
+            String loopResult = compareCondition(node, ps, min);
+            if (loopResult.trim().equals(MagicStrings.too_much_recursion())) return MagicStrings.too_much_recursion();
+            if (loopResult.contains("<loop/>")) {
+                loopResult = loopResult.replace("<loop/>","");
+                loop = true;
+            }
+            else loop = false;
+            result += loopResult;
+        }
+        if (loopCnt >= MagicNumbers.max_loops) result = MagicStrings.too_much_looping();
+        return result;
+    }
 
     /**
      * implements all 3 forms of the {@code <condition> tag}
@@ -1292,6 +1339,67 @@ public class AIMLProcessor
                         (ps.chatSession.predicates.containsKey(liPredicate) && value.equals("*"))))
                     return evalTagContent(n, ps, attributeNames);
                 else if (liVarName != null && value != null && (ps.vars.get(liVarName).equals(value) ||
+                        (ps.vars.containsKey(liPredicate) && value.equals("*"))))
+                    return evalTagContent(n, ps, attributeNames);
+            }
+            else  // this is a terminal <li> with no predicate or value, i.e. the default condition.
+                return evalTagContent(n, ps, attributeNames);
+        }
+        return "";
+
+    }
+    /**
+     * implements all 3 forms of the {@code <comparecondition> tag}
+     * In AIML 2.0 the conditional may return a {@code <loop/>}
+     *
+     * @param node     current XML parse node
+     * @param ps       AIML parse state
+     * @return         result of conditional expression
+     */
+    private static String compareCondition(Node node, ParseState ps, int minAccuracy) {
+        String result="";
+                        
+        NodeList childList = node.getChildNodes();
+        ArrayList<Node> liList = new ArrayList<Node>();
+        String predicate=null, varName=null, value=null; //Node p=null, v=null;
+        HashSet<String> attributeNames = Utilities.stringSet("name", "var", "value");
+        // First check if the <condition> has an attribute "name".  If so, get the predicate name.
+        predicate = getAttributeOrTagValue(node, ps, "name");
+        varName = getAttributeOrTagValue(node, ps, "var");
+        // Make a list of all the <li> child nodes:
+        for (int i = 0; i < childList.getLength(); i++)
+            if (childList.item(i).getNodeName().equals("li")) liList.add(childList.item(i));
+        // if there are no <li> nodes, this is a one-shot condition.
+        if (liList.isEmpty() && (value = getAttributeOrTagValue(node, ps, "value")) != null   &&
+                   predicate != null  &&
+                   ps.chatSession.predicates.get(predicate).equals(value))  {
+                   return evalTagContent(node, ps, attributeNames);
+        }
+        else if (liList.isEmpty() && (value = getAttributeOrTagValue(node, ps, "value")) != null   &&
+                varName != null  &&
+                ps.vars.get(varName).equals(value))  {
+            return evalTagContent(node, ps, attributeNames);
+        }
+        // otherwise this is a <condition> with <li> items:
+        else for (int i = 0; i < liList.size() && result.equals(""); i++) {
+            Node n = liList.get(i);
+            String liPredicate = predicate;
+            String liVarName = varName;
+            if (liPredicate == null) liPredicate = getAttributeOrTagValue(n, ps, "name");
+            if (liVarName == null) liVarName = getAttributeOrTagValue(n, ps, "var");
+            value = getAttributeOrTagValue(n, ps, "value");
+            
+            if (value != null) {
+                // if the predicate equals the value, return the <li> item.
+                int compPredicate = (int)(Validator.compareWords(ps.chatSession.predicates.get(liPredicate), value) * 100);
+                int compVarname = (int)(Validator.compareWords(ps.vars.get(liVarName), value) * 100);
+                
+                log.info("condition name="+liPredicate+" value="+value + " compPredicate: " + compPredicate + " compVarname: " + compVarname);
+                
+                if (liPredicate != null && (compPredicate >= minAccuracy ||
+                        (ps.chatSession.predicates.containsKey(liPredicate) && value.equals("*"))))
+                    return evalTagContent(n, ps, attributeNames);
+                else if (liVarName != null && (compVarname >= minAccuracy ||
                         (ps.vars.containsKey(liPredicate) && value.equals("*"))))
                     return evalTagContent(n, ps, attributeNames);
             }
@@ -1387,7 +1495,8 @@ public class AIMLProcessor
                 return sexpesel(node, ps);
             else if (nodeName.equals("datetext")) //sprint NEW
                 return datetext(node, ps);
-            
+            else if (nodeName.equals("compare-condition"))
+                return loopCmpareCondition(node, ps);
 
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
