@@ -556,18 +556,19 @@ public class AIMLProcessor
         
         int comp = (int)(Validator.compareWords(param, ps.chatSession.predicates.get(word)) * 100);
                 
+        String out = "OK";
         
         if(comp < min)
-            param = "";
+            out = "KO";
                         
         log.info("compare word name: " + word 
-                + "parameter name: " + parameter                 
+                + " parameter name: " + parameter                 
                 + "  parameter: " + ps.chatSession.predicates.get(parameter)
                 + "  compare value: " + comp
                 + "  word: " + ps.chatSession.predicates.get(word)
-                + " param: " + param);
+                + " out: " + param);
         
-        return param;
+        return out;
     }
     
     /**
@@ -649,6 +650,46 @@ public class AIMLProcessor
                 + " parameter: " + nums
                 + " output: " + out);
         
+        return out;
+    }
+    private static String increment(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String nums = ps.chatSession.predicates.get(parameter);                                           
+                
+        String out = Validator.nums(nums); 
+        if(out == null)
+            return ""; 
+                        
+        log.info("increment "
+                + " parameter name: " + parameter                 
+                + " parameter: " + nums
+                + " output: " + out);
+        
+        int i = Integer.parseInt(out);
+        i++;
+        
+        out = String.valueOf(i);                
+        return out;
+    }
+    private static String decrement(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String nums = ps.chatSession.predicates.get(parameter);                                           
+                
+        String out = Validator.nums(nums); 
+        if(out == null)
+            return ""; 
+                        
+        log.info("increment "
+                + " parameter name: " + parameter                 
+                + " parameter: " + nums
+                + " output: " + out);
+        
+        int i = Integer.parseInt(out);
+        i++;
+        
+        out = String.valueOf(i);                
         return out;
     }
     
@@ -1497,6 +1538,10 @@ public class AIMLProcessor
                 return datetext(node, ps);
             else if (nodeName.equals("compare-condition"))
                 return loopCmpareCondition(node, ps);
+            else if (nodeName.equals("increment"))
+                return increment(node, ps);
+            else if (nodeName.equals("decrement"))
+                return decrement(node, ps);
 
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
