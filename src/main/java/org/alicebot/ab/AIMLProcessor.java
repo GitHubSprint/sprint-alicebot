@@ -823,13 +823,18 @@ public class AIMLProcessor
         
         return result;
     }
-    private static String datetext(Node node, ParseState ps) throws IOException
+    private static String datetext(Node node, ParseState ps)
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         String format = getAttributeOrTagValue(node, ps, "format");
         boolean isPast = Boolean.parseBoolean(getAttributeOrTagValue(node, ps, "ispast"));
-                
+        
+        if(format == null)
+            format="dd/MM/yyyy"; 
+        
         String _date = ps.chatSession.predicates.get(parameter);  
+        
+        log.info("data: " + _date + " parameter: " + parameter);
         
         String result = MagicStrings.unknown_property_value; 
         if(parameter == null)
@@ -840,8 +845,16 @@ public class AIMLProcessor
                                                        
         if(_date.equals(MagicStrings.unknown_property_value))
             _date = parameter; 
-                       
-        result = Validator.dateFormat(_date, format, isPast); 
+        
+        
+        log.info("data: " + _date + " parameter: " + parameter);
+        
+        try {
+            result = Validator.dateFormat(_date, format, isPast); 
+        } catch (Exception e) {
+            log.warn("datetext error: " + e.getMessage());
+        }
+        
         if(result == null)
             result = MagicStrings.unknown_property_value;
                         
