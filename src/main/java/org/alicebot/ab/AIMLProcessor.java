@@ -830,10 +830,18 @@ public class AIMLProcessor
         boolean isPast = Boolean.parseBoolean(getAttributeOrTagValue(node, ps, "ispast"));
                 
         String _date = ps.chatSession.predicates.get(parameter);  
-              
-               
         
-        String result = Validator.dateFormat(_date, format, isPast); 
+        String result = MagicStrings.unknown_property_value; 
+        if(parameter == null)
+        {
+            log.warn("datetext error empty parameter!");
+            return result; 
+        }
+                                                       
+        if(_date.equals(MagicStrings.unknown_property_value))
+            _date = parameter; 
+                       
+        result = Validator.dateFormat(_date, format, isPast); 
         if(result == null)
             result = MagicStrings.unknown_property_value;
                         
