@@ -717,6 +717,22 @@ public class AIMLProcessor
         
         return out;
     }
+    private static String bankaccount(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String account = ps.chatSession.predicates.get(parameter);                                           
+                
+        String out = Validator.bankAccount(account); 
+        if(out == null)
+            out = ""; 
+                        
+        log.info("bankaccount "
+                + " parameter name: " + parameter                 
+                + " parameter: " + account
+                + " output: " + out);
+        
+        return out;
+    }
     private static String datetext(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
@@ -1532,6 +1548,8 @@ public class AIMLProcessor
                 return nums(node, ps);
             else if (nodeName.equals("phone")) //sprint NEW
                 return phone(node, ps);
+            else if (nodeName.equals("bankaccount")) //sprint NEW
+                return bankaccount(node, ps);
             else if (nodeName.equals("sexpesel")) //sprint NEW
                 return sexpesel(node, ps);
             else if (nodeName.equals("datetext")) //sprint NEW
