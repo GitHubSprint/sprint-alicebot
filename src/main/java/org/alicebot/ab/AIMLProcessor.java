@@ -572,6 +572,108 @@ public class AIMLProcessor
         
         return out;
     }
+    /**
+     * Compare two digits
+     * @param node
+     * @param ps
+     * @return
+     * @throws IOException 
+     */
+    private static String lessthan(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String comparator = getAttributeOrTagValue(node, ps, "comparator");
+        
+        String result = MagicStrings.unknown_property_value; 
+        
+        if(parameter == null || comparator == null)
+        {
+            log.warn("lessthan error empty parameter or comparator!");
+            return result;
+        }
+       
+        String _parameter = ps.chatSession.predicates.get(parameter);
+        String _comparator = ps.chatSession.predicates.get(comparator);
+        
+        if(_parameter.equals(MagicStrings.unknown_property_value))
+            _parameter = parameter; 
+        
+        if(_comparator.equals(MagicStrings.unknown_property_value))
+            _comparator = comparator; 
+        
+        int par, com; 
+        try {
+            par = Integer.parseInt(_parameter); 
+            com = Integer.parseInt(_comparator); 
+        } catch (Exception e) {
+            log.warn("lessthan error invalid parameter or comparator!");
+            return result;
+        }
+                                
+        if(par < com)
+            result = "true";
+        else
+            result = "false";
+                        
+        log.info("lessthan comparator name: " + comparator
+                + " parameter name: " + parameter                 
+                + "  parameter value: " + par
+                + "  comparator value: " + com                
+                + " result: " + result);
+        
+        return result;
+    }
+    /**
+     * Compare two digits
+     * @param node
+     * @param ps
+     * @return
+     * @throws IOException 
+     */
+    private static String greatherthan(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String comparator = getAttributeOrTagValue(node, ps, "comparator");
+        
+        String result = MagicStrings.unknown_property_value; 
+        
+        if(parameter == null || comparator == null)
+        {
+            log.warn("greatherthan error empty parameter or comparator!");
+            return result;
+        }
+       
+        String _parameter = ps.chatSession.predicates.get(parameter);
+        String _comparator = ps.chatSession.predicates.get(comparator);
+        
+        if(_parameter.equals(MagicStrings.unknown_property_value))
+            _parameter = parameter; 
+        
+        if(_comparator.equals(MagicStrings.unknown_property_value))
+            _comparator = comparator; 
+        
+        int par, com; 
+        try {
+            par = Integer.parseInt(_parameter); 
+            com = Integer.parseInt(_comparator); 
+        } catch (Exception e) {
+            log.warn("greatherthan error invalid parameter or comparator!");
+            return result;
+        }
+                                
+        if(par > com)
+            result = "true";
+        else
+            result = "false";
+                        
+        log.info("greatherthan comparator name: " + comparator
+                + " parameter name: " + parameter                 
+                + "  parameter value: " + par
+                + "  comparator value: " + com                
+                + " result: " + result);
+        
+        return result;
+    }
     
     /**
      * Validate PESEL
@@ -609,12 +711,40 @@ public class AIMLProcessor
                                         
         return result;
     }
+    private static String currency(Node node, ParseState ps) throws IOException
+    {
+        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");          
+        String input = ps.chatSession.predicates.get(parameter);                                           
+        
+        String result = MagicStrings.unknown_property_value; 
+        if(parameter == null)
+        {
+            log.warn("currency error empty parameter!");
+            return result; 
+        }
+                                                       
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter; 
+        
+        result = Validator.currency(input);
+        
+        log.info("currency "
+                + " parameter name: " + parameter                 
+                + " parameter: " + input
+                + " result: " + result);
+        
+        if(result == null)
+            result = MagicStrings.unknown_property_value; 
+                                        
+        return result;
+    }
     
     /**
      * Returns sex form PESEL
      * @param node
      * @param ps
-     * @return M = Men, K = Woman, "unknown" = invalid pesel
+     * @return M = Men, K = Woman, "unknown" = invalid input
      * @throws IOException 
      */    
     private static String sexpesel(Node node, ParseState ps) throws IOException
@@ -1651,6 +1781,7 @@ public class AIMLProcessor
                 return regex(node, ps);
             else if (nodeName.equals("pesel")) //sprint NEW
                 return pesel(node, ps);
+            
             else if (nodeName.equals("nip")) //sprint NEW
                 return nip(node, ps);
             else if (nodeName.equals("compare")) //sprint NEW
@@ -1671,6 +1802,13 @@ public class AIMLProcessor
                 return increment(node, ps);
             else if (nodeName.equals("decrement"))
                 return decrement(node, ps);
+            else if (nodeName.equals("lessthan"))
+                return lessthan(node, ps);
+            else if (nodeName.equals("greatherthan"))
+                return greatherthan(node, ps);
+            else if (nodeName.equals("currency"))
+                return currency(node, ps);
+            
 
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
