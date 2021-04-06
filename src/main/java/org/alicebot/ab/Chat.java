@@ -178,7 +178,7 @@ public class Chat {
         try {
         String norm = bot.preProcessor.normalize(request);
         //norm = JapaneseTokenizer.morphSentence(norm);
-        log.debug("normalized = "+norm);
+        log.debug("request = " + request + " normalized = "+norm);
         String sentences[] = bot.preProcessor.sentenceSplit(norm);
         History<String> contextThatHistory = new History<String>("contextThat");
         for (int i = 0; i < sentences.length; i++) {

@@ -46,7 +46,7 @@ public class SprintUtils {
             temp = Normalizer.normalize(src.replaceAll("[łŁ]", "l"), Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");   
         }
             
-        temp = temp.replaceAll("[?]", "").replaceAll("[!]", "").replaceAll("[.]", "");
+        temp = temp.replaceAll("[?]", " ").replaceAll("[!]", " ").replaceAll("[.]", " ");
                              
         return temp;
     }  
