@@ -630,7 +630,7 @@ public class AIMLProcessor
      * @return
      * @throws IOException 
      */
-    private static String greatherthan(Node node, ParseState ps) throws IOException
+    private static String greaterthan(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String comparator = getAttributeOrTagValue(node, ps, "comparator");
@@ -1806,8 +1806,8 @@ public class AIMLProcessor
                 return decrement(node, ps);
             else if (nodeName.equals("lessthan"))
                 return lessthan(node, ps);
-            else if (nodeName.equals("greatherthan"))
-                return greatherthan(node, ps);
+            else if (nodeName.equals("greaterthan"))
+                return greaterthan(node, ps);
             else if (nodeName.equals("currency"))
                 return currency(node, ps);
             
