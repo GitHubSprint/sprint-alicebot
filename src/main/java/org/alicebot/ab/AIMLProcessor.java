@@ -39,6 +39,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import pl.sprint.sprintvalidator.Validator;
+import pl.sprint.sprintvalidator.nums.NumbersToWordsPL;
 
 /**
  * The core AIML parser and interpreter.
@@ -471,6 +472,13 @@ public class AIMLProcessor
         return result;
     }
     
+    private static String checkEmpty(String in)
+    {
+        if(in == null || in.length() ==0)
+            return MagicStrings.unknown_property_value;
+        return in;
+    }
+    
     /**
      * FastText ML integration 
      * implements <predictf model="tak-nie-model" nbest="2" threshold="0.0" score="1.0" parameter="hello"/>
@@ -489,7 +497,8 @@ public class AIMLProcessor
                         
         log.info("predictf model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score + " value: " + ps.chatSession.predicates.get(parameter));
         String out = SprintUtils.predictSupervisedModel(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
-        return out;
+                        
+        return checkEmpty(out);
     }
     
     
@@ -686,60 +695,119 @@ public class AIMLProcessor
      */
     
     private static String pesel(Node node, ParseState ps) throws IOException
-    {
-        
+    {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        String pesel = ps.chatSession.predicates.get(parameter);                                           
-            
-        String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("pesel error empty parameter!");
-            return result; 
-        }
+                                                                     
+        String pesel; 
+        if(parameter == null)        
+            pesel = evalTagContent(node, ps, null);     
+        else
+            pesel = ps.chatSession.predicates.get(parameter);  
                                                        
         if(pesel.equals(MagicStrings.unknown_property_value))
             pesel = parameter; 
         
-        result = Validator.pesel(pesel); 
+        String result = Validator.pesel(pesel); 
         
         log.info("pesel "
                 + " parameter name: " + parameter                 
                 + " parameter: " + pesel
-                + " result: " + result);
-        
-        if(result == null)
-            result = MagicStrings.unknown_property_value; 
+                + " result: " + result);                 
                                         
-        return result;
+        return checkEmpty(result);
     }
+    
+    
     private static String currency(Node node, ParseState ps) throws IOException
     {
         
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");          
-        String input = ps.chatSession.predicates.get(parameter);                                           
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");                                                     
         
-        String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("currency error empty parameter!");
-            return result; 
-        }
+        String input; 
+        if(parameter == null)        
+            input = evalTagContent(node, ps, null);     
+        else
+            input = ps.chatSession.predicates.get(parameter);  
                                                        
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter; 
         
-        result = Validator.currency(input);
+        String result = Validator.currency(input);
         
         log.info("currency "
                 + " parameter name: " + parameter                 
                 + " parameter: " + input
-                + " result: " + result);
-        
-        if(result == null)
-            result = MagicStrings.unknown_property_value; 
+                + " result: " + result);             
                                         
-        return result;
+        return checkEmpty(result);
+    }
+    private static String txt2num(Node node, ParseState ps) throws IOException
+    {
+        String language = getAttributeOrTagValue(node, ps, "language");
+        String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
+        
+        
+        if(language == null || language.length() ==0)
+            language = "PL";
+        
+        language = language.toUpperCase(); 
+        
+        String input; 
+        if(parameter == null)        
+            input = evalTagContent(node, ps, null);     
+        else
+            input = ps.chatSession.predicates.get(parameter);  
+                                                       
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;  
+                                        
+        String result = Validator.WordsToNumbers(language, input); 
+        
+        log.info("txt2num "
+                + " parameter: " + parameter                 
+                + " input: " + input
+                + " result: " + result);                
+                                        
+        return checkEmpty(result);
+    }
+    
+    
+    
+    private static String num2txt(Node node, ParseState ps) throws IOException
+    {
+        String language = getAttributeOrTagValue(node, ps, "language");
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");           
+         
+        if(language == null || language.length() ==0)
+            language = "PL";
+        
+        language = language.toUpperCase(); 
+        
+        String input; 
+        if(parameter == null)        
+            input = evalTagContent(node, ps, null);     
+        else
+            input = ps.chatSession.predicates.get(parameter);  
+                                                       
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter; 
+                       
+        long  num = 0;
+        try {
+            num = Long.parseLong(input);
+        } catch (Exception ex) {
+            log.error("num2txt Error : " + ex, ex); 
+            return MagicStrings.unknown_property_value; 
+        }
+        
+        String result = Validator.NumbersToWords(language, num); 
+        
+        log.info("num2txt "
+                + " parameter: " + parameter                 
+                + " input: " + input
+                + " result: " + result);                
+                                        
+        return checkEmpty(result);
     }
     
     /**
@@ -752,103 +820,92 @@ public class AIMLProcessor
     private static String sexpesel(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        String pesel = ps.chatSession.predicates.get(parameter);                                           
         
-        String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("sexpesel error empty parameter!");
-            return result; 
-        }
+        String pesel; 
+        if(parameter == null)        
+            pesel = evalTagContent(node, ps, null);     
+        else
+            pesel = ps.chatSession.predicates.get(parameter);  
                                                        
         if(pesel.equals(MagicStrings.unknown_property_value))
             pesel = parameter; 
-        
-        result = Validator.getSexByPesel(pesel); 
-        
-        if(result == null)
-            result = MagicStrings.unknown_property_value;
+                        
+        String result = Validator.getSexByPesel(pesel);                
                         
         log.info("sexpesel "
-                + " parameter name: " + parameter                 
-                + " parameter: " + pesel
+                + " parameter: " + parameter                 
+                + " pesel: " + pesel
                 + " result: " + result);
         
-        return result;
+        return checkEmpty(result);
     }
     private static String nip(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        String nip = ps.chatSession.predicates.get(parameter);                                                       
-                
-        String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("nip error empty parameter!");
-            return result; 
-        }
+        
+        String nip; 
+        if(parameter == null)        
+            nip = evalTagContent(node, ps, null);     
+        else
+            nip = ps.chatSession.predicates.get(parameter);  
                                                        
         if(nip.equals(MagicStrings.unknown_property_value))
             nip = parameter; 
+        
+        
+        String result = MagicStrings.unknown_property_value; 
         
         if(Validator.isNipValid(nip))
             result = nip;                  
                         
         log.info("nip "
-                + " parameter name: " + parameter                 
-                + " parameter: " + nip
+                + " parameter: " + parameter                 
+                + " nip: " + nip
                 + " result: " + result);
         
-        return result;
+        return checkEmpty(result);
     }
     
     private static String nums(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        String nums = ps.chatSession.predicates.get(parameter);                                           
         
-        String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("nums error empty parameter!");
-            return result; 
-        }
+        String nums; 
+        if(parameter == null)        
+            nums = evalTagContent(node, ps, null);     
+        else
+            nums = ps.chatSession.predicates.get(parameter);  
                                                        
         if(nums.equals(MagicStrings.unknown_property_value))
             nums = parameter; 
         
-        result = Validator.nums(nums); 
+        String result = Validator.nums(nums); 
         
         log.info("nums "
-                + " parameter name: " + parameter                 
-                + " parameter: " + nums
-                + " result: " + result);
-        
-        if(result == null)
-            result = MagicStrings.unknown_property_value; 
+                + " parameter: " + parameter                 
+                + " nums: " + nums
+                + " result: " + result);                
                                         
-        return result;
+        return checkEmpty(result);
     }
     private static String increment(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
-        String nums = ps.chatSession.predicates.get(parameter);
         
-        String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("increment error empty parameter!");
-            return result; 
-        }
+        String nums; 
+        if(parameter == null)        
+            nums = evalTagContent(node, ps, null);     
+        else
+            nums = ps.chatSession.predicates.get(parameter);  
                                                        
         if(nums.equals(MagicStrings.unknown_property_value))
             nums = parameter; 
         
-        result = Validator.nums(nums); 
+        String result = Validator.nums(nums); 
         
         log.info("increment "
-                + " parameter name: " + parameter                 
-                + " parameter: " + nums
+                + " parameter: " + parameter                 
+                + " nums: " + nums
                 + " output: " + result);      
         
         if(result == null)
@@ -863,30 +920,25 @@ public class AIMLProcessor
     private static String decrement(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
-        String nums = ps.chatSession.predicates.get(parameter);
-        
-        String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("decrement error empty parameter!");
-            return result; 
-        }
+        String nums; 
+        if(parameter == null)        
+            nums = evalTagContent(node, ps, null);     
+        else
+            nums = ps.chatSession.predicates.get(parameter);  
                                                        
         if(nums.equals(MagicStrings.unknown_property_value))
             nums = parameter; 
         
-        result = Validator.nums(nums); 
+        String result = Validator.nums(nums); 
         
         log.info("decrement "
-                + " parameter name: " + parameter                 
-                + " parameter: " + nums
+                + " parameter: " + parameter                 
+                + " nums: " + nums
                 + " result: " + result);
         
         if(result == null)
             return MagicStrings.unknown_property_value; 
-             
-        
-                
+                                     
         int i = Integer.parseInt(result);
         i--;
         
@@ -905,55 +957,46 @@ public class AIMLProcessor
     private static String phone(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        String phone = ps.chatSession.predicates.get(parameter);                                           
         
-        String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("phone error empty parameter!");
-            return result; 
-        }
+        String phone; 
+        if(parameter == null)        
+            phone = evalTagContent(node, ps, null);     
+        else
+            phone = ps.chatSession.predicates.get(parameter);  
                                                        
         if(phone.equals(MagicStrings.unknown_property_value))
             phone = parameter; 
         
-        result = Validator.phone(phone); 
-        
-        if(result == null)
-            result = MagicStrings.unknown_property_value;
+        String result = Validator.phone(phone);                 
                         
         log.info("phone "
-                + " parameter name: " + parameter                 
-                + " parameter: " + phone
+                + " parameter: " + parameter                 
+                + " phone: " + phone
                 + " result: " + result);
         
-        return result;
+        return checkEmpty(result);
     }
     private static String bankaccount(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        String account = ps.chatSession.predicates.get(parameter);                                           
         
-        String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("phone error empty parameter!");
-            return result; 
-        }
+        String account; 
+        if(parameter == null)        
+            account = evalTagContent(node, ps, null);     
+        else
+            account = ps.chatSession.predicates.get(parameter);  
                                                        
         if(account.equals(MagicStrings.unknown_property_value))
             account = parameter; 
         
-        result = Validator.bankAccount(account); 
-        if(result == null)
-            result = MagicStrings.unknown_property_value;
-                        
+        String result = Validator.bankAccount(account); 
+        
         log.info("bankaccount "
-                + " parameter name: " + parameter                 
-                + " parameter: " + account
+                + " parameter: " + parameter                 
+                + " account: " + account
                 + " result: " + result);
         
-        return result;
+        return checkEmpty(result);
     }
     private static String datetext(Node node, ParseState ps)
     {        
@@ -964,40 +1007,30 @@ public class AIMLProcessor
         if(format == null)
             format="dd/MM/yyyy"; 
         
-        String _date = ps.chatSession.predicates.get(parameter);  
-        
-        log.info("data: " + _date + " parameter: " + parameter);
+        String date; 
+        if(parameter == null)        
+            date = evalTagContent(node, ps, null);     
+        else
+            date = ps.chatSession.predicates.get(parameter);  
+                                                       
+        if(date.equals(MagicStrings.unknown_property_value))
+            date = parameter; 
         
         String result = MagicStrings.unknown_property_value; 
-        if(parameter == null)
-        {
-            log.warn("datetext error empty parameter!");
-            return result; 
-        }
-                                                       
-        if(_date.equals(MagicStrings.unknown_property_value))
-            _date = parameter; 
-        
-        
-        log.info("data: " + _date + " parameter: " + parameter);
-        
         try {
-            result = Validator.dateFormat(_date, format, isPast); 
-        } catch (Exception e) {
-            log.warn("datetext error: " + e.getMessage());
+            result = Validator.dateFormat(date, format, isPast); 
+        } catch (Exception ex) {            
+            log.error("datetext Error : " + ex, ex);             
         }
-        
-        if(result == null)
-            result = MagicStrings.unknown_property_value;
-                        
+                                        
         log.info("datetext "
-                + " parameter name: " + parameter                                
-                + " date: " + _date
+                + " parameter: " + parameter                                
+                + " date: " + date
                 + " format: " + format
                 + " isPast: " + isPast
                 + " output: " + result);
         
-        return result;
+        return checkEmpty(result);
     }
     
     /**
@@ -1024,7 +1057,6 @@ public class AIMLProcessor
         {
             out = out.substring(parameter.length());
         }
-
         
         return out;
     }
@@ -1810,6 +1842,10 @@ public class AIMLProcessor
                 return greaterthan(node, ps);
             else if (nodeName.equals("currency"))
                 return currency(node, ps);
+            else if (nodeName.equals("txt2num"))
+                return txt2num(node, ps);
+            else if (nodeName.equals("num2txt"))
+                return num2txt(node, ps);
             
 
             //sprint modyfikcation stop
