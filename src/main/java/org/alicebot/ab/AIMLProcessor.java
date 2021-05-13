@@ -514,14 +514,33 @@ public class AIMLProcessor
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String pattern = getAttributeOrTagValue(node, ps, "pattern");
         Integer group = null;
-                        
+         
+        if(pattern == null)
+        {
+            log.warn("invalid patter");
+            return MagicStrings.unknown_property_value;
+        }
+        
         try 
         { 
             group = Integer.parseInt(getAttributeOrTagValue(node, ps, "group")); 
-        } catch (Exception e) {}                                              
+        } catch (Exception e) {
+            log.warn("regex parseInt Exceltion setting to default 0.");
+        } 
+        
+        
+        String input; 
+        if(parameter == null)        
+            input = evalTagContent(node, ps, null);     
+        else
+            input = ps.chatSession.predicates.get(parameter);  
+                                                       
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter; 
+        
         
         Pattern compiledPattern = Pattern.compile(pattern);
-        Matcher matcher = compiledPattern.matcher(ps.chatSession.predicates.get(parameter));
+        Matcher matcher = compiledPattern.matcher(input);
         
         String result = Boolean.toString(matcher.matches());
         
@@ -533,13 +552,13 @@ public class AIMLProcessor
                 result = MagicStrings.unknown_property_value; 
         }
         
-        log.info("regex pattern name: " + pattern 
-                + "parameter name: " + parameter 
+        log.info("regex pattern: " + pattern 
+                + " parameter: " + parameter 
                 + "  group: " + group 
-                + "  parameter: " + ps.chatSession.predicates.get(parameter)
+                + "  input: " + input
                 + " output: " + result);
         
-        return result;
+        return checkEmpty(result);
     }
     
     /**
@@ -852,11 +871,8 @@ public class AIMLProcessor
         if(nip.equals(MagicStrings.unknown_property_value))
             nip = parameter; 
         
-        
-        String result = MagicStrings.unknown_property_value; 
-        
-        if(Validator.isNipValid(nip))
-            result = nip;                  
+               
+        String result = Validator.nip(nip); 
                         
         log.info("nip "
                 + " parameter: " + parameter                 
