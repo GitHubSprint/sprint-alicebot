@@ -992,7 +992,7 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
-    private static String time(Node node, ParseState ps) throws IOException
+    private static String time(Node node, ParseState ps) throws Exception
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
