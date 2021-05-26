@@ -963,7 +963,7 @@ public class AIMLProcessor
     }
     
     /**
-     * Check is valid phone number 9 digits
+     * Check is valid time number 9 digits
      * @param node
      * @param ps
      * @return
@@ -988,6 +988,28 @@ public class AIMLProcessor
         log.info("phone "
                 + " parameter: " + parameter                 
                 + " phone: " + phone
+                + " result: " + result);
+        
+        return checkEmpty(result);
+    }
+    private static String time(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        
+        String time; 
+        if(parameter == null)        
+            time = evalTagContent(node, ps, null);     
+        else
+            time = ps.chatSession.predicates.get(parameter);  
+                                                       
+        if(time.equals(MagicStrings.unknown_property_value))
+            time = parameter; 
+        
+        String result = Validator.convertTime(time);                 
+                        
+        log.info("phone "
+                + " parameter: " + parameter                 
+                + " time: " + time
                 + " result: " + result);
         
         return checkEmpty(result);
@@ -1862,6 +1884,8 @@ public class AIMLProcessor
                 return txt2num(node, ps);
             else if (nodeName.equals("num2txt"))
                 return num2txt(node, ps);
+            else if (nodeName.equals("time"))
+                return time(node, ps);
             
 
             //sprint modyfikcation stop
