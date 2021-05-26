@@ -992,7 +992,7 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
-    private static String time(Node node, ParseState ps) throws Exception
+    private static String txt2time(Node node, ParseState ps) throws Exception
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
@@ -1014,6 +1014,8 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
+    
+    
     private static String bankaccount(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
@@ -1036,7 +1038,7 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
-    private static String datetext(Node node, ParseState ps)
+    private static String txt2date(Node node, ParseState ps)
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         String format = getAttributeOrTagValue(node, ps, "format");
@@ -1062,6 +1064,40 @@ public class AIMLProcessor
         }
                                         
         log.info("datetext "
+                + " parameter: " + parameter                                
+                + " date: " + date
+                + " format: " + format
+                + " isPast: " + isPast
+                + " output: " + result);
+        
+        return checkEmpty(result);
+    }
+    private static String txt2datetime(Node node, ParseState ps)
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
+        String format = getAttributeOrTagValue(node, ps, "format");
+        boolean isPast = Boolean.parseBoolean(getAttributeOrTagValue(node, ps, "ispast"));
+        
+        if(format == null)
+            format="dd/MM/yyyy"; 
+        
+        String date; 
+        if(parameter == null)        
+            date = evalTagContent(node, ps, null);     
+        else
+            date = ps.chatSession.predicates.get(parameter);  
+                                                       
+        if(date.equals(MagicStrings.unknown_property_value))
+            date = parameter; 
+        
+        String result = MagicStrings.unknown_property_value; 
+        try {
+            result = Validator.txt2dateTime(date, format, isPast); 
+        } catch (Exception ex) {            
+            log.error("txt2dateTime Error : " + ex, ex);             
+        }
+                                        
+        log.info("txt2dateTime "
                 + " parameter: " + parameter                                
                 + " date: " + date
                 + " format: " + format
@@ -1867,7 +1903,9 @@ public class AIMLProcessor
             else if (nodeName.equals("sexpesel")) //sprint NEW
                 return sexpesel(node, ps);
             else if (nodeName.equals("datetext")) //sprint NEW
-                return datetext(node, ps);
+                return txt2date(node, ps);
+            else if (nodeName.equals("txt2date")) //sprint NEW
+                return txt2date(node, ps);
             else if (nodeName.equals("compare-condition"))
                 return loopCmpareCondition(node, ps);
             else if (nodeName.equals("increment"))
@@ -1884,9 +1922,11 @@ public class AIMLProcessor
                 return txt2num(node, ps);
             else if (nodeName.equals("num2txt"))
                 return num2txt(node, ps);
-            else if (nodeName.equals("time"))
-                return time(node, ps);
-            
+            else if (nodeName.equals("txt2time"))
+                return txt2time(node, ps);
+            else if (nodeName.equals("txt2datetime"))
+                return txt2datetime(node, ps);
+           
 
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
