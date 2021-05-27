@@ -39,7 +39,6 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import pl.sprint.sprintvalidator.Validator;
-import pl.sprint.sprintvalidator.nums.NumbersToWordsPL;
 
 /**
  * The core AIML parser and interpreter.
