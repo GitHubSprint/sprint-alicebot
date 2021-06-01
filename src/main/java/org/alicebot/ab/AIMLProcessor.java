@@ -495,9 +495,10 @@ public class AIMLProcessor
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
                         
         log.info("predictf model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score + " value: " + ps.chatSession.predicates.get(parameter));
-        String out = SprintUtils.predictSupervisedModel(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
-                        
-        return checkEmpty(out);
+        String out = checkEmpty(SprintUtils.predictSupervisedModel(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId));
+        
+                
+        return out.replace("__label__", "");
     }
     
     
