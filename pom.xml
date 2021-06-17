@@ -64,13 +64,7 @@
                 <artifactId>android-json</artifactId>
                 <version>0.0.20131108.vaadin1</version>
             </dependency>
-            
-            <dependency>
-                <groupId>javax.mail</groupId>
-                <artifactId>mail</artifactId>
-                <version>1.5.0-b01</version>
-            </dependency>	    	                          
-            
+                            	                                      
             <!-- morfologik -->
             <dependency>
                 <groupId>org.carrot2</groupId>
