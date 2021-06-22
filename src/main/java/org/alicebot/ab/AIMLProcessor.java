@@ -574,13 +574,19 @@ public class AIMLProcessor
         String word = getAttributeOrTagValue(node, ps, "word");
         String minAccuracy = getAttributeOrTagValue(node, ps, "minaccuracy");
        
+        
         String param = ps.chatSession.predicates.get(parameter);
         int min = 90; 
         
         try {
-            min = Integer.parseInt(minAccuracy); 
+            
+            String tmp = Validator.nums(minAccuracy);   
+            if(tmp != null)
+                min = Integer.parseInt(tmp);  
+            else
+                log.warn("invalid minAccuracy (" + minAccuracy + ") setting to default 90.");
        } catch (Exception e) {
-            log.error("compare parseInt Exceltion setting to default 90.");
+            log.error("compare parseInt Exception setting to default 90.");
             min = 90; 
         }                
         
@@ -596,6 +602,8 @@ public class AIMLProcessor
                 + "  parameter: " + ps.chatSession.predicates.get(parameter)
                 + "  compare value: " + comp
                 + "  word: " + ps.chatSession.predicates.get(word)
+                + "  minAccuracy: " + minAccuracy
+                + "  min: " + min
                 + " out: " + param);
         
         return out;
