@@ -576,15 +576,16 @@ public class AIMLProcessor
        
         
         String param = ps.chatSession.predicates.get(parameter);
+        String minAcc = ps.chatSession.predicates.get(minAccuracy);
         int min = 90; 
         
         try {
             
-            String tmp = Validator.nums(minAccuracy);   
+            String tmp = Validator.nums(minAcc);   
             if(tmp != null)
                 min = Integer.parseInt(tmp);  
             else
-                log.warn("invalid minAccuracy (" + minAccuracy + ") setting to default 90.");
+                log.warn("invalid minAccuracy (" + minAcc + ") setting to default 90.");
        } catch (Exception e) {
             log.error("compare parseInt Exception setting to default 90.");
             min = 90; 
