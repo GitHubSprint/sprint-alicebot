@@ -917,6 +917,44 @@ public class AIMLProcessor
                                         
         return checkEmpty(result);
     }
+    
+    
+    private static String implode(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        
+        String temp; 
+        if(parameter == null)        
+            temp = evalTagContent(node, ps, null);     
+        else
+            temp = ps.chatSession.predicates.get(parameter);  
+                                                       
+        if(temp.equals(MagicStrings.unknown_property_value))
+            temp = parameter; 
+        
+        if(temp == null)
+            return MagicStrings.unknown_property_value;
+        
+        
+        String[] split = temp.split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < split.length; i++) {
+            sb.append(split[i]);
+            if (i != split.length - 1) {
+                sb.append("");
+            }
+        }       
+        
+        String result = sb.toString();
+        
+        log.info("implode "
+                + " parameter: " + parameter                 
+                + " temp: " + temp
+                + " result: " + result);                
+                                        
+        return checkEmpty(result);
+    }
+    
     private static String increment(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
@@ -1119,6 +1157,10 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
+    
+    
+    
+    
     
     /**
      * Implements jar plugin integration 
@@ -1939,7 +1981,8 @@ public class AIMLProcessor
                 return txt2time(node, ps);
             else if (nodeName.equals("txt2datetime"))
                 return txt2datetime(node, ps);
-           
+           else if (nodeName.equals("implode"))
+                return implode(node, ps);
 
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
