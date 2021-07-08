@@ -804,6 +804,40 @@ public class AIMLProcessor
     }
     
     
+    private static String setall(Node node, ParseState ps) { 
+        
+        String values = getAttributeOrTagValue(node, ps, "values");
+        String variables = getAttributeOrTagValue(node, ps, "variables");
+        String delimiter = getAttributeOrTagValue(node, ps, "delimiter");
+        
+        
+        String input; 
+        if(values == null)        
+            input = evalTagContent(node, ps, null);     
+        else
+            input = ps.chatSession.predicates.get(values);  
+                                                       
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = values;  
+        
+        
+        
+        String[] vars = variables.split(delimiter);
+        String[] vals = input.split(delimiter);
+        
+        if(vars.length != vals.length)
+            return "ERR";
+        
+        for(int i=0;i<vars.length;i++)
+        {
+            if (vars[i] != null) ps.chatSession.predicates.put(vars[i], vals[i]);
+            if (vars[i] != null) ps.vars.put(vars[i], vals[i]);
+        }
+                
+        return "OK";
+    }
+    
+    
     
     private static String num2txt(Node node, ParseState ps) throws IOException
     {
@@ -1983,7 +2017,9 @@ public class AIMLProcessor
                 return txt2datetime(node, ps);
            else if (nodeName.equals("implode"))
                 return implode(node, ps);
-
+           else if (nodeName.equals("setall"))
+                return setall(node, ps);
+           
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
                 return interval(node, ps);
