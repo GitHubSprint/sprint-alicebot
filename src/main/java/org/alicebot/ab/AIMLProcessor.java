@@ -456,6 +456,8 @@ public class AIMLProcessor
         Map<String, String> map = new TreeMap<String, String>(ps.chatSession.predicates); 
         Set set2 = map.entrySet();
         Iterator iterator2 = set2.iterator();
+        
+        result = "";
         while(iterator2.hasNext()) 
         {
             Map.Entry me = (Map.Entry)iterator2.next();
