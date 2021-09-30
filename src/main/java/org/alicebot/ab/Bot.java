@@ -18,6 +18,7 @@ package org.alicebot.ab;
         Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
         Boston, MA  02110-1301, USA.
 */
+import fasttext.FastText;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -30,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -53,7 +55,10 @@ public class Bot {
     public String name=MagicStrings.unknown_bot_name;
     public HashMap<String, AIMLSet> setMap = new HashMap<String, AIMLSet>();
     public HashMap<String, AIMLMap> mapMap = new HashMap<String, AIMLMap>();
-    public HashMap<String, AIMLSet> dicMap = new HashMap<String, AIMLSet>();    
+    public HashMap<String, AIMLSet> dicMap = new HashMap<String, AIMLSet>();  
+    
+    public static Map<String, FastText> mlaModels = new HashMap<String, FastText>(); 
+    
 
     /**
      * Set all directory path variables for this bot
@@ -129,6 +134,7 @@ public class Bot {
         addProperties();
         addAIMLSets();
         addAIMLMaps();
+        addMLAModels();
         AIMLSet number = new AIMLSet(MagicStrings.natural_number_set_name);
         setMap.put(MagicStrings.natural_number_set_name, number);
         AIMLMap successor = new AIMLMap(MagicStrings.map_successor);
@@ -760,6 +766,40 @@ public class Bot {
                 }
             }
             else log.info("addCategories: '{}' does not exist.", MagicStrings.aiml_path);
+        } catch (Exception ex)  {
+            ex.printStackTrace();
+        }
+    }
+    
+    
+    void addMLAModels() {
+        
+        try {
+            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";   
+            
+            // Directory path here
+            String file;
+            String filePath;
+            File folder = new File(path);
+            if (folder.exists()) {
+                File[] listOfFiles = folder.listFiles();
+                log.info("Loading MLA Model files from '{}'", path);
+                for (File listOfFile : listOfFiles) {
+                    if (listOfFile.isFile()) {
+                        file = listOfFile.getName();
+                        filePath = listOfFile.getAbsoluteFile().toString();
+                        if (file.endsWith(".ftz") || file.endsWith(".FTZ")) {
+                            log.info("Read MLA Model file: " + file + " filePath: " + filePath);
+                            String modelName = file.substring(0, file.length()-".ftz".length());
+                            log.info("Read MLA Model "+modelName);
+                            FastText ftmodel = fasttext.FastText.loadModel(filePath);
+                            
+                            mlaModels.put(modelName, ftmodel);
+                        }
+                    }
+                }
+            }
+            else log.info("addMLAModels: '{}' does not exist.", path);
         } catch (Exception ex)  {
             ex.printStackTrace();
         }

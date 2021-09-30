@@ -49,8 +49,8 @@ import pl.sprint.sprintvalidator.Validator;
 public class AIMLProcessor 
 {
 	
-    private static final Logger log = LoggerFactory.getLogger(AIMLProcessor.class);
-
+    private static final Logger log = LoggerFactory.getLogger(AIMLProcessor.class);        
+    
     /**
      * when parsing an AIML file, process a category element.
      *
@@ -487,7 +487,7 @@ public class AIMLProcessor
      * @param ps AIML parse state
      * @return 
      */
-    private static String predictf(Node node, ParseState ps) throws IOException
+    private static String ml(Node node, ParseState ps) throws IOException
     {
                 
         String model = getAttributeOrTagValue(node, ps, "model");  
@@ -496,10 +496,20 @@ public class AIMLProcessor
         String score = getAttributeOrTagValue(node, ps, "score");          
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
                         
-        log.info("predictf model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score + " value: " + ps.chatSession.predicates.get(parameter));
-        String out = checkEmpty(SprintUtils.predictSupervisedModel(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId));
+        log.info("ml model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score + " value: " + ps.chatSession.predicates.get(parameter));
+        String out = checkEmpty(SprintUtils.ml(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId));
         
                 
+        return out.replace("__label__", "");
+    }
+    
+    private static String mla(Node node, ParseState ps) throws IOException
+    {
+                
+        String model = getAttributeOrTagValue(node, ps, "model");                          
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");                          
+        log.info("mla model: " + model + " value: " + ps.chatSession.predicates.get(parameter));
+        String out = checkEmpty(SprintUtils.mla(model, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId));                                
         return out.replace("__label__", "");
     }
     
@@ -1975,7 +1985,11 @@ public class AIMLProcessor
             else if (nodeName.equals("plugin")) //sprint
                 return plugin(node, ps);
             else if (nodeName.equals("predictf")) //sprint
-                return predictf(node, ps);
+                return ml(node, ps);
+            else if (nodeName.equals("ml")) //sprint
+                return ml(node, ps);
+            else if (nodeName.equals("mla")) //sprint
+                return mla(node, ps);
             else if (nodeName.equals("regex")) //sprint
                 return regex(node, ps);
             else if (nodeName.equals("pesel")) //sprint NEW

@@ -7,6 +7,7 @@ package org.alicebot.ab.utils;
 
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
+import fasttext.FastTextPrediction;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -18,6 +19,7 @@ import java.net.URLClassLoader;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
+import org.alicebot.ab.Bot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,7 +29,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SprintUtils {
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
-    
+   
     /**
      * Replace polish marks in string.
      * @param src
@@ -49,7 +51,41 @@ public class SprintUtils {
         temp = temp.replaceAll("[?]", " ").replaceAll("[!]", " ").replaceAll("[.]", " ");
                              
         return temp;
-    }  
+    } 
+            
+    public static String mla(String model, String parameter, String sessionId)
+    {
+        String out;
+        try {
+   
+            
+            if(Bot.mlaModels.get(model) == null)
+            {
+                return "ERR Invalid model name"; 
+            }
+                                 
+            fasttext.FastText ftmodel = Bot.mlaModels.get(model);            
+            List<FastTextPrediction> result = ftmodel.predictAll(Arrays.asList(parameter.split(" ")));
+            
+            int iScore = (int) (result.get(0).probability() * 100); 
+            
+            if (result.get(0).label().equals("__label__oos") == false) 
+            {                    
+                log.info("\nOK:\t" + parameter + "\tresult : " + result.get(0).label() + " score: " + result.get(0).probability());                                        
+            } else {
+                log.warn("\nNO QUALIFICATION:\t" + parameter);                
+            }
+            
+            out= result.get(0).label() + " " + iScore; 
+            
+        } catch (Exception e) {
+            
+            out = "ERR " + e.getMessage();
+            log.error("predictSupervisedModel ERROR : " + e, e);
+        }
+        
+        return out;
+    }
     
     /**
      * Predict fastText label tranined suprvised model
@@ -61,10 +97,9 @@ public class SprintUtils {
      * @param sessionId Bot SessionId
      * @return 
      */
-    public static String predictSupervisedModel(String model, String nBest, String threshold, String score, String parameter, String sessionId)
+    public static String ml(String model, String nBest, String threshold, String score, String parameter, String sessionId)
     {
-        String out = "ERR Null";
-        
+        String out = "ERR Null";        
         
         try {                                    
             String path = new File(".").getCanonicalPath().replace("\\", "/");            
@@ -74,12 +109,12 @@ public class SprintUtils {
             int iMinScore = Integer.parseInt(score);
             
             
-            log.info("Request: sessionId: " + sessionId + " Model: " + sModel + " Nbest: " + iNbest + " Threshold: " + fThreshold + " MinScore: " + iMinScore + " parameter: " + parameter);
+            log.info("ml Request: sessionId: " + sessionId + " Model: " + sModel + " Nbest: " + iNbest + " Threshold: " + fThreshold + " MinScore: " + iMinScore + " parameter: " + parameter);
             
             FastText fastText = FastText.Companion.loadModel(new File(sModel), true); 
             List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), iNbest, fThreshold);
                   
-            log.info("Response sessionId: " + sessionId + " result.size: " + result.size());
+            log.info("ml Response sessionId: " + sessionId + " result.size: " + result.size());
             for(ScoreLabelPair pair : result)
             {
                 int iScore = (int) (pair.getScore() * 100); 
