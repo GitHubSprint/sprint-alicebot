@@ -19,7 +19,9 @@ import java.net.URLClassLoader;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
+import org.alicebot.ab.AIMLMap;
 import org.alicebot.ab.Bot;
+import org.alicebot.ab.ParseState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,27 +55,31 @@ public class SprintUtils {
         return temp;
     } 
             
-    public static String mla(String model, String parameter, String sessionId)
+    public static String mla(String model, String parameter, ParseState ps)
     {
+        
+        String sessionId = ps.chatSession.sessionId; 
+        String value = ps.chatSession.predicates.get(parameter); 
         String out;
         try {
    
+            fasttext.FastText ftmodel = ps.chatSession.bot.mlaModels.get(model);
             
-            if(Bot.mlaModels.get(model) == null)
+            if(ftmodel == null)
             {
+                log.warn(sessionId + "\tInvalid model name"); 
                 return "ERR Invalid model name"; 
             }
-                                 
-            fasttext.FastText ftmodel = Bot.mlaModels.get(model);            
-            List<FastTextPrediction> result = ftmodel.predictAll(Arrays.asList(parameter.split(" ")));
+                                                     
+            List<FastTextPrediction> result = ftmodel.predictAll(Arrays.asList(value.split(" ")));
             
             int iScore = (int) (result.get(0).probability() * 100); 
             
             if (result.get(0).label().equals("__label__oos") == false) 
             {                    
-                log.info("\nOK:\t" + parameter + "\tresult : " + result.get(0).label() + " score: " + result.get(0).probability());                                        
+                log.info(sessionId + "\tOK:\t" + value + "\tresult : " + result.get(0).label() + " score: " + result.get(0).probability());                                        
             } else {
-                log.warn("\nNO QUALIFICATION:\t" + parameter);                
+                log.warn(sessionId + "\tNO QUALIFICATION:\t" + value);                
             }
             
             out= result.get(0).label() + " " + iScore; 
@@ -81,7 +87,7 @@ public class SprintUtils {
         } catch (Exception e) {
             
             out = "ERR " + e.getMessage();
-            log.error("predictSupervisedModel ERROR : " + e, e);
+            log.error(sessionId + "\tpredictSupervisedModel ERROR : " + e, e);
         }
         
         return out;

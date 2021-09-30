@@ -509,7 +509,7 @@ public class AIMLProcessor
         String model = getAttributeOrTagValue(node, ps, "model");                          
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                          
         log.info("mla model: " + model + " value: " + ps.chatSession.predicates.get(parameter));
-        String out = checkEmpty(SprintUtils.mla(model, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId));                                
+        String out = checkEmpty(SprintUtils.mla(model, parameter, ps));                                
         return out.replace("__label__", "");
     }
     

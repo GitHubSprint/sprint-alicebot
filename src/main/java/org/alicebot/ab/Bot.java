@@ -57,7 +57,7 @@ public class Bot {
     public HashMap<String, AIMLMap> mapMap = new HashMap<String, AIMLMap>();
     public HashMap<String, AIMLSet> dicMap = new HashMap<String, AIMLSet>();  
     
-    public static Map<String, FastText> mlaModels = new HashMap<String, FastText>(); 
+    public HashMap<String, FastText> mlaModels = new HashMap<String, FastText>(); 
     
 
     /**
@@ -821,6 +821,7 @@ public class Bot {
         hash = 59 * hash + (this.setMap != null ? this.setMap.hashCode() : 0);
         hash = 59 * hash + (this.mapMap != null ? this.mapMap.hashCode() : 0);
         hash = 59 * hash + (this.dicMap != null ? this.dicMap.hashCode() : 0);
+        hash = 59 * hash + (this.mlaModels != null ? this.mlaModels.hashCode() : 0);
         return hash;
     }
 
@@ -873,6 +874,9 @@ public class Bot {
             return false;
         }
         if (this.dicMap != other.dicMap && (this.dicMap == null || !this.dicMap.equals(other.dicMap))) {
+            return false;
+        }
+        if (this.mlaModels != other.mlaModels && (this.mlaModels == null || !this.mlaModels.equals(other.mlaModels))) {
             return false;
         }
         return true;
