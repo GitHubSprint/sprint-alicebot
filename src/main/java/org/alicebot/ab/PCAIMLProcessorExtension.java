@@ -19,7 +19,11 @@ package org.alicebot.ab;
         Boston, MA  02110-1301, USA.
 */
 
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
+import org.alicebot.ab.utils.SprintUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,12 +34,59 @@ import org.w3c.dom.NodeList;
  * This is just a stub to make the contactaction.aiml file work on a PC
  * with some extension tags that are defined for mobile devices.
  */
-public class PCAIMLProcessorExtension implements AIMLProcessorExtension {
-	private static final Logger log = LoggerFactory
-			.getLogger(PCAIMLProcessorExtension.class);
+public class PCAIMLProcessorExtension implements AIMLProcessorExtension 
+{
+    private static final Logger log = LoggerFactory.getLogger(PCAIMLProcessorExtension.class);
+    
     public Set<String> extensionTagNames = Utilities.stringSet("contactid","multipleids","displayname","dialnumber","emailaddress","contactbirthday","addinfo");
+
+    static 
+    {
+        SprintUtils.mlaModels = getMLAModels();        
+    } 
+    
+    
+    static Map<String,fasttext.FastText> getMLAModels() 
+    {
+        Map<String, fasttext.FastText> mlaModels = new HashMap<String, fasttext.FastText>();    
+        try 
+        {
+            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";   
+
+            // Directory path here
+            String file;
+            String filePath;
+            File folder = new File(path);
+            if (folder.exists()) {
+                File[] listOfFiles = folder.listFiles();
+                log.info("Loading MLA Model files from '{}'", path);
+                for (File listOfFile : listOfFiles) {
+                    if (listOfFile.isFile()) {
+                        file = listOfFile.getName();
+                        filePath = listOfFile.getAbsoluteFile().toString();
+                        if (file.endsWith(".ftz") || file.endsWith(".FTZ")) {
+                            log.info("Read MLA Model file: " + file + " filePath: " + filePath);
+                            String modelName = file.substring(0, file.length()-".ftz".length());
+                            log.info("Read MLA Model "+modelName);
+                            fasttext.FastText ftmodel = fasttext.FastText.loadModel(filePath);
+
+                            mlaModels.put(modelName, ftmodel);
+                        }
+                    }
+                }
+            }
+            else log.info("addMLAModels: '{}' does not exist.", path);
+        } catch (Exception ex)  {
+            ex.printStackTrace();
+        }
+        
+        return mlaModels;        
+    }
+    
+    
+    
     @Override
-	public Set <String> extensionTagSet() {
+    public Set <String> extensionTagSet() {
         return extensionTagNames;
     }
     private String newContact(Node node, ParseState ps) {

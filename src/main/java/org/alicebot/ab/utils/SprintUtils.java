@@ -19,9 +19,7 @@ import java.net.URLClassLoader;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
-import org.alicebot.ab.AIMLMap;
-import org.alicebot.ab.Bot;
-import org.alicebot.ab.ParseState;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +30,7 @@ import org.slf4j.LoggerFactory;
 public class SprintUtils {
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
    
+    public static Map<String, fasttext.FastText> mlaModels; 
     /**
      * Replace polish marks in string.
      * @param src
@@ -55,15 +54,14 @@ public class SprintUtils {
         return temp;
     } 
             
-    public static String mla(String model, String parameter, ParseState ps)
+    public static String mla(String model, String parameter, String sessionId)
     {
         
-        String sessionId = ps.chatSession.sessionId; 
-        String value = ps.chatSession.predicates.get(parameter); 
+        
         String out;
         try {
    
-            fasttext.FastText ftmodel = ps.chatSession.bot.mlaModels.get(model);
+            fasttext.FastText ftmodel = mlaModels.get(model);
             
             if(ftmodel == null)
             {
@@ -71,15 +69,15 @@ public class SprintUtils {
                 return "ERR Invalid model name"; 
             }
                                                      
-            List<FastTextPrediction> result = ftmodel.predictAll(Arrays.asList(value.split(" ")));
+            List<FastTextPrediction> result = ftmodel.predictAll(Arrays.asList(parameter.split(" ")));
             
             int iScore = (int) (result.get(0).probability() * 100); 
             
             if (result.get(0).label().equals("__label__oos") == false) 
             {                    
-                log.info(sessionId + "\tOK:\t" + value + "\tresult : " + result.get(0).label() + " score: " + result.get(0).probability());                                        
+                log.info(sessionId + "\tOK:\t" + parameter + "\tresult : " + result.get(0).label() + " score: " + result.get(0).probability());                                        
             } else {
-                log.warn(sessionId + "\tNO QUALIFICATION:\t" + value);                
+                log.warn(sessionId + "\tNO QUALIFICATION:\t" + parameter);                
             }
             
             out= result.get(0).label() + " " + iScore; 

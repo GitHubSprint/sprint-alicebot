@@ -31,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -57,7 +56,7 @@ public class Bot {
     public HashMap<String, AIMLMap> mapMap = new HashMap<String, AIMLMap>();
     public HashMap<String, AIMLSet> dicMap = new HashMap<String, AIMLSet>();  
     
-    public HashMap<String, FastText> mlaModels = new HashMap<String, FastText>(); 
+    //public HashMap<String, FastText> mlaModels = new HashMap<String, FastText>(); 
     
 
     /**
@@ -134,7 +133,7 @@ public class Bot {
         addProperties();
         addAIMLSets();
         addAIMLMaps();
-        addMLAModels();
+//        addMLAModels();
         AIMLSet number = new AIMLSet(MagicStrings.natural_number_set_name);
         setMap.put(MagicStrings.natural_number_set_name, number);
         AIMLMap successor = new AIMLMap(MagicStrings.map_successor);
@@ -772,38 +771,38 @@ public class Bot {
     }
     
     
-    void addMLAModels() {
-        
-        try {
-            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";   
-            
-            // Directory path here
-            String file;
-            String filePath;
-            File folder = new File(path);
-            if (folder.exists()) {
-                File[] listOfFiles = folder.listFiles();
-                log.info("Loading MLA Model files from '{}'", path);
-                for (File listOfFile : listOfFiles) {
-                    if (listOfFile.isFile()) {
-                        file = listOfFile.getName();
-                        filePath = listOfFile.getAbsoluteFile().toString();
-                        if (file.endsWith(".ftz") || file.endsWith(".FTZ")) {
-                            log.info("Read MLA Model file: " + file + " filePath: " + filePath);
-                            String modelName = file.substring(0, file.length()-".ftz".length());
-                            log.info("Read MLA Model "+modelName);
-                            FastText ftmodel = fasttext.FastText.loadModel(filePath);
-                            
-                            mlaModels.put(modelName, ftmodel);
-                        }
-                    }
-                }
-            }
-            else log.info("addMLAModels: '{}' does not exist.", path);
-        } catch (Exception ex)  {
-            ex.printStackTrace();
-        }
-    }
+//    void addMLAModels() {
+//        
+//        try {
+//            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";   
+//            
+//            // Directory path here
+//            String file;
+//            String filePath;
+//            File folder = new File(path);
+//            if (folder.exists()) {
+//                File[] listOfFiles = folder.listFiles();
+//                log.info("Loading MLA Model files from '{}'", path);
+//                for (File listOfFile : listOfFiles) {
+//                    if (listOfFile.isFile()) {
+//                        file = listOfFile.getName();
+//                        filePath = listOfFile.getAbsoluteFile().toString();
+//                        if (file.endsWith(".ftz") || file.endsWith(".FTZ")) {
+//                            log.info("Read MLA Model file: " + file + " filePath: " + filePath);
+//                            String modelName = file.substring(0, file.length()-".ftz".length());
+//                            log.info("Read MLA Model "+modelName);
+//                            FastText ftmodel = fasttext.FastText.loadModel(filePath);
+//                            
+//                            mlaModels.put(modelName, ftmodel);
+//                        }
+//                    }
+//                }
+//            }
+//            else log.info("addMLAModels: '{}' does not exist.", path);
+//        } catch (Exception ex)  {
+//            ex.printStackTrace();
+//        }
+//    }
 
     @Override
     public int hashCode() {
@@ -821,7 +820,7 @@ public class Bot {
         hash = 59 * hash + (this.setMap != null ? this.setMap.hashCode() : 0);
         hash = 59 * hash + (this.mapMap != null ? this.mapMap.hashCode() : 0);
         hash = 59 * hash + (this.dicMap != null ? this.dicMap.hashCode() : 0);
-        hash = 59 * hash + (this.mlaModels != null ? this.mlaModels.hashCode() : 0);
+//        hash = 59 * hash + (this.mlaModels != null ? this.mlaModels.hashCode() : 0);
         return hash;
     }
 
@@ -876,9 +875,9 @@ public class Bot {
         if (this.dicMap != other.dicMap && (this.dicMap == null || !this.dicMap.equals(other.dicMap))) {
             return false;
         }
-        if (this.mlaModels != other.mlaModels && (this.mlaModels == null || !this.mlaModels.equals(other.mlaModels))) {
-            return false;
-        }
+//        if (this.mlaModels != other.mlaModels && (this.mlaModels == null || !this.mlaModels.equals(other.mlaModels))) {
+//            return false;
+//        }
         return true;
     }
     
