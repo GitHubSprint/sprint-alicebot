@@ -31,6 +31,7 @@ public class SprintUtils {
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
    
     public static Map<String, fasttext.FastText> mlaModels; 
+    public static Map<String, FastText> mlModels; 
     /**
      * Replace polish marks in string.
      * @param src
@@ -106,16 +107,23 @@ public class SprintUtils {
         String out = "ERR Null";        
         
         try {                                    
-            String path = new File(".").getCanonicalPath().replace("\\", "/");            
-            String sModel = path + "/models/" + model;
+            //String path = new File(".").getCanonicalPath().replace("\\", "/");            
+            //String sModel = path + "/models/" + model;
             int iNbest = Integer.parseInt(nBest); 
             float fThreshold = Float.parseFloat(threshold);
             int iMinScore = Integer.parseInt(score);
             
             
-            log.info("ml Request: sessionId: " + sessionId + " Model: " + sModel + " Nbest: " + iNbest + " Threshold: " + fThreshold + " MinScore: " + iMinScore + " parameter: " + parameter);
+            log.info("ml Request: sessionId: " + sessionId + " Model: " + model + " Nbest: " + iNbest + " Threshold: " + fThreshold + " MinScore: " + iMinScore + " parameter: " + parameter);
             
-            FastText fastText = FastText.Companion.loadModel(new File(sModel), true); 
+            FastText fastText = mlModels.get(model);
+            
+            if(fastText == null)
+            {
+                log.warn(sessionId + "\tInvalid model name"); 
+                return "ERR Invalid model name"; 
+            }
+            
             List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), iNbest, fThreshold);
                   
             log.info("ml Response sessionId: " + sessionId + " result.size: " + result.size());

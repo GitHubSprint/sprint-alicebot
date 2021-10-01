@@ -19,6 +19,7 @@ package org.alicebot.ab;
         Boston, MA  02110-1301, USA.
 */
 
+import com.mayabot.nlp.fasttext.FastText;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,8 +32,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
 /**
- * This is just a stub to make the contactaction.aiml file work on a PC
- * with some extension tags that are defined for mobile devices.
+ * This is just a stub to make the contactaction.aiml model work on a PC
+ with some extension tags that are defined for mobile devices.
  */
 public class PCAIMLProcessorExtension implements AIMLProcessorExtension 
 {
@@ -43,6 +44,11 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension
     static 
     {
         SprintUtils.mlaModels = getMLAModels();        
+    } 
+    
+    static 
+    {
+        SprintUtils.mlModels = getMLModels(); 
     } 
     
     
@@ -81,6 +87,42 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension
         }
         
         return mlaModels;        
+    }
+    
+    static Map<String, FastText> getMLModels() 
+    {
+        Map<String, FastText> mlModels = new HashMap<String, FastText>();    
+        try 
+        {
+            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";   
+
+            // Directory path here
+            String model;
+            String modelPath;
+            File folder = new File(path);
+            if (folder.exists()) {
+                File[] listOfFiles = folder.listFiles();
+                log.info("Loading ML Model files from '{}'", path);
+                for (File listOfFile : listOfFiles) {
+                    if (listOfFile.isDirectory()) {
+                        model = listOfFile.getName();
+                        modelPath = listOfFile.getAbsoluteFile().toString();
+                        
+                        log.info("Read ML Model folder: " + model + " filePath: " + modelPath);
+                                                
+                        FastText fastText = FastText.Companion.loadModel(new File(modelPath), true); 
+
+                        mlModels.put(model, fastText);
+                        
+                    }
+                }
+            }
+            else log.info("addMLModels: '{}' does not exist.", path);
+        } catch (Exception ex)  {
+            ex.printStackTrace();
+        }
+        
+        return mlModels;        
     }
     
     
