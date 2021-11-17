@@ -1250,6 +1250,10 @@ public class AIMLProcessor
     private static String math(Node node, ParseState ps) throws Exception
     {                
         String operation = getAttributeOrTagValue(node, ps, "operation");
+        
+        String format = getAttributeOrTagValue(node, ps, "format");
+        if(format == null)
+            format = "%.2f";
                        
         if(operation == null)        
             operation = evalTagContent(node, ps, null);     
@@ -1258,11 +1262,13 @@ public class AIMLProcessor
                                                                
         
         String result = MagicStrings.unknown_property_value; 
-                
-        result = String.valueOf(Validator.math(operation));
+          
+        
+        result = String.format(format,Validator.math(operation));
                                         
         log.info("math "
                 + " operation: " + operation                                
+                + " format: " + format                                
                 + " result: " + result);                               
         
         return checkEmpty(result);
