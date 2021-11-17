@@ -20,6 +20,7 @@ package org.alicebot.ab;
 */
 import java.io.File;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1253,7 +1254,7 @@ public class AIMLProcessor
         
         String format = getAttributeOrTagValue(node, ps, "format");
         if(format == null)
-            format = "%d";
+            format = "#";
                        
         if(operation == null)        
             operation = evalTagContent(node, ps, null);     
@@ -1261,10 +1262,17 @@ public class AIMLProcessor
             operation = ps.chatSession.predicates.get(operation);  
                                                                
         
-        String result = MagicStrings.unknown_property_value; 
-          
+        operation = operation.replaceAll(",", ".");
         
-        result = String.format(format,Validator.math(operation));
+        log.info("math "
+                + " operation: " + operation                                
+                + " format: " + format);                                                
+        
+        
+        String result = MagicStrings.unknown_property_value; 
+                  
+        //result = String.format(format,Validator.math(operation));
+        result = new DecimalFormat(format).format(Validator.math(operation));
                                         
         log.info("math "
                 + " operation: " + operation                                
