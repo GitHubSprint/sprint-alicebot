@@ -1253,7 +1253,7 @@ public class AIMLProcessor
         
         String format = getAttributeOrTagValue(node, ps, "format");
         if(format == null)
-            format = "%.2f";
+            format = "%d";
                        
         if(operation == null)        
             operation = evalTagContent(node, ps, null);     
