@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.alicebot.ab</groupId>
 	<artifactId>ab</artifactId>
-	<version>4.2.0_SPRINT</version>
+	<version>4.2.1_SPRINT</version>
 	<name>sprint-alicebot</name>
 	<description>Program AB is the reference implementation of the AIML 2.0 draft specification. AIML is a widely adopted standard for creating chat bots and mobile virtual assistants like ALICE, Mitsuku, English Tutor, The Professor, S.U.P.E.R. and many more.</description>
 	<properties>
@@ -87,7 +87,7 @@
             <dependency>
                 <groupId>pl.sprint</groupId>
                 <artifactId>validator</artifactId>
-                <version>1.4.2</version>
+                <version>1.4.4</version>
             </dependency>
             
             

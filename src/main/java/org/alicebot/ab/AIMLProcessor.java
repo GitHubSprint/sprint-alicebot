@@ -39,6 +39,7 @@ import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import pl.sprint.sprintvalidator.Validator;
+import pl.sprint.sprintvalidator.utils.PeselValidator;
 
 /**
  * The core AIML parser and interpreter.
@@ -573,6 +574,7 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
     
+    
     /**
      * Levenshtein distance words compare 
      * @param node
@@ -917,6 +919,46 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
+    /**
+     * Return birthdate from pesel
+     * @param node
+     * @param ps
+     * @return
+     * @throws IOException 
+     */
+    private static String birthpesel(Node node, ParseState ps) throws IOException
+    {        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
+        String format = getAttributeOrTagValue(node, ps, "format");
+        
+        if(format == null) format="dd/MM/yyyy"; 
+        
+        String pesel; 
+        if(parameter == null)        
+            pesel = evalTagContent(node, ps, null);     
+        else
+            pesel = ps.chatSession.predicates.get(parameter);  
+                                                       
+        if(pesel.equals(MagicStrings.unknown_property_value))
+            pesel = parameter; 
+        
+        PeselValidator validator = new PeselValidator(pesel);
+        
+        if(!validator.isValid())
+        {
+            return MagicStrings.unknown_property_value;
+        }
+        
+        String result = Validator.getBirthdateFromPesel(pesel, format);                
+                        
+        log.info("birthpesel "
+                + " parameter: " + parameter                 
+                + " pesel: " + pesel
+                + " format: " + format
+                + " result: " + result);
+        
+        return checkEmpty(result);
+    }
     private static String nip(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
@@ -1205,7 +1247,26 @@ public class AIMLProcessor
     }
     
     
-    
+    private static String math(Node node, ParseState ps) throws Exception
+    {                
+        String operation = getAttributeOrTagValue(node, ps, "operation");
+                       
+        if(operation == null)        
+            operation = evalTagContent(node, ps, null);     
+        else
+            operation = ps.chatSession.predicates.get(operation);  
+                                                               
+        
+        String result = MagicStrings.unknown_property_value; 
+                
+        result = String.valueOf(Validator.math(operation));
+                                        
+        log.info("math "
+                + " operation: " + operation                                
+                + " result: " + result);                               
+        
+        return checkEmpty(result);
+    }
     
     
     /**
@@ -2011,6 +2072,10 @@ public class AIMLProcessor
                 return txt2date(node, ps);
             else if (nodeName.equals("txt2date")) //sprint NEW
                 return txt2date(node, ps);
+            else if (nodeName.equals("birthpesel")) //sprint NEW
+                return birthpesel(node, ps);
+            else if (nodeName.equals("math")) //sprint NEW
+                return math(node, ps);
             else if (nodeName.equals("compare-condition"))
                 return loopCmpareCondition(node, ps);
             else if (nodeName.equals("increment"))
