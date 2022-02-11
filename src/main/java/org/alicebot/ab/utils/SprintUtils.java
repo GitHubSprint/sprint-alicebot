@@ -20,6 +20,7 @@ import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,9 +164,7 @@ public class SprintUtils {
      */
     public static String callPlugin(String file, String classLoad, String methodName, String parameter, String sessionId)
     {
-        //"pl.sprint.chatbot.ext.Test"
-        
-        //log.info("file: " + file + " classLoad: " + classLoad + " methodName: " + methodName + " parameters: " + Arrays.toString(parameters));
+        URLClassLoader urlClassLoader = null;
         String f = "jar:file:///" + file + "!/";
         String out = "";
         try {
@@ -173,7 +172,7 @@ public class SprintUtils {
                                     
             URL[] classLoaderUrls = new URL[]{new URL(f)};         
             // Create a new URLClassLoader 
-            URLClassLoader urlClassLoader = new URLClassLoader(classLoaderUrls);
+            urlClassLoader = new URLClassLoader(classLoaderUrls);
 
             // Load the target class
             Class<?> beanClass = urlClassLoader.loadClass(classLoad);
@@ -183,19 +182,29 @@ public class SprintUtils {
 
             Object beanObj = constructor.newInstance();        
             // Getting a method from the loaded class and invoke it
-            
-            // public String processCustomResultPocessor(String session, String parameter, String method);
+                        
             Method method = beanClass.getMethod("processCustomResultPocessor", String.class, String.class, String.class);    
             String response = (String) method.invoke(beanObj, sessionId, parameter, methodName);
             log.info("Request: sessionId: " + sessionId + " parameter: " + parameter + " method: " + methodName + " plugin response: " + response);
             
             out = response;
             
+            
+            
         } catch (Exception e) 
         {
             out = "ERR " + e.getMessage();
             log.error("callPlugin file: " + f + " parameter : " +parameter + " ERROR : " + e, e);
         }
+        finally {
+            if(urlClassLoader != null)
+                try {
+                    urlClassLoader.close();
+                } catch (IOException ex) {
+                    out = "ERR " + ex.getMessage();
+                    log.error("callPlugin urlClassLoader.close() file: " + f + " parameter : " +parameter + " ERROR : " + ex, ex);
+                }                       
+        } 
         
         return out;
     }
