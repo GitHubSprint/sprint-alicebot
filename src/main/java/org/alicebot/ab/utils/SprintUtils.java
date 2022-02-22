@@ -20,7 +20,6 @@ import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,14 +164,19 @@ public class SprintUtils {
     public static String callPlugin(String file, String classLoad, String methodName, String parameter, String sessionId)
     {
         URLClassLoader urlClassLoader = null;
-        String f = "jar:file:///" + file + "!/";
+        //String f = "jar:file:///" + file + "!/";
+        
+        File f = new File(file);
+        
         String out = "";
         try {
             
+            urlClassLoader = new URLClassLoader(new URL[] {f.toURI().toURL()},
+                                         SprintUtils.class.getClassLoader());
                                     
-            URL[] classLoaderUrls = new URL[]{new URL(f)};         
+            //URL[] classLoaderUrls = new URL[]{new URL(f)};         
             // Create a new URLClassLoader 
-            urlClassLoader = new URLClassLoader(classLoaderUrls);
+            //urlClassLoader = new URLClassLoader(classLoaderUrls);
 
             // Load the target class
             Class<?> beanClass = urlClassLoader.loadClass(classLoad);
@@ -187,11 +191,9 @@ public class SprintUtils {
             String response = (String) method.invoke(beanObj, sessionId, parameter, methodName);
             log.info("Request: sessionId: " + sessionId + " parameter: " + parameter + " method: " + methodName + " plugin response: " + response);
             
-            out = response;
-            
-            
-            
-        } catch (Exception e) 
+            out = response;                                    
+        } 
+        catch (Exception e) 
         {
             out = "ERR " + e.getMessage();
             log.error("callPlugin file: " + f + " parameter : " +parameter + " ERROR : " + e, e);
