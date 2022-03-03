@@ -52,7 +52,7 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension
     } 
     
     
-    static Map<String,fasttext.FastText> getMLAModels() 
+    public static Map<String,fasttext.FastText> getMLAModels() 
     {
         Map<String, fasttext.FastText> mlaModels = new HashMap<String, fasttext.FastText>();    
         try 
@@ -89,7 +89,7 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension
         return mlaModels;        
     }
     
-    static Map<String, FastText> getMLModels() 
+    public static Map<String, FastText> getMLModels() 
     {
         Map<String, FastText> mlModels = new HashMap<String, FastText>();    
         try 

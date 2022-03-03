@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.alicebot.ab</groupId>
 	<artifactId>ab</artifactId>
-	<version>4.2.4_SPRINT</version>
+	<version>4.2.5_SPRINT</version>
 	<name>sprint-alicebot</name>
 	<description>Program AB is the reference implementation of the AIML 2.0 draft specification. AIML is a widely adopted standard for creating chat bots and mobile virtual assistants like ALICE, Mitsuku, English Tutor, The Professor, S.U.P.E.R. and many more.</description>
 	<properties>
@@ -75,12 +75,9 @@
                 <groupId>org.carrot2</groupId>
                 <artifactId>morfologik-stemming</artifactId>
                 <version>2.1.6</version>
-            </dependency>            
-            <dependency>
-                <groupId>com.mayabot.mynlp</groupId>
-                <artifactId>fastText4j</artifactId>
-                <version>3.1.7</version>
             </dependency>
+            
+            
             
             
             <!-- https://github.com/GitHubSprint/sprint-validator -->
@@ -90,7 +87,14 @@
                 <version>1.4.5</version>
             </dependency>
             
+            <!-- ML -->                        
+            <dependency>
+                <groupId>com.mayabot.mynlp</groupId>
+                <artifactId>fastText4j</artifactId>
+                <version>3.1.7</version>
+            </dependency>
             
+            <!-- MLA -->   
             <!-- https://github.com/GitHubSprint/fasttext4j -->
             <dependency>
                 <groupId>fasttext</groupId>
