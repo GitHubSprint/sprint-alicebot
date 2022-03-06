@@ -55,11 +55,22 @@ public class SprintUtils {
         return temp;
     } 
             
-    public static String mla(String model, String parameter, String sessionId)
+    public static String mla(String model, String threshold, String score, String parameter, String sessionId)
     {
-        
-        
+                
         String out;
+        int iMinScore = 0;
+        if(score != null && score.length() > 0)        
+            iMinScore = Integer.parseInt(score);
+        
+        float fThreshold = 0f;
+        
+        if(threshold != null && threshold.length() > 0)        
+            fThreshold = Float.parseFloat(threshold);
+        
+        log.info("mla Request: sessionId: " + sessionId + " Model: " + model + " MinScore: " + iMinScore + " Threshold: " + fThreshold + " parameter: " + parameter);
+        
+        
         try {
    
             fasttext.FastText ftmodel = mlaModels.get(model);
@@ -70,18 +81,25 @@ public class SprintUtils {
                 return "ERR Invalid model name"; 
             }
                                                      
-            List<FastTextPrediction> result = ftmodel.predictAll(Arrays.asList(parameter.split(" ")));
+            List<FastTextPrediction> result = ftmodel.predictAll(Arrays.asList(parameter.split(" ")),fThreshold);
             
             int iScore = (int) (result.get(0).probability() * 100); 
             
             if (result.get(0).label().equals("__label__oos") == false) 
             {                    
-                log.info(sessionId + "\tOK:\t" + parameter + "\tresult : " + result.get(0).label() + " score: " + result.get(0).probability());                                        
+                log.info(sessionId + "\tOK:\t" + parameter + "\tresult : " + result.get(0).label() + " score: " + iScore);                                        
             } else {
                 log.warn(sessionId + "\tNO QUALIFICATION:\t" + parameter);                
             }
             
-            out= result.get(0).label() + " " + iScore; 
+            if(iScore >= iMinScore)                                
+                out= result.get(0).label() + " " + iScore;            
+            else
+                out = "__label__oos" + " " + iScore; 
+            
+            
+            
+            //out= result.get(0).label() + " " + iScore; 
             
         } catch (Exception e) {
             
@@ -135,11 +153,11 @@ public class SprintUtils {
                 
                 if(iScore >= iMinScore)
                 {                    
-                    out= pair.getLabel() + " " + iScore; 
+                    out = pair.getLabel() + " " + iScore; 
                     break;
                 }
                 else
-                    out= parameter + " " + iScore;                     
+                    out= "__label__oos " + iScore;                     
             }                        
             
         } catch (Exception e) {

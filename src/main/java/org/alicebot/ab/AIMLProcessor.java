@@ -509,9 +509,12 @@ public class AIMLProcessor
     {
                 
         String model = getAttributeOrTagValue(node, ps, "model");                          
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");                          
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        String score = getAttributeOrTagValue(node, ps, "score"); 
+        String threshold = getAttributeOrTagValue(node, ps, "threshold");  
+        
         log.info("mla model: " + model + " value: " + ps.chatSession.predicates.get(parameter));
-        String out = checkEmpty(SprintUtils.mla(model, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId));                                
+        String out = checkEmpty(SprintUtils.mla(model, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId));                                
         return out.replace("__label__", "");
     }
     
