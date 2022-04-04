@@ -824,7 +824,7 @@ public class AIMLProcessor
     
     private static String zip(Node node, ParseState ps) throws IOException
     {
-        String country = getAttributeOrTagValue(node, ps, "language");
+        String country = getAttributeOrTagValue(node, ps, "country");
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         
         
