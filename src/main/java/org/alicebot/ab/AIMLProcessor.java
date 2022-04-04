@@ -822,6 +822,37 @@ public class AIMLProcessor
     }
     
     
+    private static String zip(Node node, ParseState ps) throws IOException
+    {
+        String country = getAttributeOrTagValue(node, ps, "language");
+        String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
+        
+        
+        if(country == null || country.length() ==0)
+            country = "PL";
+        
+        country = country.toUpperCase(); 
+        
+        String input; 
+        if(parameter == null)        
+            input = evalTagContent(node, ps, null);     
+        else
+            input = ps.chatSession.predicates.get(parameter);  
+                                                       
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;  
+                                        
+        String result = Validator.zip(country, input); 
+        
+        log.info("zip "
+                + " parameter: " + parameter                 
+                + " input: " + input
+                + " result: " + result);                
+                                        
+        return checkEmpty(result);
+    }
+    
+    
     private static String setall(Node node, ParseState ps) { 
         
         String values = getAttributeOrTagValue(node, ps, "values");
@@ -2117,6 +2148,11 @@ public class AIMLProcessor
                 return implode(node, ps);
            else if (nodeName.equals("setall"))
                 return setall(node, ps);
+           else if (nodeName.equals("zip"))
+                return zip(node, ps);
+           
+           
+           
            
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
