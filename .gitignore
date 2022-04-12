@@ -4,6 +4,8 @@ target
 *.class
 /logs
 
+/.idea
+
 # Package Files #
 *.jar
 *.war
