@@ -88,42 +88,80 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension
         
         return mlaModels;        
     }
-    
-    public static Map<String, FastText> getMLModels() 
+
+    public static Map<String, FastText> getMLModels()
     {
-        Map<String, FastText> mlModels = new HashMap<String, FastText>();    
-        try 
+        Map<String, FastText> mlModels = new HashMap<String, FastText>();
+        try
         {
-            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";   
+            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";
 
             // Directory path here
-            String model;
-            String modelPath;
+            String file;
+            String filePath;
             File folder = new File(path);
             if (folder.exists()) {
                 File[] listOfFiles = folder.listFiles();
                 log.info("Loading ML Model files from '{}'", path);
                 for (File listOfFile : listOfFiles) {
-                    if (listOfFile.isDirectory()) {
-                        model = listOfFile.getName();
-                        modelPath = listOfFile.getAbsoluteFile().toString();
-                        
-                        log.info("Read ML Model folder: " + model + " filePath: " + modelPath);
-                                                
-                        FastText fastText = FastText.Companion.loadModel(new File(modelPath), true); 
-
-                        mlModels.put(model, fastText);
-                        
+                    if (listOfFile.isFile()) {
+                        file = listOfFile.getName();
+                        filePath = listOfFile.getAbsoluteFile().toString();
+                        if (file.endsWith(".bin") || file.endsWith(".BIN")) {
+                            log.info("Read ML Model file: " + file + " filePath: " + filePath);
+                            String modelName = file.substring(0, file.length()-".bin".length());
+                            log.info("Read ML Model "+modelName);
+                            FastText fastText = FastText.Companion.loadModelFromSingleFile(new File(filePath));
+                            mlModels.put(modelName, fastText);
+                        }
                     }
                 }
             }
-            else log.info("addMLModels: '{}' does not exist.", path);
+            else log.info("addMLAodels: '{}' does not exist.", path);
         } catch (Exception ex)  {
             ex.printStackTrace();
         }
-        
-        return mlModels;        
+
+        return mlModels;
     }
+    
+//    public static Map<String, FastText> getMLModels()
+//    {
+//        Map<String, FastText> mlModels = new HashMap<String, FastText>();
+//        try
+//        {
+//            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";
+//
+//            // Directory path here
+//            String model;
+//            String modelPath;
+//            File folder = new File(path);
+//            if (folder.exists()) {
+//                File[] listOfFiles = folder.listFiles();
+//                log.info("Loading ML Model files from '{}'", path);
+//                for (File listOfFile : listOfFiles) {
+//                    if (listOfFile.isDirectory()) {
+//                        model = listOfFile.getName();
+//                        modelPath = listOfFile.getAbsoluteFile().toString();
+//
+//                        log.info("Read ML Model folder: " + model + " filePath: " + modelPath);
+//
+//                        FastText fastText = FastText.Companion.loadModel(new File(modelPath), true);
+//                        //fasttext.FastText ftmodel = fasttext.FastText.loadModel(modelPath, true);
+//
+//
+//                        mlModels.put(model, fastText);
+//
+//                    }
+//                }
+//            }
+//            else log.info("addMLModels: '{}' does not exist.", path);
+//        } catch (Exception ex)  {
+//            ex.printStackTrace();
+//        }
+//
+//        return mlModels;
+//    }
     
     
     

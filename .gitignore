@@ -3,6 +3,7 @@ bin
 target
 *.class
 /logs
+/models
 
 /.idea
 

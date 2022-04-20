@@ -8,6 +8,9 @@ package org.alicebot.ab.utils;
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
 import fasttext.FastTextPrediction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -20,8 +23,6 @@ import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Custom methods for polish language and jar plugin call. 
@@ -31,7 +32,7 @@ public class SprintUtils {
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
    
     public static Map<String, fasttext.FastText> mlaModels; 
-    public static Map<String, FastText> mlModels; 
+    public static Map<String, FastText> mlModels;
     /**
      * Replace polish marks in string.
      * @param src
@@ -53,7 +54,7 @@ public class SprintUtils {
         temp = temp.replaceAll("[?]", " ").replaceAll("[!]", " ").replaceAll("[.]", " ");
                              
         return temp;
-    } 
+    }
             
     public static String mla(String model, String threshold, String score, String parameter, String sessionId)
     {
@@ -143,22 +144,22 @@ public class SprintUtils {
             }
             
             List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), iNbest, fThreshold);
-                  
+
             log.info("ml Response sessionId: " + sessionId + " result.size: " + result.size());
             for(ScoreLabelPair pair : result)
             {
-                int iScore = (int) (pair.getScore() * 100); 
-                
+                int iScore = (int) (pair.getScore() * 100);
+
                 log.info("Response sessionId: " + sessionId + " parameter: " + parameter + " RESPONSE score: " + pair.getScore() + " iScore: " + iScore + " label: " + pair.getLabel() + " MinScore: " + iMinScore);
-                
+
                 if(iScore >= iMinScore)
-                {                    
-                    out = pair.getLabel() + " " + iScore; 
+                {
+                    out = pair.getLabel() + " " + iScore;
                     break;
                 }
                 else
-                    out= "__label__oos " + iScore;                     
-            }                        
+                    out= "__label__oos " + iScore;
+            }
             
         } catch (Exception e) {
             
