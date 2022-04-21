@@ -55,6 +55,41 @@ public class SprintUtils {
                              
         return temp;
     }
+
+
+
+    public static boolean updateMlModel(String model)
+    {
+
+        FastText fastText = mlModels.get(model);
+        if(fastText != null)
+        {
+            log.info("updateMlModel. Model " + model + " removed from system.");
+            mlModels.remove(model);
+        }
+
+        String path = "models/" + model + ".bin";
+
+        File file = new File(path);
+
+        if(!file.exists())
+        {
+            log.error("updateMlModel. Model " + model + " not exists. Path: " + file.getAbsolutePath());
+            return false;
+        }
+        try {
+            fastText = FastText.Companion.loadModelFromSingleFile(file);
+        }
+        catch (Exception ex)
+        {
+            log.error("updateMlModel ERROR : " + ex, ex);
+            return false;
+        }
+
+        mlModels.put(model, fastText);
+
+        return true;
+    }
             
     public static String mla(String model, String threshold, String score, String parameter, String sessionId)
     {
