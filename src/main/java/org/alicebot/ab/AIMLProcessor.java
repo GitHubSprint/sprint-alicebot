@@ -1093,10 +1093,7 @@ public class AIMLProcessor
         
         String result = Validator.nums(nums); 
         
-        log.info("increment "
-                + " parameter: " + parameter                 
-                + " nums: " + nums
-                + " output: " + result);      
+
         
         if(result == null)
             return MagicStrings.unknown_property_value;                                   
@@ -1104,7 +1101,13 @@ public class AIMLProcessor
         int i = Integer.parseInt(result);
         i++;
         
-        result = String.valueOf(i);                
+        result = String.valueOf(i);
+
+        log.info("increment "
+                + " parameter: " + parameter
+                + " nums: " + nums
+                + " output: " + result);
+
         return result;
     }
     private static String decrement(Node node, ParseState ps) throws IOException
