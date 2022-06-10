@@ -542,7 +542,7 @@ public class AIMLProcessor
         { 
             group = Integer.parseInt(getAttributeOrTagValue(node, ps, "group")); 
         } catch (Exception e) {
-            log.warn("regex parseInt Exceltion setting to default 0.");
+            log.warn("regex parseInt Exception setting to default 0.");
         } 
         
         
