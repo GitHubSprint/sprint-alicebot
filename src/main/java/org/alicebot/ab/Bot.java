@@ -54,7 +54,6 @@ public class Bot {
     public String name=MagicStrings.unknown_bot_name;
     public HashMap<String, AIMLSet> setMap = new HashMap<String, AIMLSet>();
     public HashMap<String, AIMLMap> mapMap = new HashMap<String, AIMLMap>();
-    public HashMap<String, AIMLSet> dicMap = new HashMap<String, AIMLSet>();  
     
     //public HashMap<String, FastText> mlaModels = new HashMap<String, FastText>(); 
     
@@ -819,7 +818,6 @@ public class Bot {
         hash = 59 * hash + (this.name != null ? this.name.hashCode() : 0);
         hash = 59 * hash + (this.setMap != null ? this.setMap.hashCode() : 0);
         hash = 59 * hash + (this.mapMap != null ? this.mapMap.hashCode() : 0);
-        hash = 59 * hash + (this.dicMap != null ? this.dicMap.hashCode() : 0);
 //        hash = 59 * hash + (this.mlaModels != null ? this.mlaModels.hashCode() : 0);
         return hash;
     }
@@ -872,9 +870,7 @@ public class Bot {
         if (this.mapMap != other.mapMap && (this.mapMap == null || !this.mapMap.equals(other.mapMap))) {
             return false;
         }
-        if (this.dicMap != other.dicMap && (this.dicMap == null || !this.dicMap.equals(other.dicMap))) {
-            return false;
-        }
+
 //        if (this.mlaModels != other.mlaModels && (this.mlaModels == null || !this.mlaModels.equals(other.mlaModels))) {
 //            return false;
 //        }

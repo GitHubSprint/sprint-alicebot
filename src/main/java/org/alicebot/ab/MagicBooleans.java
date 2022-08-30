@@ -29,6 +29,5 @@ public class MagicBooleans {
     public static boolean jp_morphological_analysis = false;
     public static boolean fix_excel_csv = true;
     public static boolean isPolishMarks = true;
-    public static boolean isDicEnabled = true;
     
 }

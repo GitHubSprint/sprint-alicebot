@@ -18,16 +18,12 @@ package org.alicebot.ab;
         Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
         Boston, MA  02110-1301, USA.
 */
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import morfologik.stemming.Dictionary;
-import morfologik.stemming.DictionaryLookup;
-import morfologik.stemming.WordData;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
  * The AIML Pattern matching algorithm and data structure.
@@ -97,23 +93,7 @@ public class Graphmaster {
             log.info("AIML Set "+typeName+" not found.");
         }
     }
-    
-    void addDics (String type, Nodemapper node) {
-        
-        String typeName = Utilities.tagTrim(type, "DIC").toLowerCase();                        
-        log.info("trying to add new dic "+type);        
-        if (node.dics == null) node.dics = new ArrayList<String>();
-        
-        if(!node.dics.contains(typeName))
-        {
-            node.dics.add(typeName);
-            log.info("adding dics = "+node.dics);
-        }
-        else
-            log.info("dics = "+node.dics + " already added");
-        
-        
-    }
+
     
     /**
      * add a path to the graph from the root to a Category
@@ -147,7 +127,6 @@ public class Graphmaster {
         }
         else if (NodemapperOperator.containsKey(node, path.word)) {
             if (path.word.startsWith("<SET>")) addSets(path.word, bot, node);
-            if (path.word.startsWith("<DIC>")) addDics(path.word, node); 
             Nodemapper nextNode = NodemapperOperator.get(node, path.word);
             addPath(nextNode, path.next, category);
             int offset = 1;
@@ -156,8 +135,7 @@ public class Graphmaster {
         }
         else {
             Nodemapper nextNode = new Nodemapper();
-            if (path.word.startsWith("<SET>")) addSets(path.word, bot, node);     
-            if (path.word.startsWith("<DIC>")) addDics(path.word, node);     
+            if (path.word.startsWith("<SET>")) addSets(path.word, bot, node);
             if (node.key != null)  {
                 NodemapperOperator.upgrade(node);
                 upgradeCnt++;
@@ -338,7 +316,6 @@ public class Graphmaster {
         else if ((matchedNode = setMatch(path, node, inputThatTopic, starState, starIndex, inputStars, thatStars, topicStars, matchTrace)) != null) return matchedNode;        
         else if ((matchedNode = shortCutMatch(path, node, inputThatTopic, starState, starIndex, inputStars, thatStars, topicStars, matchTrace)) != null) return matchedNode;
         else if ((matchedNode = caretMatch(path, node, inputThatTopic, starState, starIndex, inputStars, thatStars, topicStars, matchTrace)) != null) return matchedNode;
-        else if ((matchedNode = dicMatch(path, node, inputThatTopic, starState, starIndex, inputStars, thatStars, topicStars, matchTrace)) != null) return matchedNode;
         else if ((matchedNode = starMatch(path, node, inputThatTopic, starState, starIndex, inputStars, thatStars, topicStars, matchTrace)) != null) return matchedNode;        
         else {
             return null;
@@ -541,69 +518,6 @@ public class Graphmaster {
        return null;
    }
    
-   final Nodemapper dicMatch(Path path, Nodemapper node, String inputThatTopic, String starState, int starIndex, String[] inputStars, String[] thatStars, String[] topicStars, String matchTrace) {
-       if (node.dics == null || path.word.equals("<THAT>") || path.word.equals("<TOPIC>")) return null;                     
-        
-       log.info("MagicBooleans.isDicEnabled: " + MagicBooleans.isDicEnabled);
-       log.info("MagicBooleans.isPolishMarks: " + MagicBooleans.isPolishMarks);
-       
-       if(!MagicBooleans.isDicEnabled) return null;
-       if(!MagicBooleans.isPolishMarks) return null;
-       
-       
-       String word = path.word.toLowerCase();     
-              
-       java.nio.file.Path dict = java.nio.file.Paths.get(MagicStrings.dictionary_path);
-       DictionaryLookup lookup;
-        try {
-            lookup = new DictionaryLookup(Dictionary.read(dict));
-            
-            List<WordData> wordData = lookup.lookup(word);
-            if (wordData.isEmpty()) {
-              return null;
-            } else {
-              for (WordData wd : wordData) 
-              {
-                CharSequence stem = wd.getStem();
-                CharSequence tag = wd.getTag();                
-                log.info("dicMatch DictionaryLookup word: {}, stem: {}, tag: {} ", word, stem.toString(), tag.toString());                
-                word = stem.toString();               
-                    
-              }
-            }
-            
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            return null;
-        }
-       
-       for (String dicName : node.dics) 
-       {
-            log.info("dicMatch dicName: {}, word: {} ",dicName, word);
-            Nodemapper matchedNode;
-             try {
-                 String uword = "<DIC>" + word.toUpperCase() + "</DIC>";
-                 if (uword.equals("<THAT>")) {starIndex = 0; starState = "thatStar";}
-                 else if (uword.equals("<TOPIC>")) {starIndex = 0; starState = "topicStar";}                 
-                 //log.info("dicMatch path.next= "+path.next);                                                   
-                 matchTrace += "["+uword+","+uword+"]";
-                 if (dicName.equals(word) && path != null && NodemapperOperator.containsKey(node, uword) &&
-                         (matchedNode = match(path.next, NodemapperOperator.get(node, uword), inputThatTopic, starState, starIndex, inputStars, thatStars, topicStars, matchTrace)) != null)  {
-                      return matchedNode;
-                 } else {
-                     fail("dic", matchTrace);
-                     return null;
-                 }
-             } catch (Exception ex) {
-                 log.warn("wordMatch: "+Path.pathToSentence(path)+": "+ex);
-                 ex.printStackTrace();
-                 return null;
-             }
-       }
-       
-       return null;
-    }
-      
 
     public void setStars(String starWords, int starIndex, String starState, String[] inputStars, String[] thatStars, String[] topicStars) {
     if (starIndex < MagicNumbers.max_stars) {

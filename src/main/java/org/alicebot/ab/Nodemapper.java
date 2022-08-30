@@ -37,7 +37,6 @@ public class Nodemapper {
     public Nodemapper value = null;
     public boolean shortCut = false;
     public ArrayList<String> sets;
-    public ArrayList<String> dics;
 
     
     /*    public Nodemapper () {
@@ -55,7 +54,6 @@ public class Nodemapper {
         hash = 71 * hash + (this.value != null ? this.value.hashCode() : 0);
         hash = 71 * hash + (this.shortCut ? 1 : 0);
         hash = 71 * hash + (this.sets != null ? this.sets.hashCode() : 0);
-        hash = 71 * hash + (this.dics != null ? this.dics.hashCode() : 0);
         return hash;
     }
 
@@ -93,9 +91,6 @@ public class Nodemapper {
             return false;
         }
         if (this.sets != other.sets && (this.sets == null || !this.sets.equals(other.sets))) {
-            return false;
-        }
-        if (this.dics != other.dics && (this.dics == null || !this.dics.equals(other.dics))) {
             return false;
         }
         return true;

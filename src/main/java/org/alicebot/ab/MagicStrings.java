@@ -125,7 +125,6 @@ public class MagicStrings {
     public static String log_path = bot_path+"/log";
     public static String sets_path = bot_path+"/sets";
     public static String maps_path = bot_path+"/maps";
-    public static String dictionary_path = "dic/polish.dict";
     
     public final static String UTF8 = "UTF-8";
 }
