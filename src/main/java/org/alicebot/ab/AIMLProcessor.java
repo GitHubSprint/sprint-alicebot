@@ -1863,6 +1863,7 @@ public class AIMLProcessor
         String result="";
         int loopCnt = 0;
         while (loop && loopCnt < MagicNumbers.max_loops) {
+
             String loopResult = condition(node, ps);
             if (loopResult.trim().equals(MagicStrings.too_much_recursion())) return MagicStrings.too_much_recursion();
             if (loopResult.contains("<loop/>")) {
@@ -1871,6 +1872,7 @@ public class AIMLProcessor
             }
             else loop = false;
             result += loopResult;
+            loopCnt++;
         }
         if (loopCnt >= MagicNumbers.max_loops) result = MagicStrings.too_much_looping();
         return result;
@@ -1883,7 +1885,7 @@ public class AIMLProcessor
      * @param ps       AIML parse state
      * @return         result of conditional expression
      */
-    private static String loopCmpareCondition(Node node, ParseState ps) {
+    private static String loopCompareCondition(Node node, ParseState ps) {
         boolean loop = true;
         
         String minAccuracy = getAttributeOrTagValue(node, ps, "minaccuracy");        
@@ -1891,7 +1893,7 @@ public class AIMLProcessor
         try {
             min = Integer.parseInt(minAccuracy); 
         } catch (Exception e) {
-            log.error("compare parseInt Exceltion setting to default 90.");
+            log.error("compare parseInt Exception setting to default 90.");
             min = 90; 
         }    
         
@@ -1906,6 +1908,7 @@ public class AIMLProcessor
             }
             else loop = false;
             result += loopResult;
+            loopCnt++;
         }
         if (loopCnt >= MagicNumbers.max_loops) result = MagicStrings.too_much_looping();
         return result;
@@ -2128,7 +2131,7 @@ public class AIMLProcessor
             else if (nodeName.equals("math")) //sprint NEW
                 return math(node, ps);
             else if (nodeName.equals("compare-condition"))
-                return loopCmpareCondition(node, ps);
+                return loopCompareCondition(node, ps);
             else if (nodeName.equals("increment"))
                 return increment(node, ps);
             else if (nodeName.equals("decrement"))
