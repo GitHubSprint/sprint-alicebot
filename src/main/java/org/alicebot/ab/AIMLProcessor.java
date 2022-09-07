@@ -1219,8 +1219,12 @@ public class AIMLProcessor
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         String format = getAttributeOrTagValue(node, ps, "format");
+        String locale = getAttributeOrTagValue(node, ps, "locale");
         boolean isPast = Boolean.parseBoolean(getAttributeOrTagValue(node, ps, "ispast"));
-        
+
+        if(locale == null)
+            locale = "pl";
+
         if(format == null)
             format="dd/MM/yyyy"; 
         
@@ -1235,7 +1239,7 @@ public class AIMLProcessor
         
         String result = MagicStrings.unknown_property_value; 
         try {
-            result = Validator.dateFormat(date, format, isPast); 
+            result = Validator.dateFormat(date, format, isPast,  locale);
         } catch (Exception ex) {            
             log.error("datetext Error : " + ex, ex);             
         }
@@ -1253,7 +1257,11 @@ public class AIMLProcessor
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         String format = getAttributeOrTagValue(node, ps, "format");
+        String locale = getAttributeOrTagValue(node, ps, "locale");
         boolean isPast = Boolean.parseBoolean(getAttributeOrTagValue(node, ps, "ispast"));
+
+        if(locale == null)
+            locale = "pl";
         
         if(format == null)
             format="dd/MM/yyyy"; 
@@ -1269,7 +1277,7 @@ public class AIMLProcessor
         
         String result = MagicStrings.unknown_property_value; 
         try {
-            result = Validator.txt2dateTime(date, format, isPast); 
+            result = Validator.txt2dateTime(date, format, isPast, locale);
         } catch (Exception ex) {            
             log.error("txt2dateTime Error : " + ex, ex);             
         }
