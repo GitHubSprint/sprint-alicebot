@@ -35,13 +35,13 @@ public class CalendarUtils {
 	}
 
 
-    public static String date(String jformat, String locale, String timezone)  {
+    public static String date(String format, String locale, String timezone)  {
         //HashSet<String> attributeNames = Utilities.stringSet("jformat","format","locale","timezone");
         Locale loc;
         log.info("CalendarUtils. date: Format = {} Locale = {} Timezone = {}",
-            		jformat, locale, timezone);
+            		format, locale, timezone);
         
-        if (jformat == null) jformat = "dd/MM/yyyy";
+        if (format == null) format = "dd/MM/yyyy";
         if (locale == null)         
             loc=new Locale("pl");
         else
@@ -53,12 +53,12 @@ public class CalendarUtils {
         String dateAsString = new Date().toString();
         try {
         SimpleDateFormat simpleDateFormat =
-                new SimpleDateFormat(jformat,loc);
+                new SimpleDateFormat(format,loc);
           dateAsString = simpleDateFormat.format(new Date());
         }
         catch (Exception ex) {
             log.info("CalendarUtils.date Bad date: Format = {} Locale = {} Timezone = {}",
-            		jformat, locale, timezone);
+            		format, locale, timezone);
         }
         log.info("CalendarUtils.date: {}", dateAsString);
         return dateAsString;

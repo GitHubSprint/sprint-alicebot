@@ -864,15 +864,6 @@ public class AIMLProcessor
         if(locale == null || locale.length() ==0)
             locale = "pl";
 
-//        String _days = ps.chatSession.predicates.get(days);
-//
-//        if(_days.equals(MagicStrings.unknown_property_value))
-//            _days = days;
-//
-//        if(_days == null || _days.length() ==0)
-//            _days = "0";
-
-
         String input;
         if(parameter == null)
             input = evalTagContent(node, ps, null);
@@ -1458,19 +1449,18 @@ public class AIMLProcessor
     }
 
     /**
-     * implements formatted date tag <date jformat="format"/> and <date format="format"/>
+     * implements formatted date tag <date format="format"/> and <date format="format"/>
      *
      * @param node     current XML parse node
      * @param ps       AIML parse state
      * @return         the formatted date
      */
     private static String date(Node node, ParseState ps)  {
-        //HashSet<String> attributeNames = Utilities.stringSet("jformat","format","locale","timezone");
-        String jformat = getAttributeOrTagValue(node, ps, "jformat");      // AIML 2.0
+        String format = getAttributeOrTagValue(node, ps, "format");      // AIML 2.0
         String locale = getAttributeOrTagValue(node, ps, "locale");
         String timezone = getAttributeOrTagValue(node, ps, "timezone");
-        //log.info("Format = "+format+" Locale = "+locale+" Timezone = "+timezone);
-        String dateAsString = CalendarUtils.date(jformat, locale, timezone);
+        log.info("Format = "+format+" Locale = "+locale+" Timezone = "+timezone);
+        String dateAsString = CalendarUtils.date(format, locale, timezone);
         //log.info(dateAsString);
         return dateAsString;
     }
@@ -1478,26 +1468,26 @@ public class AIMLProcessor
     
 
     /**
-     *    <interval><style>years</style></style><jformat>MMMMMMMMM dd, yyyy</jformat><from>August 2, 1960</from><to><date><jformat>MMMMMMMMM dd, yyyy</jformat></date></to></interval>
+     *    <interval><style>years</style></style><format>MMMMMMMMM dd, yyyy</format><from>August 2, 1960</from><to><date><format>MMMMMMMMM dd, yyyy</format></date></to></interval>
      */
 
     private static String interval(Node node, ParseState ps)  {
-        HashSet<String> attributeNames = Utilities.stringSet("style","jformat","from","to");
+        HashSet<String> attributeNames = Utilities.stringSet("style","format","from","to");
         String style = getAttributeOrTagValue(node, ps, "style");      // AIML 2.0
-        String jformat = getAttributeOrTagValue(node, ps, "jformat");      // AIML 2.0
+        String format = getAttributeOrTagValue(node, ps, "format");      // AIML 2.0
         String from = getAttributeOrTagValue(node, ps, "from");
         String to = getAttributeOrTagValue(node, ps, "to");
         if (style == null) style = "years";
-        if (jformat == null) jformat = "MMMMMMMMM dd, yyyy";
+        if (format == null) format = "MMMMMMMMM dd, yyyy";
         if (from == null) from = "January 1, 1970";
         if (to == null) {
-            to = CalendarUtils.date(jformat, null, null);
+            to = CalendarUtils.date(format, null, null);
         }
         String result = "unknown";
-        if (style.equals("years")) result = ""+Interval.getYearsBetween(from, to, jformat);
-        if (style.equals("months")) result = ""+Interval.getMonthsBetween(from, to, jformat);
-        if (style.equals("days")) result = ""+Interval.getDaysBetween(from, to, jformat);
-        if (style.equals("hours")) result = ""+Interval.getHoursBetween(from, to, jformat);
+        if (style.equals("years")) result = ""+Interval.getYearsBetween(from, to, format);
+        if (style.equals("months")) result = ""+Interval.getMonthsBetween(from, to, format);
+        if (style.equals("days")) result = ""+Interval.getDaysBetween(from, to, format);
+        if (style.equals("hours")) result = ""+Interval.getHoursBetween(from, to, format);
         return result;
     }
 
