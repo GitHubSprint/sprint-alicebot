@@ -20,9 +20,9 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.text.Normalizer;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 /**
  * Custom methods for polish language and jar plugin call. 

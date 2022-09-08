@@ -20,13 +20,11 @@ package org.alicebot.ab;
 */
 import java.io.File;
 import java.io.IOException;
+import java.text.DateFormat;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -849,6 +847,68 @@ public class AIMLProcessor
                 + " input: " + input
                 + " result: " + result);                
                                         
+        return checkEmpty(result);
+    }
+
+    private static String dateadd(Node node, ParseState ps) throws ParseException {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String days = getAttributeOrTagValue(node, ps, "days");
+        String format = getAttributeOrTagValue(node, ps, "format");
+        String locale = getAttributeOrTagValue(node, ps, "locale");
+
+        if(format == null)
+            format="dd/MM/yyyy";
+
+        if(locale == null || locale.length() ==0)
+            locale = "pl";
+
+//        String _days = ps.chatSession.predicates.get(days);
+//
+//        if(_days.equals(MagicStrings.unknown_property_value))
+//            _days = days;
+//
+//        if(_days == null || _days.length() ==0)
+//            _days = "0";
+
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+        String _days;
+        if(days == null)
+            _days = evalTagContent(node, ps, null);
+        else
+            _days = ps.chatSession.predicates.get(days);
+
+        if(_days.equals(MagicStrings.unknown_property_value))
+            _days = days;
+
+
+        Locale loc = new Locale(locale);
+        SimpleDateFormat dateFormat = new SimpleDateFormat(format, loc);
+        int iDays = Integer.parseInt(_days);
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(dateFormat.parse(input));
+        cal.add(Calendar.DATE, iDays);
+        String result = dateFormat.format(cal.getTime());
+
+        log.info("dateadd "
+                + " parameter: " + parameter
+                + " input: " + input
+                + " days: " + days
+                + " format: " + format
+                + " locale: " + locale
+                + " result: " + result);
+
         return checkEmpty(result);
     }
     
@@ -2164,6 +2224,8 @@ public class AIMLProcessor
                 return setall(node, ps);
            else if (nodeName.equals("zip"))
                 return zip(node, ps);
+           else if (nodeName.equals("dateadd"))
+                return dateadd(node, ps);
            
            
            
