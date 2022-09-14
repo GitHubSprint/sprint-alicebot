@@ -1234,8 +1234,8 @@ public class AIMLProcessor
             time = parameter; 
         
         String result = Validator.convertTime(time);                 
-                        
-        log.info("phone "
+
+        log.info("txt2time "
                 + " parameter: " + parameter                 
                 + " time: " + time
                 + " result: " + result);
