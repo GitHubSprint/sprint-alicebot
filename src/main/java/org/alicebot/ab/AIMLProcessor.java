@@ -660,8 +660,8 @@ public class AIMLProcessor
         
         int par, com; 
         try {
-            par = Integer.parseInt(Validator.nums(_parameter)); 
-            com = Integer.parseInt(Validator.nums(_comparator)); 
+            par = Integer.parseInt(_parameter);
+            com = Integer.parseInt(_comparator);
         } catch (Exception e) {
             log.warn("lessthan error invalid parameter or comparator!");
             return result;
@@ -713,8 +713,8 @@ public class AIMLProcessor
         try {
 //            par = Integer.parseInt(_parameter); 
 //            com = Integer.parseInt(_comparator); 
-            par = Integer.parseInt(Validator.nums(_parameter)); 
-            com = Integer.parseInt(Validator.nums(_comparator)); 
+            par = Integer.parseInt(_parameter);
+            com = Integer.parseInt(_comparator);
         } catch (Exception e) {
             log.warn("greatherthan error invalid parameter or comparator!");
             return result;
@@ -1133,30 +1133,30 @@ public class AIMLProcessor
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
         
-        String nums; 
+        String num;
         if(parameter == null)        
-            nums = evalTagContent(node, ps, null);     
+            num = evalTagContent(node, ps, null);
         else
-            nums = ps.chatSession.predicates.get(parameter);  
+            num = ps.chatSession.predicates.get(parameter);
                                                        
-        if(nums.equals(MagicStrings.unknown_property_value))
-            nums = parameter; 
-        
-        String result = Validator.nums(nums); 
-        
+        if(num.equals(MagicStrings.unknown_property_value))
+            num = parameter;
 
-        
-        if(result == null)
-            return MagicStrings.unknown_property_value;                                   
-                
-        int i = Integer.parseInt(result);
-        i++;
-        
-        result = String.valueOf(i);
+        String result = MagicStrings.unknown_property_value;
+
+        try {
+            int i = Integer.parseInt(num);
+            i++;
+            result = String.valueOf(i);
+
+        } catch (Exception e) {
+            log.warn("increment error invalid parameter: " + parameter);
+            return result;
+        }
 
         log.info("increment "
                 + " parameter: " + parameter
-                + " nums: " + nums
+                + " num: " + num
                 + " output: " + result);
 
         return result;
@@ -1164,29 +1164,33 @@ public class AIMLProcessor
     private static String decrement(Node node, ParseState ps) throws IOException
     {        
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
-        String nums; 
+        String num;
         if(parameter == null)        
-            nums = evalTagContent(node, ps, null);     
+            num = evalTagContent(node, ps, null);
         else
-            nums = ps.chatSession.predicates.get(parameter);  
+            num = ps.chatSession.predicates.get(parameter);
                                                        
-        if(nums.equals(MagicStrings.unknown_property_value))
-            nums = parameter; 
-        
-        String result = Validator.nums(nums); 
-        
+        if(num.equals(MagicStrings.unknown_property_value))
+            num = parameter;
+
+
+        String result = MagicStrings.unknown_property_value;
+
+        try {
+            int i = Integer.parseInt(num);
+            i--;
+            result = String.valueOf(i);
+
+        } catch (Exception e) {
+            log.warn("decrement error invalid parameter: " + parameter);
+            return result;
+        }
+
         log.info("decrement "
                 + " parameter: " + parameter                 
-                + " nums: " + nums
+                + " num: " + num
                 + " result: " + result);
-        
-        if(result == null)
-            return MagicStrings.unknown_property_value; 
-                                     
-        int i = Integer.parseInt(result);
-        i--;
-        
-        result = String.valueOf(i);                
+
         return result;
     }
     
