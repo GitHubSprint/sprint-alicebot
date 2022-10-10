@@ -660,8 +660,8 @@ public class AIMLProcessor
         
         int par, com; 
         try {
-            par = Integer.parseInt(_parameter);
-            com = Integer.parseInt(_comparator);
+            par = Integer.parseInt(Validator.numsWithSign(_parameter));
+            com = Integer.parseInt(Validator.numsWithSign(_comparator));
         } catch (Exception e) {
             log.warn("lessthan error invalid parameter or comparator!");
             return result;
@@ -711,10 +711,8 @@ public class AIMLProcessor
         
         int par, com; 
         try {
-//            par = Integer.parseInt(_parameter); 
-//            com = Integer.parseInt(_comparator); 
-            par = Integer.parseInt(_parameter);
-            com = Integer.parseInt(_comparator);
+            par = Integer.parseInt(Validator.numsWithSign(_parameter));
+            com = Integer.parseInt(Validator.numsWithSign(_comparator));
         } catch (Exception e) {
             log.warn("greatherthan error invalid parameter or comparator!");
             return result;
