@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.alicebot.ab</groupId>
 	<artifactId>ab</artifactId>
-	<version>4.4.0_SPRINT</version>
+	<version>4.4.1_SPRINT</version>
 	<name>sprint-alicebot</name>
 	<description>
 		Program AB is the reference implementation of the AIML 2.0 draft specification.
@@ -72,7 +72,7 @@
 		<dependency>
 			<groupId>pl.sprint</groupId>
 			<artifactId>validator</artifactId>
-			<version>1.5.2</version>
+			<version>1.5.3</version>
 		</dependency>
 
 		<!-- ML -->
