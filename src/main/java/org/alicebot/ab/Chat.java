@@ -3,6 +3,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.UUID;
 
 import org.alicebot.ab.utils.IOUtils;
 import org.slf4j.Logger;
@@ -35,22 +36,24 @@ public class Chat {
     
     public Bot bot;
     public String sessionId = MagicStrings.unknown_session_id;
-    public History<History> thatHistory= new History<History>("that");
-    public History<String> requestHistory=new History<String>("request");
-    public History<String> responseHistory=new History<String>("response");
-    public History<String> inputHistory=new History<String>("input");
+    public History<History> thatHistory= new History<>("that");
+    public History<String> requestHistory= new History<>("request");
+    public History<String> responseHistory= new History<>("response");
+    public History<String> inputHistory= new History<>("input");
     public Predicates predicates = new Predicates();
     public static String matchTrace = "";
     public static boolean locationKnown = false;
     public static String longitude;
-    public static String latitude;    
+    public static String latitude;
+
+    public String currentQuestion;
     /**
      * Constructor  (defualt customer ID)
      *
      * @param bot    the bot to chat with
      */
     public Chat(Bot bot)  {
-        this(bot, "0");
+        this(bot, UUID.randomUUID().toString());
     }
 
     /**
@@ -68,9 +71,6 @@ public class Chat {
         addPredicates();
         predicates.put("topic", MagicStrings.default_topic);
     }
-    
-    
-    
 
     public Date getSessionCreated() 
     {
@@ -109,7 +109,7 @@ public class Chat {
                 System.out.print("Human: ");
 				request = IOUtils.readInputTextLine();
                 response = multisentenceRespond(request);
-                log.info("Robot: "+response);
+                log.info(sessionId + " Robot: "+response);
                 bw.write("Human: "+request);
                 bw.newLine();
                 bw.write("Robot: "+response);
@@ -136,7 +136,7 @@ public class Chat {
         inputHistory.add(input);
         response = AIMLProcessor.respond(input, that, topic, this);
         String normResponse = bot.preProcessor.normalize(response);
-        //normResponse = JapaneseTokenizer.morphSentence(normResponse); //response.trim(); //
+
         String sentences[] = bot.preProcessor.sentenceSplit(normResponse);
         for (int i = 0; i < sentences.length; i++) {
           that = sentences[i];
@@ -177,16 +177,17 @@ public class Chat {
         responseHistory.printHistory();*/
         try {
         String norm = bot.preProcessor.normalize(request);
-        //norm = JapaneseTokenizer.morphSentence(norm);
-        log.debug("request = " + request + " normalized = "+norm);
-        String sentences[] = bot.preProcessor.sentenceSplit(norm);
-        History<String> contextThatHistory = new History<String>("contextThat");
+
+        log.info(sessionId + " multisentenceRespond request = " + request + " normalized = "+norm);
+        String[] sentences = bot.preProcessor.sentenceSplit(norm);
+        History<String> contextThatHistory = new History<>("contextThat");
         for (int i = 0; i < sentences.length; i++) {
-            log.info("Human: "+sentences[i]);
+            log.info(sessionId + " Human: "+sentences[i]);
+            currentQuestion = sentences[i].toLowerCase();
             AIMLProcessor.trace_count = 0;
             String reply = respond(sentences[i], contextThatHistory);
             response += "  "+reply;
-            log.info("Robot: "+reply);
+            log.info(sessionId + " Robot: "+reply);
         }
         requestHistory.add(request);
         responseHistory.add(response);
@@ -205,4 +206,23 @@ public class Chat {
     public static void setMatchTrace(String newMatchTrace) {
 		matchTrace = newMatchTrace;
 	}
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Chat)) return false;
+
+        Chat chat = (Chat) o;
+
+        if (!getSessionCreated().equals(chat.getSessionCreated())) return false;
+        return sessionId.equals(chat.sessionId);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getSessionCreated().hashCode();
+        result = 31 * result + sessionId.hashCode();
+        return result;
+    }
 }

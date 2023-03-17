@@ -181,8 +181,6 @@ public class AIMLProcessor
         sraiCount = srCnt;
         response = MagicStrings.default_bot_response();
         
-        log.info("response: " + response + " language code: " + MagicStrings.default_language);
-        
          try {
             Nodemapper leaf = chatSession.bot.brain.match(input, that, topic);
             if (leaf == null) {return(response);}
@@ -453,7 +451,7 @@ public class AIMLProcessor
         String result = MagicStrings.unknown_map_value;
         
         String predicateName = getAttributeOrTagValue(node, ps, "name");         
-        Map<String, String> map = new TreeMap<String, String>(ps.chatSession.predicates); 
+        Map<String, String> map = new TreeMap<>(ps.chatSession.predicates);
         Set set2 = map.entrySet();
         Iterator iterator2 = set2.iterator();
         
@@ -481,38 +479,71 @@ public class AIMLProcessor
     }
     
     /**
-     * FastText ML integration 
-     * implements <predictf model="tak-nie-model" nbest="2" threshold="0.0" score="1.0" parameter="hello"/>
+     * FastText ML integration
+     * implements <ml model="tak-nie-model" nbest="2" threshold="0" score="50" parameter="hello"/>
      * @param node current XML parse node
      * @param ps AIML parse state
-     * @return 
+     * @return
      */
-    private static String ml(Node node, ParseState ps) throws IOException
-    {
-                
-        String model = getAttributeOrTagValue(node, ps, "model");  
+    private static String ml(Node node, ParseState ps) {
+
+        String model = getAttributeOrTagValue(node, ps, "model");
         String nBest = getAttributeOrTagValue(node, ps, "nbest");
-        String threshold = getAttributeOrTagValue(node, ps, "threshold");          
-        String score = getAttributeOrTagValue(node, ps, "score");          
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-                        
-        log.info("ml model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score + " value: " + ps.chatSession.predicates.get(parameter));
-        String out = checkEmpty(SprintUtils.ml(model, nBest, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId));
-        
-                
+        String threshold = getAttributeOrTagValue(node, ps, "threshold");
+        String score = getAttributeOrTagValue(node, ps, "score");
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        log.info(ps.chatSession.sessionId + "ML currentQuestion: " + ps.chatSession.currentQuestion);
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input != null)
+        {
+            input =  input.toLowerCase();
+            if(!input.equals(ps.chatSession.currentQuestion))
+                input = ps.chatSession.currentQuestion;
+        }else {
+            input = ps.chatSession.currentQuestion;
+        }
+
+        log.info(ps.chatSession.sessionId + " ML parameter: " + parameter + " input: " + input);
+        log.info(ps.chatSession.sessionId + " ML model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score);
+
+        String out = checkEmpty(SprintUtils.ml(model, nBest, threshold, score, input, ps.chatSession.sessionId));
+
+
         return out.replace("__label__", "");
     }
-    
-    private static String mla(Node node, ParseState ps) throws IOException
-    {
-                
-        String model = getAttributeOrTagValue(node, ps, "model");                          
+
+    private static String mla(Node node, ParseState ps) {
+
+        String model = getAttributeOrTagValue(node, ps, "model");
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
-        String score = getAttributeOrTagValue(node, ps, "score"); 
-        String threshold = getAttributeOrTagValue(node, ps, "threshold");  
-        
-        log.info("mla model: " + model + " value: " + ps.chatSession.predicates.get(parameter));
-        String out = checkEmpty(SprintUtils.mla(model, threshold, score, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId));                                
+        String score = getAttributeOrTagValue(node, ps, "score");
+        String threshold = getAttributeOrTagValue(node, ps, "threshold");
+
+        log.info(ps.chatSession.sessionId + "MLA currentQuestion: " + ps.chatSession.currentQuestion);
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input != null)
+        {
+            input =  input.toLowerCase();
+            if(!input.equals(ps.chatSession.currentQuestion))
+                input = ps.chatSession.currentQuestion;
+        }else {
+            input = ps.chatSession.currentQuestion;
+        }
+
+        log.info(ps.chatSession.sessionId + " MLA parameter: " + parameter + " input: " + input);
+        log.info(ps.chatSession.sessionId + " MLA model: " + model + " threshold:  " + threshold + " score:" + score);
+
+        String out = checkEmpty(SprintUtils.mla(model, threshold, score, input, ps.chatSession.sessionId));
         return out.replace("__label__", "");
     }
     
@@ -1518,6 +1549,7 @@ public class AIMLProcessor
      */
     private static String inputStar(Node node, ParseState ps) {
         int index=getIndexValue(node, ps);
+//        log.info(ps.chatSession.sessionId + " inputStar index: " + index);
         if (ps.leaf.starBindings.inputStars.star(index)==null) return "";
         else return ps.leaf.starBindings.inputStars.star(index).trim();
     }

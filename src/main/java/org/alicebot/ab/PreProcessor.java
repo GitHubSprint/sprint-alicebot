@@ -223,7 +223,7 @@ public class PreProcessor {
         line = line.replace("？","?");
         line = line.replace("！","!");
         //log.info("Sentence split "+line);
-        String result[] = line.split("[\\.!\\?]");
+        String[] result = line.split("[\\.!\\?]");
         for (int i = 0; i < result.length; i++) result[i] = result[i].trim();
         return result;
     }

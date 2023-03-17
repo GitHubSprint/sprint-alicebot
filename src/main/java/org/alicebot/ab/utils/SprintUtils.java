@@ -93,91 +93,89 @@ public class SprintUtils {
             
     public static String mla(String model, String threshold, String score, String parameter, String sessionId)
     {
-                
+
         String out;
         int iMinScore = 0;
-        if(score != null && score.length() > 0)        
+        if(score != null && score.length() > 0)
             iMinScore = Integer.parseInt(score);
-        
+
         float fThreshold = 0f;
-        
-        if(threshold != null && threshold.length() > 0)        
+
+        if(threshold != null && threshold.length() > 0)
             fThreshold = Float.parseFloat(threshold);
-        
+
         log.info("mla Request: sessionId: " + sessionId + " Model: " + model + " MinScore: " + iMinScore + " Threshold: " + fThreshold + " parameter: " + parameter);
-        
-        
+
+
         try {
-   
+
             fasttext.FastText ftmodel = mlaModels.get(model);
-            
+
             if(ftmodel == null)
             {
-                log.warn(sessionId + "\tInvalid model name"); 
-                return "ERR Invalid model name"; 
+                log.warn(sessionId + "\tInvalid model name");
+                return "ERR Invalid model name";
             }
-                                                     
+
             List<FastTextPrediction> result = ftmodel.predictAll(Arrays.asList(parameter.split(" ")),fThreshold);
-            
-            int iScore = (int) (result.get(0).probability() * 100); 
-            
-            if (result.get(0).label().equals("__label__oos") == false) 
-            {                    
-                log.info(sessionId + "\tOK:\t" + parameter + "\tresult : " + result.get(0).label() + " score: " + iScore);                                        
+
+            int iScore = (int) (result.get(0).probability() * 100);
+
+            if (!result.get(0).label().equals("__label__oos"))
+            {
+                log.info(sessionId + "\tOK:\t" + parameter + "\tresult : " + result.get(0).label() + " score: " + iScore);
             } else {
-                log.warn(sessionId + "\tNO QUALIFICATION:\t" + parameter);                
+                log.warn(sessionId + "\tNO QUALIFICATION:\t" + parameter);
             }
-            
-            if(iScore >= iMinScore)                                
-                out= result.get(0).label() + " " + iScore;            
+
+            if(iScore >= iMinScore)
+                out= result.get(0).label() + " " + iScore;
             else
-                out = "__label__oos" + " " + iScore; 
-            
-            
-            
-            //out= result.get(0).label() + " " + iScore; 
-            
+                out = "__label__oos" + " " + iScore;
+
+
+
+            //out= result.get(0).label() + " " + iScore;
+
         } catch (Exception e) {
-            
+
             out = "ERR " + e.getMessage();
             log.error(sessionId + "\tpredictSupervisedModel ERROR : " + e, e);
         }
-        
+
         return out;
     }
-    
+
     /**
      * Predict fastText label tranined suprvised model
      * @param model name of model (all models should be installed to ./models/
      * @param nBest number of responses
      * @param threshold
-     * @param score score percent (e.g. 50 = 50% prediction) 
-     * @param parameter 
+     * @param score score percent (e.g. 50 = 50% prediction)
+     * @param parameter
      * @param sessionId Bot SessionId
-     * @return 
+     * @return
      */
     public static String ml(String model, String nBest, String threshold, String score, String parameter, String sessionId)
     {
-        String out = "ERR Null";        
-        
-        try {                                    
-            //String path = new File(".").getCanonicalPath().replace("\\", "/");            
-            //String sModel = path + "/models/" + model;
-            int iNbest = Integer.parseInt(nBest); 
+        String out = "ERR";
+
+        try {
+            int iNbest = Integer.parseInt(nBest);
             float fThreshold = Float.parseFloat(threshold);
             int iMinScore = Integer.parseInt(score);
-            
-            
+
+
             log.info("ml Request: sessionId: " + sessionId + " Model: " + model + " Nbest: " + iNbest + " Threshold: " + fThreshold + " MinScore: " + iMinScore + " parameter: " + parameter);
-            
+
             FastText fastText = mlModels.get(model);
-            
+
             if(fastText == null)
             {
-                log.warn(sessionId + "\tInvalid model name"); 
-                return "ERR Invalid model name"; 
+                log.warn(sessionId + "\tInvalid model name");
+                return "ERR Invalid model name";
             }
-            
+
             List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), iNbest, fThreshold);
 
             log.info("ml Response sessionId: " + sessionId + " result.size: " + result.size());
@@ -195,13 +193,13 @@ public class SprintUtils {
                 else
                     out= "__label__oos " + iScore;
             }
-            
+
         } catch (Exception e) {
-            
+
             out = "ERR " + e.getMessage();
             log.error("predictSupervisedModel ERROR : " + e, e);
         }
-        
+
         return out;
     }
     

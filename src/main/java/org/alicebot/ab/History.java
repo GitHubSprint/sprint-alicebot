@@ -100,4 +100,14 @@ public class History<T> {
             if (String.valueOf(get(i).getClass()).contains("History")) ((History)get(i)).printHistory();
         }
     }
+
+    public String getHistory() {
+        StringBuilder sb = new StringBuilder();
+        int i;
+        for (i = 0; get(i) != null; i++) {
+            sb.append(name).append("History ").append(i + 1).append(" = ").append(get(i));
+            sb.append(String.valueOf(get(i).getClass()).contains("History"));
+        }
+        return sb.toString();
+    }
 }

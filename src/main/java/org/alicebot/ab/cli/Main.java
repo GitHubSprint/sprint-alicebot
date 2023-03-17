@@ -37,6 +37,7 @@ import org.alicebot.ab.MagicStrings;
 import org.alicebot.ab.PCAIMLProcessorExtension;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
+import org.alicebot.ab.utils.ThreadTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +56,11 @@ public class Main {
         
         log.info("Working Directory = " + MagicStrings.root_path);
         AIMLProcessor.extension =  new PCAIMLProcessorExtension();
-        mainFunction(args);
+
+        ThreadTest test = new ThreadTest();
+        test.start();
+
+//        mainFunction(args);
     }
     public static void mainFunction (String[] args) {
         String botName = "testowa";

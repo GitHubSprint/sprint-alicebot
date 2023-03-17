@@ -52,8 +52,8 @@ public class Bot {
   //  public final ArrayList<Category> categories;
     public ArrayList<Category> suggestedCategories;
     public String name=MagicStrings.unknown_bot_name;
-    public HashMap<String, AIMLSet> setMap = new HashMap<String, AIMLSet>();
-    public HashMap<String, AIMLMap> mapMap = new HashMap<String, AIMLMap>();
+    public HashMap<String, AIMLSet> setMap = new HashMap<>();
+    public HashMap<String, AIMLMap> mapMap = new HashMap<>();
     
     //public HashMap<String, FastText> mlaModels = new HashMap<String, FastText>(); 
     
