@@ -44,15 +44,9 @@ public class SprintUtils {
         String temp = src;
         if(src==null)
             return null;
-        
-        
         if(!isPolishMarks)
-        {            
             temp = Normalizer.normalize(src.replaceAll("[łŁ]", "l"), Normalizer.Form.NFD).replaceAll("[^\\p{ASCII}]", "");   
-        }
-            
-        temp = temp.replaceAll("[?]", " ").replaceAll("[!]", " ").replaceAll("[.]", " ");
-                             
+
         return temp;
     }
 

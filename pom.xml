@@ -3,14 +3,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.alicebot.ab</groupId>
 	<artifactId>ab</artifactId>
-	<version>4.4.2_SPRINT</version>
+	<version>4.4.3_SPRINT</version>
 	<name>sprint-alicebot</name>
 	<description>
 		Program AB is the reference implementation of the AIML 2.0 draft specification.
 		AIML is a widely adopted standard for creating chat bots and mobile virtual assistants like ALICE, Mitsuku, English Tutor, The Professor, S.U.P.E.R. and many more.</description>
 	<properties>
 		<slf4j.version>1.7.28</slf4j.version>
-		<httpclient.version>4.5.13</httpclient.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 	</properties>
@@ -54,7 +53,7 @@
 	    <dependency>
 	    	<groupId>org.apache.httpcomponents</groupId>
 	    	<artifactId>httpclient</artifactId>
-	    	<version>${httpclient.version}</version>
+	    	<version>4.5.14</version>
 	    </dependency>
 	    <dependency>
 	    	<groupId>joda-time</groupId>
