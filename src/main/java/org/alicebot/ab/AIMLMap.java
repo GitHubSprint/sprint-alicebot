@@ -76,13 +76,13 @@ public class AIMLMap extends HashMap<String, String> {
                 return MagicStrings.unknown_map_value;
             }
         }
-        else if (isExternal && MagicBooleans.enable_external_sets) {
-            //String[] split = key.split(" ");
-            String query = mapName.toUpperCase()+" "+key;
-            String response = Sraix.sraix(null, query, MagicStrings.unknown_map_value, null, host, botid, null, "0");
-            log.info("External "+mapName+"("+key+")="+response);
-            value = response;
-        }
+//        else if (isExternal && MagicBooleans.enable_external_sets) {
+//            //String[] split = key.split(" ");
+//            String query = mapName.toUpperCase()+" "+key;
+//            String response = Sraix.sraix(null, query, MagicStrings.unknown_map_value, null, host, botid, null, "0");
+//            log.info("External "+mapName+"("+key+")="+response);
+//            value = response;
+//        }
         else value = super.get(key);
         if (value == null) value = MagicStrings.unknown_map_value;
         log.info("AIMLMap get "+key+"="+value);

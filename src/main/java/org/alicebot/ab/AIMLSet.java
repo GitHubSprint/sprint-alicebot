@@ -57,15 +57,16 @@ public class AIMLSet extends HashSet<String> {
     public boolean contains(String s) {
         //if (isExternal)  log.info("External "+setName+" contains "+s+"?");
         //else  log.info("Internal "+setName+" contains "+s+"?");
-        if (isExternal && MagicBooleans.enable_external_sets) {
-            String[] split = s.split(" ");
-            if (split.length > maxLength) return false;
-            String query = MagicStrings.set_member_string+setName.toUpperCase()+" "+s;
-            String response = Sraix.sraix(null, query, "false", null, host, botid, null, "0");
-            log.info("External "+setName+" contains "+s+"? "+response);
-            if (response.equals("true")) return true;
-            else return false;
-        } else if (setName.equals(MagicStrings.natural_number_set_name)) {
+//        if (isExternal && MagicBooleans.enable_external_sets) {
+//            String[] split = s.split(" ");
+//            if (split.length > maxLength) return false;
+//            String query = MagicStrings.set_member_string+setName.toUpperCase()+" "+s;
+//            String response = Sraix.sraix(null, query, "false", null, host, botid, null, "0");
+//            log.info("External "+setName+" contains "+s+"? "+response);
+//            if (response.equals("true")) return true;
+//            else return false;
+//        } else
+        if (setName.equals(MagicStrings.natural_number_set_name)) {
             Pattern numberPattern = Pattern.compile("[0-9]+");
             Matcher numberMatcher = numberPattern.matcher(s);
             Boolean isanumber = numberMatcher.matches();

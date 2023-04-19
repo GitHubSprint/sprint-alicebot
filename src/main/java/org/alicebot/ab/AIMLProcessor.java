@@ -381,18 +381,18 @@ public class AIMLProcessor
      * @param ps     AIML parse state
      * @return       response from remote service or string indicating failure.
      */
-    private static String sraix(Node node, ParseState ps) {
-        HashSet<String> attributeNames = Utilities.stringSet("botid", "host");
-        String host = getAttributeOrTagValue(node, ps, "host");
-        String botid = getAttributeOrTagValue(node, ps, "botid");
-        String hint = getAttributeOrTagValue(node, ps, "hint");
-        String limit = getAttributeOrTagValue(node, ps, "limit");
-        String defaultResponse = getAttributeOrTagValue(node, ps, "default");
-        String result = evalTagContent(node, ps, attributeNames);
-
-        return Sraix.sraix(ps.chatSession, result, defaultResponse, hint, host, botid, null, limit);
-
-    }
+//    private static String sraix(Node node, ParseState ps) {
+//        HashSet<String> attributeNames = Utilities.stringSet("botid", "host");
+//        String host = getAttributeOrTagValue(node, ps, "host");
+//        String botid = getAttributeOrTagValue(node, ps, "botid");
+//        String hint = getAttributeOrTagValue(node, ps, "hint");
+//        String limit = getAttributeOrTagValue(node, ps, "limit");
+//        String defaultResponse = getAttributeOrTagValue(node, ps, "default");
+//        String result = evalTagContent(node, ps, attributeNames);
+//
+//        return Sraix.sraix(ps.chatSession, result, defaultResponse, hint, host, botid, null, limit);
+//
+//    }
 
     /**
      * map an element of one string set to an element of another
@@ -2164,8 +2164,8 @@ public class AIMLProcessor
                 return srai(node, ps);
             else if (nodeName.equals("sr"))
                   return respond(ps.leaf.starBindings.inputStars.star(0), ps.that, ps.topic, ps.chatSession, sraiCount);
-            else if (nodeName.equals("sraix"))
-                return sraix(node, ps);
+//            else if (nodeName.equals("sraix"))
+//                return sraix(node, ps);
             else if (nodeName.equals("set"))
                 return set(node, ps);
             else if (nodeName.equals("get"))
