@@ -39,6 +39,7 @@ public class SprintUtils {
      * @param isPolishMarks
      * @return 
      */
+    @Deprecated
     public static String unaccent(String src, boolean isPolishMarks) 
     {
         String temp = src;
