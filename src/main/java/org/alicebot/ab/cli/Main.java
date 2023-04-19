@@ -138,10 +138,10 @@ public class Main {
             }
             else if (textLine.equals("ab")) testAB(bot);
             else {
-                String request = SprintUtils.unaccent(textLine, MagicBooleans.isPolishMarks);
+
                 //String request = "| " + (textLine) + " |";
-                log.debug("STATE="+request+":THAT="+chatSession.thatHistory.get(0).get(0)+":TOPIC="+chatSession.predicates.get("topic"));
-                String response = chatSession.multisentenceRespond(request);
+                log.debug("STATE="+textLine+":THAT="+chatSession.thatHistory.get(0).get(0)+":TOPIC="+chatSession.predicates.get("topic"));
+                String response = chatSession.multisentenceRespond(textLine);
                 while (response.contains("&lt;")) response = response.replace("&lt;","<");
                 while (response.contains("&gt;")) response = response.replace("&gt;",">");
                 log.info("Robot: "+response);
