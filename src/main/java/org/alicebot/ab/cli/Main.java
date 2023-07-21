@@ -22,6 +22,7 @@ package org.alicebot.ab.cli;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -172,7 +173,7 @@ public class Main {
             Chat chatSession = new Chat(bot);
             FileInputStream fstream = new FileInputStream(filename);
             // Get the object
-            BufferedReader br = new BufferedReader(new InputStreamReader(fstream, MagicStrings.UTF8));
+            BufferedReader br = new BufferedReader(new InputStreamReader(fstream, StandardCharsets.UTF_8));
             String strLine;
             //Read File Line By Line
             int count = 0;

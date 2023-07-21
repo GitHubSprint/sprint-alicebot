@@ -20,9 +20,9 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.text.Normalizer;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Custom methods for polish language and jar plugin call. 
@@ -174,8 +174,7 @@ public class SprintUtils {
             List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), iNbest, fThreshold);
 
             log.info("ml Response sessionId: " + sessionId + " result.size: " + result.size());
-            for(ScoreLabelPair pair : result)
-            {
+            for(ScoreLabelPair pair : result) {
                 int iScore = (int) (pair.getScore() * 100);
 
                 log.info("Response sessionId: " + sessionId + " parameter: " + parameter + " RESPONSE score: " + pair.getScore() + " iScore: " + iScore + " label: " + pair.getLabel() + " MinScore: " + iMinScore);

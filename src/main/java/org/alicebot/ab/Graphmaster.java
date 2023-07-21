@@ -444,29 +444,29 @@ public class Graphmaster {
             if (path != null && NodemapperOperator.containsKey(node, wildcard)) {
                 matchTrace += "["+wildcard+","+path.word+"]";
                 String currentWord;
-                String starWords;
+                StringBuilder starWords;
                 Path pathStart;
                 currentWord = path.word;
-                starWords = currentWord+" ";
+                starWords = new StringBuilder(currentWord + " ");
                 pathStart = path.next;
                 Nodemapper nextNode = NodemapperOperator.get(node, wildcard);
                 if (NodemapperOperator.isLeaf(nextNode) && !nextNode.shortCut) {
                     matchedNode = nextNode;
-                    starWords = Path.pathToSentence(path);
+                    starWords = new StringBuilder(Path.pathToSentence(path));
                     //log.info(starIndex+". starwords="+starWords);
-                    setStars(starWords, starIndex, starState, inputStars, thatStars, topicStars);
+                    setStars(starWords.toString(), starIndex, starState, inputStars, thatStars, topicStars);
                     return matchedNode;
                 }
                 else {
                     for (path = pathStart; path != null && !currentWord.equals("<THAT>") && !currentWord.equals("<TOPIC>"); path = path.next) {
                         matchTrace += "["+wildcard+","+path.word+"]";
                         if ((matchedNode = match(path, nextNode, input, starState, starIndex + 1, inputStars, thatStars, topicStars, matchTrace)) != null) {
-                            setStars(starWords, starIndex, starState, inputStars, thatStars, topicStars);
+                            setStars(starWords.toString(), starIndex, starState, inputStars, thatStars, topicStars);
                             return matchedNode;
                         }
                         else {
                             currentWord = path.word;
-                            starWords += currentWord + " ";
+                            starWords.append(currentWord).append(" ");
                         }
                     }
                     fail("wild2 "+wildcard, matchTrace);
@@ -493,16 +493,16 @@ public class Graphmaster {
            //log.info(aimlSet.setName + "="+ aimlSet);
            Nodemapper matchedNode;
            String currentWord = path.word;
-           String starWords = currentWord+" ";
+           StringBuilder starWords = new StringBuilder(currentWord + " ");
            int length = 1;
            matchTrace += "[<set>"+setName+"</set>,"+path.word+"]";
            //log.info("matchTrace = "+matchTrace);
            for (Path qath = path.next; qath != null &&  !currentWord.equals("<THAT>") && !currentWord.equals("<TOPIC>") && length <= aimlSet.maxLength; qath = qath.next) {
                //log.info("qath.word = "+qath.word);
-               String phrase = bot.preProcessor.normalize(starWords.trim()).toUpperCase();
+               String phrase = bot.preProcessor.normalize(starWords.toString().trim()).toUpperCase();
                //log.info("setMatch trying \""+phrase+"\" in "+setName);
                if (aimlSet.contains(phrase) && (matchedNode = match(qath, nextNode, input, starState, starIndex + 1, inputStars, thatStars, topicStars, matchTrace)) != null) {
-                   setStars(starWords, starIndex, starState, inputStars, thatStars, topicStars);
+                   setStars(starWords.toString(), starIndex, starState, inputStars, thatStars, topicStars);
                    //log.info("setMatch found "+phrase+" in "+setName);
                    return matchedNode;
                }
@@ -510,7 +510,7 @@ public class Graphmaster {
                else {
                    length = length + 1;
                    currentWord = qath.word;
-                   starWords += currentWord + " ";
+                   starWords.append(currentWord).append(" ");
                }
            }
        }

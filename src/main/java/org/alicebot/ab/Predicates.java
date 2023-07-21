@@ -19,6 +19,7 @@ package org.alicebot.ab;
         Boston, MA  02110-1301, USA.
 */
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 import org.slf4j.Logger;
@@ -67,7 +68,7 @@ public class Predicates extends HashMap<String, String> implements Serializable 
         
         String strLine;
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(in, MagicStrings.UTF8));
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             //Read File Line By Line
             while ((strLine = br.readLine()) != null)   {
                 if (strLine.contains(":")) {

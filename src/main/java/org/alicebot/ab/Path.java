@@ -112,12 +112,12 @@ public class Path extends ArrayList<String>{
      * print a Path
      */
     public void print() {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         for (Path p = this; p != null; p = p.next) {
-            result += p.word+",";
+            result.append(p.word).append(",");
         }
-        if (result.endsWith(",")) result = result.substring(0, result.length()-1);
-        log.info(result);
+        if (result.toString().endsWith(",")) result = new StringBuilder(result.substring(0, result.length() - 1));
+        log.info(result.toString());
     }
 
 }

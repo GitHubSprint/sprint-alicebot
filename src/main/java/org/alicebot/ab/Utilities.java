@@ -23,6 +23,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashSet;
 
 import org.alicebot.ab.utils.CalendarUtils;
@@ -55,25 +57,23 @@ public class Utilities {
         return xmlExpression;
     }
     public static HashSet<String> stringSet(String... strings)  {
-        HashSet<String> set = new HashSet<String>();
-        for (String s : strings) set.add(s);
-        return set;
+        return new HashSet<>(Arrays.asList(strings));
     }
     public static String getFileFromInputStream(InputStream in)  {
         
         String strLine;
         //Read File Line By Line
-        String contents = "";
+        StringBuilder contents = new StringBuilder();
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(in, MagicStrings.UTF8));
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             while ((strLine = br.readLine()) != null)   {
-                if (strLine.length() == 0) contents += "\n";
-                else contents  += strLine+"\n";
+                if (strLine.length() == 0) contents.append("\n");
+                else contents.append(strLine).append("\n");
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return contents.trim();
+        return contents.toString().trim();
     }
     public static String getFile (String filename) {
         String contents = "";
@@ -96,42 +96,42 @@ public class Utilities {
         
         String strLine;
         //Read File Line By Line
-        String copyright = "";
+        StringBuilder copyright = new StringBuilder();
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(in, MagicStrings.UTF8));
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             while ((strLine = br.readLine()) != null)   {
-                if (strLine.length() == 0) copyright += "\n";
-                else copyright += "<!-- "+strLine+" -->\n";
+                if (strLine.length() == 0) copyright.append("\n");
+                else copyright.append("<!-- ").append(strLine).append(" -->\n");
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return copyright;
+        return copyright.toString();
     }
     public static String getCopyright (Bot bot, String AIMLFilename) {
-        String copyright = "";
+        StringBuilder copyright = new StringBuilder();
         String year = CalendarUtils.year();
         String date = CalendarUtils.date();
         try {
-                copyright = getFile(MagicStrings.config_path+"/copyright.txt") ;
-                String[] splitCopyright = copyright.split("\n");
-                copyright = "";
-                for (int i = 0; i < splitCopyright.length; i++) {
-                    copyright += "<!-- "+splitCopyright[i]+" -->\n";
-                }
-                copyright = copyright.replace("[url]", bot.properties.get("url"));
-                copyright = copyright.replace("[date]", date);
-                copyright = copyright.replace("[YYYY]", year);
-                copyright = copyright.replace("[version]", bot.properties.get("version"));
-                copyright = copyright.replace("[botname]", bot.name.toUpperCase());
-                copyright = copyright.replace("[filename]", AIMLFilename);
-                copyright = copyright.replace("[botmaster]", bot.properties.get("botmaster"));
-                copyright = copyright.replace("[organization]", bot.properties.get("organization"));
+            copyright = new StringBuilder(getFile(MagicStrings.config_path + "/copyright.txt"));
+            String[] splitCopyright = copyright.toString().split("\n");
+            copyright = new StringBuilder();
+            for (String s : splitCopyright) {
+                copyright.append("<!-- ").append(s).append(" -->\n");
+            }
+            copyright = new StringBuilder(copyright.toString().replace("[url]", bot.properties.get("url")));
+            copyright = new StringBuilder(copyright.toString().replace("[date]", date));
+            copyright = new StringBuilder(copyright.toString().replace("[YYYY]", year));
+            copyright = new StringBuilder(copyright.toString().replace("[version]", bot.properties.get("version")));
+            copyright = new StringBuilder(copyright.toString().replace("[botname]", bot.name.toUpperCase()));
+            copyright = new StringBuilder(copyright.toString().replace("[filename]", AIMLFilename));
+            copyright = new StringBuilder(copyright.toString().replace("[botmaster]", bot.properties.get("botmaster")));
+            copyright = new StringBuilder(copyright.toString().replace("[organization]", bot.properties.get("organization")));
         } catch (Exception e){//Catch exception if any
             log.error("Cannot get copyright from '" + AIMLFilename + "': " + e, e);
         }
         //log.info("Copyright: "+copyright);
-        return copyright;
+        return copyright.toString();
     }
 
     public static String getPannousAPIKey () {
@@ -143,26 +143,6 @@ public class Utilities {
         String login = getFile(MagicStrings.config_path+"/pannous-login.txt");
         if (login.equals("")) login = MagicStrings.pannous_login;
         return login;
-    }
-    /**
-     * Returns if a character is one of Chinese-Japanese-Korean characters.
-     *
-     * @param c
-     *            the character to be tested
-     * @return true if CJK, false otherwise
-     */
-    public static boolean isCharCJK(final char c) {
-        if ((Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS)
-                || (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_A)
-                || (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_UNIFIED_IDEOGRAPHS_EXTENSION_B)
-                || (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_COMPATIBILITY_FORMS)
-                || (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_COMPATIBILITY_IDEOGRAPHS)
-                || (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_RADICALS_SUPPLEMENT)
-                || (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION)
-                || (Character.UnicodeBlock.of(c) == Character.UnicodeBlock.ENCLOSED_CJK_LETTERS_AND_MONTHS)) {
-            return true;
-        }
-        return false;
     }
 
 

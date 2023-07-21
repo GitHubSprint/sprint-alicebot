@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -38,7 +39,7 @@ public class DomUtils {
 
 
 	public static Node parseString(String string) throws Exception {
-		InputStream is = new ByteArrayInputStream(string.getBytes("UTF-16"));
+		InputStream is = new ByteArrayInputStream(string.getBytes(StandardCharsets.UTF_16));
 
 		DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
 		DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();

@@ -27,6 +27,7 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -238,7 +239,7 @@ public class PreProcessor {
         try{
             BufferedWriter bw = null;
             FileInputStream fstream = new FileInputStream(infile);
-            BufferedReader br = new BufferedReader(new InputStreamReader(fstream, MagicStrings.UTF8));
+            BufferedReader br = new BufferedReader(new InputStreamReader(fstream, StandardCharsets.UTF_8));
             bw = new BufferedWriter(new FileWriter(outfile)) ;
             String strLine;
             //Read File Line By Line

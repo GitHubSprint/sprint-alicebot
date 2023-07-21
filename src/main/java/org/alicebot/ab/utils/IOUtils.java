@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+
 import org.alicebot.ab.MagicStrings;
 
 import org.slf4j.Logger;
@@ -17,7 +19,7 @@ public class IOUtils {
         
             String textLine = null;
             try {
-                BufferedReader lineOfText = new BufferedReader(new InputStreamReader(System.in, MagicStrings.UTF8));
+                BufferedReader lineOfText = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
                 textLine = lineOfText.readLine();
             } catch (IOException e) {
                     e.printStackTrace();
@@ -32,15 +34,15 @@ public class IOUtils {
         try {
             Process p = rt.exec(evaluatedContents);
             InputStream istrm = p.getInputStream();
-            InputStreamReader istrmrdr = new InputStreamReader(istrm, MagicStrings.UTF8);
+            InputStreamReader istrmrdr = new InputStreamReader(istrm, StandardCharsets.UTF_8);
             BufferedReader buffrdr = new BufferedReader(istrmrdr);
-            String result = "";
+            StringBuilder result = new StringBuilder();
             String data = "";
             while ((data = buffrdr.readLine()) != null) {
-                result += data+"\n";
+                result.append(data).append("\n");
             }
-            log.info("Result = {}", result);
-            return result;
+            log.info("Result = {}", result.toString());
+            return result.toString();
         } catch (Exception ex) {
             ex.printStackTrace();
             return failedString;

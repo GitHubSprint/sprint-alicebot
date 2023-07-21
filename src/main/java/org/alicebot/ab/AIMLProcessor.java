@@ -223,9 +223,9 @@ public class AIMLProcessor
      * @return                  exploded string
      */
     private static String explode(String input) {
-        String result = "";
-        for (int i = 0; i < input.length(); i++) result += " "+input.charAt(i);
-        return result.trim();
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) result.append(" ").append(input.charAt(i));
+        return result.toString().trim();
     }
 
     // Parsing and evaluation functions:
@@ -240,7 +240,7 @@ public class AIMLProcessor
      * @return            the result of evaluating the tag contents.
      */
     public static String evalTagContent(Node node, ParseState ps, Set<String> ignoreAttributes) {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         try {
         NodeList childList = node.getChildNodes();
         for (int i = 0; i < childList.getLength(); i++) {
@@ -248,7 +248,7 @@ public class AIMLProcessor
             if (ignoreAttributes == null || !ignoreAttributes.contains(child.getNodeName()))
             {
                 String temp = recursEval(child, ps);                
-                result += temp;
+                result.append(temp);
             }
               
         }
@@ -256,7 +256,7 @@ public class AIMLProcessor
             log.info("Something went wrong with evalTagContent");
             ex.printStackTrace();
         }
-        return result;
+        return result.toString();
     }
 
     /**
@@ -286,13 +286,13 @@ public class AIMLProcessor
      */
     private static String unevaluatedXML(String result, Node node, ParseState ps) {
         String nodeName = node.getNodeName();
-        String attributes = "";
+        StringBuilder attributes = new StringBuilder();
         if (node.hasAttributes()) {
             NamedNodeMap XMLAttributes = node.getAttributes();
             for(int i=0; i < XMLAttributes.getLength(); i++)
 
             {
-                attributes += " "+XMLAttributes.item(i).getNodeName()+"=\""+XMLAttributes.item(i).getNodeValue()+"\"";
+                attributes.append(" ").append(XMLAttributes.item(i).getNodeName()).append("=\"").append(XMLAttributes.item(i).getNodeValue()).append("\"");
             }
         }
         if (result.equals(""))
@@ -448,14 +448,14 @@ public class AIMLProcessor
     
     private static String getall(Node node, ParseState ps)
     {
-        String result = MagicStrings.unknown_map_value;
+        StringBuilder result = new StringBuilder(MagicStrings.unknown_map_value);
         
         String predicateName = getAttributeOrTagValue(node, ps, "name");         
         Map<String, String> map = new TreeMap<>(ps.chatSession.predicates);
         Set set2 = map.entrySet();
         Iterator iterator2 = set2.iterator();
         
-        result = "";
+        result = new StringBuilder();
         while(iterator2.hasNext()) 
         {
             Map.Entry me = (Map.Entry)iterator2.next();
@@ -463,12 +463,12 @@ public class AIMLProcessor
             if(predicateName != null && predicateName.length() > 0)
             {
                 if(key.contains(predicateName))                
-                    result+= me.getKey() + " = " + me.getValue() + "<br />";                
+                    result.append(me.getKey()).append(" = ").append(me.getValue()).append("<br />");
             }
             else            
-                result+= me.getKey() + " = " + me.getValue() + "<br />";
+                result.append(me.getKey()).append(" = ").append(me.getValue()).append("<br />");
         }
-        return result;
+        return result.toString();
     }
     
     private static String checkEmpty(String in)
@@ -1887,13 +1887,13 @@ public class AIMLProcessor
         else return unevaluatedAIML(node, ps);
     }
     private static String learnEvalTagContent(Node node, ParseState ps) {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         NodeList childList = node.getChildNodes();
         for (int i = 0; i < childList.getLength(); i++) {
             Node child = childList.item(i);
-            result += recursLearn(child, ps);
+            result.append(recursLearn(child, ps));
         }
-        return result;
+        return result.toString();
     }
 
     private static String learn(Node node, ParseState ps)   {                 // learn, learnf AIML 2.0
@@ -1952,7 +1952,7 @@ public class AIMLProcessor
      */
     private static String loopCondition(Node node, ParseState ps) {
         boolean loop = true;
-        String result="";
+        StringBuilder result= new StringBuilder();
         int loopCnt = 0;
         while (loop && loopCnt < MagicNumbers.max_loops) {
 
@@ -1963,11 +1963,11 @@ public class AIMLProcessor
                 loop = true;
             }
             else loop = false;
-            result += loopResult;
+            result.append(loopResult);
             loopCnt++;
         }
-        if (loopCnt >= MagicNumbers.max_loops) result = MagicStrings.too_much_looping();
-        return result;
+        if (loopCnt >= MagicNumbers.max_loops) result = new StringBuilder(MagicStrings.too_much_looping());
+        return result.toString();
     }
     /**
      * implements {@code <comparecondition> with <loop/>}
@@ -1989,7 +1989,7 @@ public class AIMLProcessor
             min = 90; 
         }    
         
-        String result="";
+        StringBuilder result= new StringBuilder();
         int loopCnt = 0;
         while (loop && loopCnt < MagicNumbers.max_loops) {
             String loopResult = compareCondition(node, ps, min);
@@ -1999,11 +1999,11 @@ public class AIMLProcessor
                 loop = true;
             }
             else loop = false;
-            result += loopResult;
+            result.append(loopResult);
             loopCnt++;
         }
-        if (loopCnt >= MagicNumbers.max_loops) result = MagicStrings.too_much_looping();
-        return result;
+        if (loopCnt >= MagicNumbers.max_loops) result = new StringBuilder(MagicStrings.too_much_looping());
+        return result.toString();
     }
 
     /**

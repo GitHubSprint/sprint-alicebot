@@ -169,7 +169,7 @@ public class Chat {
      * @return
      */
     public String multisentenceRespond(String request) {
-        String response="";
+        StringBuilder response= new StringBuilder();
         matchTrace="";
         /*thatHistory.printHistory();
         inputHistory.printHistory();
@@ -186,11 +186,11 @@ public class Chat {
             currentQuestion = sentences[i].toLowerCase();
             AIMLProcessor.trace_count = 0;
             String reply = respond(sentences[i], contextThatHistory);
-            response += "  "+reply;
+            response.append("  ").append(reply);
             log.info(sessionId + " Robot: "+reply);
         }
         requestHistory.add(request);
-        responseHistory.add(response);
+        responseHistory.add(response.toString());
         thatHistory.add(contextThatHistory);
         //if (MagicBooleans.trace_mode)  log.info(matchTrace);
         } catch (Exception ex) {
@@ -199,7 +199,7 @@ public class Chat {
         }
 
         bot.writeLearnfIFCategories();
-        return response.trim();
+        return response.toString().trim();
     }
 
 

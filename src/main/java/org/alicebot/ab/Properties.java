@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 import org.slf4j.Logger;
@@ -56,7 +57,7 @@ public class Properties extends HashMap<String, String> {
         String strLine;
         //Read File Line By Line
         try {
-            BufferedReader br = new BufferedReader(new InputStreamReader(in, MagicStrings.UTF8));
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             while ((strLine = br.readLine()) != null)   {
                 if (strLine.contains(":")) {
                     String property = strLine.substring(0, strLine.indexOf(":"));

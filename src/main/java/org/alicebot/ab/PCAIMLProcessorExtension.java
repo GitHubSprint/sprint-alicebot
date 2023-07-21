@@ -264,21 +264,24 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension
 	public String recursEval(Node node, ParseState ps) {
         try {
             String nodeName = node.getNodeName();
-            if (nodeName.equals("contactid"))
-                return contactId(node, ps);
-            else if (nodeName.equals("multipleids"))
-                return multipleIds(node, ps);
-            else if (nodeName.equals("dialnumber"))
-                return dialNumber(node, ps);
-            else if (nodeName.equals("addinfo"))
-                return newContact(node, ps);
-            else if (nodeName.equals("displayname"))
-                return displayName(node, ps);
-            else if (nodeName.equals("emailaddress"))
-                return emailAddress(node, ps);
-            else if (nodeName.equals("contactbirthday"))
-                return contactBirthday(node, ps) ;
-            else return (AIMLProcessor.genericXML(node, ps));
+            switch (nodeName) {
+                case "contactid":
+                    return contactId(node, ps);
+                case "multipleids":
+                    return multipleIds(node, ps);
+                case "dialnumber":
+                    return dialNumber(node, ps);
+                case "addinfo":
+                    return newContact(node, ps);
+                case "displayname":
+                    return displayName(node, ps);
+                case "emailaddress":
+                    return emailAddress(node, ps);
+                case "contactbirthday":
+                    return contactBirthday(node, ps);
+                default:
+                    return (AIMLProcessor.genericXML(node, ps));
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
             return "";

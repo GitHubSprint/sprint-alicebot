@@ -145,8 +145,8 @@ public class AB {
         Timer timer = new Timer();
         sort_mode = !shuffle_mode;
        // if (sort_mode)
-        Collections.sort(bot.suggestedCategories, Category.ACTIVATION_COMPARATOR);
-        ArrayList<Category> topSuggestCategories = new ArrayList<Category>();
+        bot.suggestedCategories.sort(Category.ACTIVATION_COMPARATOR);
+        ArrayList<Category> topSuggestCategories = new ArrayList<>();
         for (int i = 0; i < 10000 && i < bot.suggestedCategories.size(); i++) {
             topSuggestCategories.add(bot.suggestedCategories.get(i));
         }
@@ -155,8 +155,8 @@ public class AB {
         timer = new Timer();
         timer.start();
         runCompletedCnt = 0;
-        ArrayList<Category> filteredAtomicCategories = new ArrayList<Category>();
-        ArrayList<Category> filteredWildCategories = new ArrayList<Category>();
+        ArrayList<Category> filteredAtomicCategories = new ArrayList<>();
+        ArrayList<Category> filteredWildCategories = new ArrayList<>();
         for (Category c : bot.suggestedCategories) if (!c.getPattern().contains("*")) filteredAtomicCategories.add(c);
         else filteredWildCategories.add(c);
         ArrayList <Category> browserCategories;
@@ -214,32 +214,6 @@ public class AB {
        if (textLine.equals("q")) System.exit(0);       // Quit program
        else if (textLine.equals("wq")) {   // Write AIML Files and quit program
            bot.writeQuit();
-         /*  Nodemapper udcNode = bot.brain.findNode("*", "*", "*");
-           if (udcNode != null) {
-               AIMLSet udcMatches = new AIMLSet("udcmatches");
-               udcMatches.addAll(udcNode.category.getMatches());
-               udcMatches.writeAIMLSet();
-           }*/
-          /* Nodemapper cNode = bot.brain.match("JOE MAKES BEER", "unknown", "unknown");
-           if (cNode != null) {
-               AIMLSet cMatches = new AIMLSet("cmatches");
-               cMatches.addAll(cNode.category.getMatches());
-               cMatches.writeAIMLSet();
-           }
-           if (passed.size() > 0) {
-               AIMLSet difference = new AIMLSet("difference");
-               AIMLSet intersection = new AIMLSet("intersection");
-               for (String s : passed) if (testSet.contains(s)) intersection.add(s);
-               passed = intersection;
-               passed.setName = "passed";
-               difference.addAll(testSet);
-               difference.removeAll(passed);
-               difference.writeAIMLSet();
-
-               passed.writeAIMLSet();
-               testSet.writeAIMLSet();
-               log.info("Wrote passed test cases");
-           }*/
            System.exit(0);
        }
        else if (textLine.equals("skip") || textLine.equals("")) { // skip this one for now
