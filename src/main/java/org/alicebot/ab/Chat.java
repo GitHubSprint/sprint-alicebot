@@ -171,27 +171,24 @@ public class Chat {
     public String multisentenceRespond(String request) {
         StringBuilder response= new StringBuilder();
         matchTrace="";
-        /*thatHistory.printHistory();
-        inputHistory.printHistory();
-        requestHistory.printHistory();
-        responseHistory.printHistory();*/
         try {
-        String norm = bot.preProcessor.normalize(request);
+            String norm = bot.preProcessor.normalize(request);
 
-        log.info(sessionId + " multisentenceRespond request = " + request + " normalized = "+norm);
-        String[] sentences = bot.preProcessor.sentenceSplit(norm);
-        History<String> contextThatHistory = new History<>("contextThat");
-        for (int i = 0; i < sentences.length; i++) {
-            log.info(sessionId + " Human: "+sentences[i]);
-            currentQuestion = sentences[i].toLowerCase();
-            AIMLProcessor.trace_count = 0;
-            String reply = respond(sentences[i], contextThatHistory);
-            response.append("  ").append(reply);
-            log.info(sessionId + " Robot: "+reply);
-        }
-        requestHistory.add(request);
-        responseHistory.add(response.toString());
-        thatHistory.add(contextThatHistory);
+            log.info(sessionId + " multisentenceRespond request = " + request + " normalized = "+norm);
+
+            String[] sentences = bot.preProcessor.sentenceSplit(norm);
+            History<String> contextThatHistory = new History<>("contextThat");
+            for(int i = 0; i < sentences.length; i++) {
+                log.info(sessionId + " Human: "+sentences[i]);
+                currentQuestion = sentences[i].toLowerCase();
+                AIMLProcessor.trace_count = 0;
+                String reply = respond(sentences[i], contextThatHistory);
+                response.append("  ").append(reply);
+                log.info(sessionId + " Robot: "+reply);
+            }
+            requestHistory.add(request);
+            responseHistory.add(response.toString());
+            thatHistory.add(contextThatHistory);
         //if (MagicBooleans.trace_mode)  log.info(matchTrace);
         } catch (Exception ex) {
             ex.printStackTrace();

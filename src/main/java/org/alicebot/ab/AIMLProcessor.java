@@ -159,7 +159,8 @@ public class AIMLProcessor
      * @return              bot's response.
      */
     public static String respond(String input, String that, String topic, Chat chatSession) {
-        if (false /*checkForRepeat(input, chatSession) > 0*/) return "Repeat!";
+        if (false /*checkForRepeat(input, chatSession) > 0*/)
+            return "Repeat!";
         else {
             return respond(input, that, topic, chatSession, 0);
         }

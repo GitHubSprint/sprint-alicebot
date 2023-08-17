@@ -58,9 +58,6 @@ public class Main {
         log.info("Working Directory = " + MagicStrings.root_path);
         AIMLProcessor.extension =  new PCAIMLProcessorExtension();
 
-//        ThreadTest test = new ThreadTest();
-//        test.start();
-
         mainFunction(args);
     }
     public static void mainFunction (String[] args) {
