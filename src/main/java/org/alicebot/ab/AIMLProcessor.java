@@ -1478,9 +1478,9 @@ public class AIMLProcessor
                     .createGPTResponse(model, system, input, assistant, iTemperature, maxTokens, topP, frequencyPenalty, presencePenalty);
             response = responseJson.toString();
         } else {
-            json = ChatGPT.addMessageToJSON(json, "user", input);
             if(assistant != null)
                 json = ChatGPT.addMessageToJSON(json, "assistant", assistant);
+            json = ChatGPT.addMessageToJSON(json, "user", input);
             response = json;
         }
 

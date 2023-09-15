@@ -7,50 +7,11 @@ import org.json.JSONObject;
 
 public class ChatGPT {
 
-    public static void main(String[] args) throws JSONException {
-
-
-        // Tworzenie obiektu JSON
-        JSONObject jsonRequest = createGPTResponse(
-                "gpt-4",
-                "rozpoznaj, czy to czytanie czy pisanie",
-                "potrzebuję recepty",
-                "To jest pisanie.",
-                1,
-                1,
-                0,
-                0,
-                0);
-
-
-        String jsonString = jsonRequest.toString();
-
-        // Wyświetlenie wynikowego JSON
-        System.out.println(jsonString);
-
-        // Aktualizowanie JSON o kolejne wiadomości
-        jsonString = addMessageToJSON(jsonString, "user", "kolejna wiadomość od użytkownika");
-        jsonString = addMessageToJSON(jsonString, "assistant", "kolejna wiadomość od asystenta");
-
-        // Wyświetlenie zaktualizowanego JSON
-        System.out.println(jsonString);
-
-        String test = "GPT={}";
-        System.out.println(test.substring(4));
-    }
-
-
-
     @NotNull
     public static JSONObject createGPTResponse(String model, String system, String user, String assistant, int iTemperature, int maxTokens, int topP, int frequencyPenalty, int presencePenalty) throws JSONException {
         JSONObject jsonRequest = new JSONObject();
         jsonRequest.put("model", model);
         JSONArray messages = new JSONArray();
-
-        JSONObject userMessage = new JSONObject();
-        userMessage.put("role", "user");
-        userMessage.put("content", user);
-        messages.put(userMessage);
 
         if(system != null) {
             JSONObject systemMessage = new JSONObject();
@@ -59,13 +20,17 @@ public class ChatGPT {
             messages.put(systemMessage);
         }
 
-
         if(assistant != null) {
             JSONObject assistantMessage = new JSONObject();
             assistantMessage.put("role", "assistant");
             assistantMessage.put("content", assistant);
             messages.put(assistantMessage);
         }
+
+        JSONObject userMessage = new JSONObject();
+        userMessage.put("role", "user");
+        userMessage.put("content", user);
+        messages.put(userMessage);
 
         jsonRequest.put("messages", messages);
 
