@@ -47,6 +47,8 @@ public class Chat {
     public static String latitude;
 
     public String currentQuestion;
+    public String gptJson;
+    public String lastResponse;
     /**
      * Constructor  (defualt customer ID)
      *
@@ -161,6 +163,13 @@ public class Chat {
         else that = hist.getString(0);
         return respond(input, that, predicates.get("topic"), contextThatHistory);
     }
+
+    public String multisentenceRespond(String request, String gptJson, String lastResponse) {
+        this.gptJson = gptJson;
+        this.lastResponse = lastResponse;
+        return multisentenceRespond(request);
+    }
+
 
     /**
      * return a compound response to a multiple-sentence request. "Multiple" means one or more.

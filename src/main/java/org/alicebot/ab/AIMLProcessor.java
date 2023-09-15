@@ -28,10 +28,15 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.alicebot.ab.gpt.ChatGPT;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
+import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.NamedNodeMap;
@@ -1411,8 +1416,77 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
-    
-    
+
+
+    private static String gpt(Node node, ParseState ps) throws Exception{
+        String model = getAttributeOrTagValue(node, ps, "model");
+        String system = getAttributeOrTagValue(node, ps, "system");
+        String temperature = getAttributeOrTagValue(node, ps, "temperature");
+        String max_tokens = getAttributeOrTagValue(node, ps, "max_tokens");
+        String top_p = getAttributeOrTagValue(node, ps, "top_p");
+        String frequency_penalty = getAttributeOrTagValue(node, ps, "frequency_penalty");
+        String presence_penalty = getAttributeOrTagValue(node, ps, "presence_penalty");
+
+        String parameter= getAttributeOrTagValue(node, ps, "parameter");
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        String json = ps.chatSession.gptJson;
+        String assistant = ps.chatSession.lastResponse;
+
+        log.info(ps.chatSession.sessionId + "gpt json: " + json + " assistant: " + assistant);
+
+        log.info("gpt "
+                + " model: " + model
+                + " user: " + input
+                + " assistant: " + assistant
+                + " temperature: " + temperature
+                + " max_tokens: " + max_tokens
+                + " top_p: " + top_p
+                + " frequency_penalty: " + frequency_penalty
+                + " presence_penalty: " + presence_penalty
+                + " json: " + json
+                + " system: " + system);
+
+        if(model == null) model = "gpt-3.5-turbo";
+
+        int iTemperature = 1;
+        if(temperature != null) iTemperature = Integer.parseInt(temperature);
+
+        int maxTokens = 256;
+        if(max_tokens != null) maxTokens = Integer.parseInt(max_tokens);
+
+        int topP = 1;
+        if(top_p != null) topP = Integer.parseInt(top_p);
+
+        int frequencyPenalty = 0;
+        if(frequency_penalty != null) frequencyPenalty = Integer.parseInt(frequency_penalty);
+
+        int presencePenalty = 0;
+        if(presence_penalty != null) presencePenalty = Integer.parseInt(presence_penalty);
+
+        String response;
+        if(json == null) {
+            JSONObject responseJson = ChatGPT
+                    .createGPTResponse(model, system, input, assistant, iTemperature, maxTokens, topP, frequencyPenalty, presencePenalty);
+            response = responseJson.toString();
+        } else {
+            json = ChatGPT.addMessageToJSON(json, "user", input);
+            if(assistant != null)
+                json = ChatGPT.addMessageToJSON(json, "assistant", assistant);
+            response = json;
+        }
+
+        return "GPT=" +  response;
+
+    }
+
+
+
     /**
      * Implements jar plugin integration 
      * @param node current XML parse node
@@ -1420,8 +1494,7 @@ public class AIMLProcessor
      * @return
      * @throws IOException 
      */
-    private static String plugin(Node node, ParseState ps) throws IOException
-    {
+    private static String plugin(Node node, ParseState ps) throws IOException {
         
         String file = getAttributeOrTagValue(node, ps, "file");  
         String classLoad = getAttributeOrTagValue(node, ps, "class");
@@ -1433,8 +1506,7 @@ public class AIMLProcessor
         log.info("method: " + method + " parameter: " + parameter + " value: " + ps.chatSession.predicates.get(parameter));
         String out = SprintUtils.callPlugin(path + "/lib/" + file, classLoad, method, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
            
-        if(parameter !=null && out.startsWith(parameter))
-        {
+        if(parameter !=null && out.startsWith(parameter)) {
             out = out.substring(parameter.length());
         }
         
@@ -2192,6 +2264,8 @@ public class AIMLProcessor
                 return date(node, ps);
             else if (nodeName.equals("plugin")) //sprint
                 return plugin(node, ps);
+            else if (nodeName.equals("gpt")) //sprint
+                return gpt(node, ps);
             else if (nodeName.equals("predictf")) //sprint
                 return ml(node, ps);
             else if (nodeName.equals("ml")) //sprint

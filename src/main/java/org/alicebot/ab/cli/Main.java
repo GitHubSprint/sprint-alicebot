@@ -108,17 +108,7 @@ public class Main {
         AB.ab(bot);
         AB.terminalInteraction(bot) ;
     }
-    public static void testShortCuts () {
-        //testChat(new Bot("alice"));
-        //Graphmaster.enableShortCuts = false;
-        //Bot bot = new Bot("alice");
-        //bot.brain.printgraph();
-        //bot.brain.nodeStats();
-        //Graphmaster.enableShortCuts = true;
-        //bot = new Bot("alice");
-        //bot.brain.printgraph();
-        //bot.brain.nodeStats();
-    }
+
     public static void testChat (Bot bot, boolean traceMode) {
         Chat chatSession = new Chat(bot);
 //        bot.preProcessor.normalizeFile("c:/ab/bots/super/aiml/thats.txt", "c:/ab/bots/super/aiml/normalthats.txt");
