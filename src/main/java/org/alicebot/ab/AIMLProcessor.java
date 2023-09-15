@@ -1421,6 +1421,7 @@ public class AIMLProcessor
     private static String gpt(Node node, ParseState ps) throws Exception{
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
+        String assistant = getAttributeOrTagValue(node, ps, "assistant");
         String temperature = getAttributeOrTagValue(node, ps, "temperature");
         String max_tokens = getAttributeOrTagValue(node, ps, "max_tokens");
         String top_p = getAttributeOrTagValue(node, ps, "top_p");
@@ -1436,11 +1437,13 @@ public class AIMLProcessor
             input = ps.chatSession.predicates.get(parameter);
 
         String json = ps.chatSession.gptJson;
-        String assistant = ps.chatSession.lastResponse;
+
+        if(assistant == null)
+            assistant = ps.chatSession.lastResponse;
 
         log.info(ps.chatSession.sessionId + "gpt json: " + json + " assistant: " + assistant);
 
-        log.info("gpt "
+        log.info(ps.chatSession.sessionId + " GPT "
                 + " model: " + model
                 + " user: " + input
                 + " assistant: " + assistant
