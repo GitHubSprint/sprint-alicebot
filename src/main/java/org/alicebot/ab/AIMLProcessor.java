@@ -1431,7 +1431,7 @@ public class AIMLProcessor
         String top_p = getAttributeOrTagValue(node, ps, "top_p");
         String frequency_penalty = getAttributeOrTagValue(node, ps, "frequency_penalty");
         String presence_penalty = getAttributeOrTagValue(node, ps, "presence_penalty");
-        String user= getAttributeOrTagValue(node, ps, "user");
+        String user = getAttributeOrTagValue(node, ps, "user");
 
         log.info(ps.chatSession.sessionId + " GPT "
                 + " model: " + model
@@ -1469,10 +1469,10 @@ public class AIMLProcessor
         String json = ps.chatSession.gptJson;
 
         log.info(ps.chatSession.sessionId + "gpt "
-                + " json: " + json
                 + " user: " + user
                 + " system: " + system
                 + " assistant: " + assistant
+                + " json: " + json
         );
 
 
@@ -1512,8 +1512,10 @@ public class AIMLProcessor
                     .createGPTResponse(model, system, user, assistant, iTemperature, maxTokens, topP, frequencyPenalty, presencePenalty);
             response = responseJson.toString();
         } else {
-            if(assistant != null)
+            if(assistant != null && !assistant.isEmpty())
                 json = ChatGPT.addMessageToJSON(json, "assistant", assistant);
+            if(system != null && !system.isEmpty())
+                json = ChatGPT.addMessageToJSON(json, "system", system);
             json = ChatGPT.addMessageToJSON(json, "user", user);
             response = json;
         }
