@@ -108,7 +108,7 @@ public class Main {
         AB.ab(bot);
         AB.terminalInteraction(bot) ;
     }
-
+    private static String json = null;
     public static void testChat (Bot bot, boolean traceMode) {
         Chat chatSession = new Chat(bot);
 //        bot.preProcessor.normalizeFile("c:/ab/bots/super/aiml/thats.txt", "c:/ab/bots/super/aiml/normalthats.txt");
@@ -127,9 +127,11 @@ public class Main {
             else if (textLine.equals("ab")) testAB(bot);
             else {
 
-                //String request = "| " + (textLine) + " |";
                 log.debug("STATE="+textLine+":THAT="+chatSession.thatHistory.get(0).get(0)+":TOPIC="+chatSession.predicates.get("topic"));
-                String response = chatSession.multisentenceRespond(textLine, null, "ostatnia odpowiedź");
+                String response = chatSession.multisentenceRespond(textLine, json, "ostatnia odpowiedź");
+                json = response.substring(4);
+
+
                 while (response.contains("&lt;")) response = response.replace("&lt;","<");
                 while (response.contains("&gt;")) response = response.replace("&gt;",">");
                 log.info("Robot: "+response);
