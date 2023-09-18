@@ -20,11 +20,15 @@ package org.alicebot.ab;
 */
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -1427,35 +1431,65 @@ public class AIMLProcessor
         String top_p = getAttributeOrTagValue(node, ps, "top_p");
         String frequency_penalty = getAttributeOrTagValue(node, ps, "frequency_penalty");
         String presence_penalty = getAttributeOrTagValue(node, ps, "presence_penalty");
-
-        String parameter= getAttributeOrTagValue(node, ps, "parameter");
-
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
-
-        String json = ps.chatSession.gptJson;
-
-        if(assistant == null)
-            assistant = ps.chatSession.lastResponse;
-
-        log.info(ps.chatSession.sessionId + "gpt json: " + json + " assistant: " + assistant);
+        String user= getAttributeOrTagValue(node, ps, "user");
 
         log.info(ps.chatSession.sessionId + " GPT "
                 + " model: " + model
-                + " user: " + input
+                + " user: " + user
                 + " assistant: " + assistant
+                + " system: " + system
                 + " temperature: " + temperature
                 + " max_tokens: " + max_tokens
                 + " top_p: " + top_p
                 + " frequency_penalty: " + frequency_penalty
                 + " presence_penalty: " + presence_penalty
-                + " json: " + json
-                + " system: " + system);
+        );
 
-        if(model == null) model = "gpt-3.5-turbo";
+        if(user == null)
+            user = evalTagContent(node, ps, null);
+        else
+            user = ps.chatSession.predicates.get(user);
+
+
+        if(system == null)
+            system = evalTagContent(node, ps, null);
+        else
+            system = ps.chatSession.predicates.get(system);
+
+
+        if(assistant == null)
+            assistant = evalTagContent(node, ps, null);
+        else
+            assistant = ps.chatSession.predicates.get(assistant);
+
+
+        if(assistant == null || assistant.equals("unknown"))
+            assistant = ps.chatSession.lastResponse;
+
+        String json = ps.chatSession.gptJson;
+
+        log.info(ps.chatSession.sessionId + "gpt "
+                + " json: " + json
+                + " user: " + user
+                + " system: " + system
+                + " assistant: " + assistant
+        );
+
+
+
+        if(model == null) {
+           String configFiles = "config" + File.separator + "gpt.properties";
+            File f = new File(configFiles);
+            if (f.exists()) {
+                Properties prop = new Properties();
+                File fis = new File(configFiles);
+                prop.load(new InputStreamReader(Files.newInputStream(fis.toPath())));
+                model = prop.getProperty("openai.model");
+                log.info(ps.chatSession.sessionId + " GPT config model: " + model);
+            }
+
+            if(model == null) model = "gpt-3.5-turbo";
+        }
 
         int iTemperature = 1;
         if(temperature != null) iTemperature = Integer.parseInt(temperature);
@@ -1475,12 +1509,12 @@ public class AIMLProcessor
         String response;
         if(json == null) {
             JSONObject responseJson = ChatGPT
-                    .createGPTResponse(model, system, input, assistant, iTemperature, maxTokens, topP, frequencyPenalty, presencePenalty);
+                    .createGPTResponse(model, system, user, assistant, iTemperature, maxTokens, topP, frequencyPenalty, presencePenalty);
             response = responseJson.toString();
         } else {
             if(assistant != null)
                 json = ChatGPT.addMessageToJSON(json, "assistant", assistant);
-            json = ChatGPT.addMessageToJSON(json, "user", input);
+            json = ChatGPT.addMessageToJSON(json, "user", user);
             response = json;
         }
 

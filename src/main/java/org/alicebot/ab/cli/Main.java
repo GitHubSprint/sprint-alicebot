@@ -129,7 +129,7 @@ public class Main {
 
                 //String request = "| " + (textLine) + " |";
                 log.debug("STATE="+textLine+":THAT="+chatSession.thatHistory.get(0).get(0)+":TOPIC="+chatSession.predicates.get("topic"));
-                String response = chatSession.multisentenceRespond(textLine);
+                String response = chatSession.multisentenceRespond(textLine, null, "ostatnia odpowiedź");
                 while (response.contains("&lt;")) response = response.replace("&lt;","<");
                 while (response.contains("&gt;")) response = response.replace("&gt;",">");
                 log.info("Robot: "+response);
