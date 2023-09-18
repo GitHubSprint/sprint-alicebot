@@ -13,14 +13,14 @@ public class ChatGPT {
         jsonRequest.put("model", model);
         JSONArray messages = new JSONArray();
 
-        if(system != null) {
+        if(system != null && !system.isEmpty()) {
             JSONObject systemMessage = new JSONObject();
             systemMessage.put("role", "system");
             systemMessage.put("content", system);
             messages.put(systemMessage);
         }
 
-        if(assistant != null) {
+        if(assistant != null && !assistant.isEmpty()) {
             JSONObject assistantMessage = new JSONObject();
             assistantMessage.put("role", "assistant");
             assistantMessage.put("content", assistant);

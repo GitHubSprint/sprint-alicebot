@@ -1463,7 +1463,7 @@ public class AIMLProcessor
             assistant = ps.chatSession.predicates.get(assistant);
 
 
-        if(assistant == null || assistant.equals("unknown"))
+        if(assistant == null || assistant.equals("unknown") || assistant.isEmpty())
             assistant = ps.chatSession.lastResponse;
 
         String json = ps.chatSession.gptJson;
@@ -1506,6 +1506,19 @@ public class AIMLProcessor
         int presencePenalty = 0;
         if(presence_penalty != null) presencePenalty = Integer.parseInt(presence_penalty);
 
+
+        log.info(ps.chatSession.sessionId + " GPT PROCESSED "
+                + " model: " + model
+                + " user: " + user
+                + " assistant: " + assistant
+                + " system: " + system
+                + " temperature: " + iTemperature
+                + " max_tokens: " + maxTokens
+                + " top_p: " + topP
+                + " frequency_penalty: " + frequencyPenalty
+                + " presence_penalty: " + presencePenalty
+        );
+
         String response;
         if(json == null) {
             JSONObject responseJson = ChatGPT
@@ -1516,6 +1529,7 @@ public class AIMLProcessor
                 json = ChatGPT.addMessageToJSON(json, "assistant", assistant);
             if(system != null && !system.isEmpty())
                 json = ChatGPT.addMessageToJSON(json, "system", system);
+
             json = ChatGPT.addMessageToJSON(json, "user", user);
             response = json;
         }
