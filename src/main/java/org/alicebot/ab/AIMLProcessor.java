@@ -1526,11 +1526,13 @@ public class AIMLProcessor
             response = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty())
-                json = ChatGPT.addMessageToJSON(json, "assistant", assistant);
+                json = ChatGPT
+                        .addMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""));
             if(system != null && !system.isEmpty())
-                json = ChatGPT.addMessageToJSON(json, "system", system);
+                json = ChatGPT
+                        .addMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""));
 
-            json = ChatGPT.addMessageToJSON(json, "user", user);
+            json = ChatGPT.addMessageToJSON(json, "user", user.replaceAll("\\<.*?\\>", ""));
             response = json;
         }
 
