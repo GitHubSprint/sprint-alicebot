@@ -781,8 +781,7 @@ public class AIMLProcessor
      * @throws IOException 
      */
     
-    private static String pesel(Node node, ParseState ps) throws IOException
-    {        
+    private static String pesel(Node node, ParseState ps) throws IOException {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
                                                                      
         String pesel; 
@@ -805,8 +804,7 @@ public class AIMLProcessor
     }
     
     
-    private static String currency(Node node, ParseState ps) throws IOException
-    {
+    private static String currency(Node node, ParseState ps) throws IOException {
         
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                                                     
         
@@ -828,13 +826,12 @@ public class AIMLProcessor
                                         
         return checkEmpty(result);
     }
-    private static String txt2num(Node node, ParseState ps) throws IOException
-    {
+    private static String txt2num(Node node, ParseState ps) throws IOException {
         String language = getAttributeOrTagValue(node, ps, "language");
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         
         
-        if(language == null || language.length() ==0)
+        if(language == null || language.isEmpty())
             language = "PL";
         
         language = language.toUpperCase(); 
@@ -855,6 +852,34 @@ public class AIMLProcessor
                 + " input: " + input
                 + " result: " + result);                
                                         
+        return checkEmpty(result);
+    }
+
+    private static String txt2dec(Node node, ParseState ps) throws IOException {
+        String language = getAttributeOrTagValue(node, ps, "language");
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        if(language == null || language.isEmpty())
+            language = "PL";
+
+        language = language.toUpperCase();
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+        String result = Validator.WordsToNumbersDec(language, input);
+
+        log.info("txt2dec "
+                + " parameter: " + parameter
+                + " input: " + input
+                + " result: " + result);
+
         return checkEmpty(result);
     }
     
@@ -2366,6 +2391,8 @@ public class AIMLProcessor
                 return currency(node, ps);
             else if (nodeName.equals("txt2num"))
                 return txt2num(node, ps);
+            else if (nodeName.equals("txt2dec"))
+                return txt2dec(node, ps);
             else if (nodeName.equals("num2txt"))
                 return num2txt(node, ps);
             else if (nodeName.equals("txt2time"))

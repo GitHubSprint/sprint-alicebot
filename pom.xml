@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.alicebot.ab</groupId>
 	<artifactId>ab</artifactId>
-	<version>4.4.8_SPRINT</version>
+	<version>4.4.9_SPRINT</version>
 	<name>sprint-alicebot</name>
 	<description>
 		Program AB is the reference implementation of the AIML 2.0 draft specification.
@@ -49,7 +49,7 @@
 		<dependency>
 			<groupId>pl.sprint</groupId>
 			<artifactId>validator</artifactId>
-			<version>1.5.4</version>
+			<version>1.5.5</version>
 		</dependency>
 
 		<!-- ML -->
@@ -94,25 +94,11 @@
                         <id>simple-command</id>
                         <phase>package</phase>
                         <goals>
-                          <goal>attached</goal>
+                          <goal>single</goal>
                         </goals>
                       </execution>
                     </executions>
                   </plugin>
-                  <!--plugin>
-                    <artifactId>maven-dependency-plugin</artifactId>
-                    <executions>
-                        <execution>
-                            <phase>install</phase>
-                            <goals>
-                                <goal>copy-dependencies</goal>
-                            </goals>
-                            <configuration>
-                                <outputDirectory>${project.build.directory}/lib</outputDirectory>
-                            </configuration>
-                        </execution>
-                    </executions>
-                </plugin-->
             </plugins>
 	</build>
 	<profiles>
