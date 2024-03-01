@@ -1503,7 +1503,7 @@ public class AIMLProcessor
 
 
         if(model == null) {
-           String configFiles = "config" + File.separator + "gpt.properties";
+           String configFiles = "config" + File.separator + "config.properties";
             File f = new File(configFiles);
             if (f.exists()) {
                 Properties prop = new Properties();
