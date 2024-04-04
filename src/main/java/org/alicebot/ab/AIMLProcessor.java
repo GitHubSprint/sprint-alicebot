@@ -1454,6 +1454,7 @@ public class AIMLProcessor
         String assistant = getAttributeOrTagValue(node, ps, "assistant");
         String temperature = getAttributeOrTagValue(node, ps, "temperature");
         String max_tokens = getAttributeOrTagValue(node, ps, "max_tokens");
+        String max_history = getAttributeOrTagValue(node, ps, "max_history");
         String top_p = getAttributeOrTagValue(node, ps, "top_p");
         String frequency_penalty = getAttributeOrTagValue(node, ps, "frequency_penalty");
         String presence_penalty = getAttributeOrTagValue(node, ps, "presence_penalty");
@@ -1466,6 +1467,7 @@ public class AIMLProcessor
                 + " system: " + system
                 + " temperature: " + temperature
                 + " max_tokens: " + max_tokens
+                + " max_history: " + max_history
                 + " top_p: " + top_p
                 + " frequency_penalty: " + frequency_penalty
                 + " presence_penalty: " + presence_penalty
@@ -1494,7 +1496,8 @@ public class AIMLProcessor
 
         String json = ps.chatSession.gptJson;
 
-        log.info(ps.chatSession.sessionId + "gpt "
+        String sessionId = ps.chatSession.sessionId;
+        log.info(sessionId + "gpt "
                 + " user: " + user
                 + " system: " + system
                 + " assistant: " + assistant
@@ -1504,23 +1507,22 @@ public class AIMLProcessor
 
 
         if(model == null) {
-           String configFiles = "config" + File.separator + "config.properties";
-            File f = new File(configFiles);
-            if (f.exists()) {
-                Properties prop = new Properties();
-                File fis = new File(configFiles);
-                prop.load(new InputStreamReader(Files.newInputStream(fis.toPath())));
-                model = prop.getProperty("openai.model");
-                log.info(ps.chatSession.sessionId + " GPT config model: " + model);
-            }
-
+            model = readConfig(sessionId, "openai.model");
             if(model == null) model = "gpt-3.5-turbo";
         }
+
+        if(max_history == null) {
+            max_history = readConfig(sessionId, "openai.max.history");
+            if (max_history == null)
+                max_history = "15";
+        }
+
+        int iMaxResponse = Integer.parseInt(max_history);
 
         int iTemperature = 1;
         if(temperature != null) iTemperature = Integer.parseInt(temperature);
 
-        int maxTokens = 50;
+        int maxTokens = 256;
         if(max_tokens != null) maxTokens = Integer.parseInt(max_tokens);
 
         int topP = 1;
@@ -1553,17 +1555,30 @@ public class AIMLProcessor
         } else {
             if(assistant != null && !assistant.isEmpty())
                 json = ChatGPT
-                        .addMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""));
+                        .addMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             if(system != null && !system.isEmpty())
                 json = ChatGPT
-                        .addMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""));
+                        .addMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
-            json = ChatGPT.addMessageToJSON(json, "user", user.replaceAll("\\<.*?\\>", ""));
+            json = ChatGPT.addMessageToJSON(json, "user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             response = json;
         }
-
         return "GPT=" +  response;
 
+    }
+
+    private static String readConfig(String sessionId, String property) throws IOException {
+        String configFiles = "config" + File.separator + "config.properties";
+        File f = new File(configFiles);
+        String model = null;
+        if (f.exists()) {
+            Properties prop = new Properties();
+            File fis = new File(configFiles);
+            prop.load(new InputStreamReader(Files.newInputStream(fis.toPath())));
+            model = prop.getProperty(property);
+            log.info(sessionId + " GPT config model: " + model);
+        }
+        return model;
     }
 
     public static void resetClassCache() {

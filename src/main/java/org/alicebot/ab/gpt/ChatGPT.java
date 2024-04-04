@@ -1,14 +1,27 @@
 package org.alicebot.ab.gpt;
 
+import org.alicebot.ab.AIMLProcessor;
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ChatGPT {
+    private static final Logger logger = LoggerFactory.getLogger(ChatGPT.class);
 
     @NotNull
-    public static JSONObject createGPTResponse(String model, String system, String user, String assistant, int iTemperature, int maxTokens, int topP, int frequencyPenalty, int presencePenalty) throws JSONException {
+    public static JSONObject createGPTResponse(String model,
+                                               String system,
+                                               String user,
+                                               String assistant,
+                                               int iTemperature,
+                                               int maxTokens,
+                                               int topP,
+                                               int frequencyPenalty,
+                                               int presencePenalty) throws JSONException
+    {
         JSONObject jsonRequest = new JSONObject();
         jsonRequest.put("model", model);
         JSONArray messages = new JSONArray();
@@ -39,6 +52,7 @@ public class ChatGPT {
         jsonRequest.put("top_p", topP);
         jsonRequest.put("frequency_penalty", frequencyPenalty);
         jsonRequest.put("presence_penalty", presencePenalty);
+        logger.info("createGPTResponse request: " + jsonRequest);
         return jsonRequest;
     }
 
@@ -51,7 +65,7 @@ public class ChatGPT {
     }
 
     // Metoda do rozbudowywania istniejącego JSON o kolejne wiadomości
-    public static String addMessageToJSON(String jsonString, String role, String content) throws JSONException {
+    public static String addMessageToJSON(String jsonString, String role, String content, int maxResponse) throws JSONException {
         JSONObject jsonObject = new JSONObject(jsonString);
 
         // Pobranie tablicy "messages" z aktualnego JSON lub utworzenie nowej, jeśli nie istnieje
@@ -60,12 +74,17 @@ public class ChatGPT {
             messages = new JSONArray();
         }
 
+        if(messages.length() > maxResponse)
+            messages.remove(0);
+
         // Dodanie nowej wiadomości
         addMessage(messages, role, content);
 
         // Zaktualizowanie JSON o zaktualizowaną tablicę "messages"
         jsonObject.put("messages", messages);
 
-        return jsonObject.toString();
+        String response = jsonObject.toString();
+        logger.info("addMessageToJSON request: " + response);
+        return response;
     }
 }
