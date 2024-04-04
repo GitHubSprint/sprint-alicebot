@@ -50,6 +50,7 @@ public class Chat {
     public String currentQuestion;
     public String gptJson;
     public String lastResponse;
+    public int maxHistory = 0;
     /**
      * Constructor  (defualt customer ID)
      *
@@ -164,7 +165,6 @@ public class Chat {
         else that = hist.getString(0);
         return respond(input, that, predicates.get("topic"), contextThatHistory);
     }
-
     public String multisentenceRespond(String request, String gptJson, String lastResponse) {
         this.gptJson = gptJson;
         this.lastResponse = lastResponse;

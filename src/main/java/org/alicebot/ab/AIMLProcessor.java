@@ -1460,19 +1460,6 @@ public class AIMLProcessor
         String presence_penalty = getAttributeOrTagValue(node, ps, "presence_penalty");
         String user = getAttributeOrTagValue(node, ps, "user");
 
-        log.info(ps.chatSession.sessionId + " GPT "
-                + " model: " + model
-                + " user: " + user
-                + " assistant: " + assistant
-                + " system: " + system
-                + " temperature: " + temperature
-                + " max_tokens: " + max_tokens
-                + " max_history: " + max_history
-                + " top_p: " + top_p
-                + " frequency_penalty: " + frequency_penalty
-                + " presence_penalty: " + presence_penalty
-        );
-
         if(user == null)
             user = evalTagContent(node, ps, null);
         else
@@ -1505,19 +1492,26 @@ public class AIMLProcessor
         );
 
 
-
         if(model == null) {
             model = readConfig(sessionId, "openai.model");
             if(model == null) model = "gpt-3.5-turbo";
         }
 
+        int iMaxResponse;
         if(max_history == null) {
-            max_history = readConfig(sessionId, "openai.max.history");
-            if (max_history == null)
-                max_history = "15";
+            if(ps.chatSession.maxHistory == 0) {
+                max_history = readConfig(sessionId, "openai.max.history");
+                if (max_history == null) max_history = "15";
+                iMaxResponse = Integer.parseInt(max_history);
+                ps.chatSession.maxHistory = iMaxResponse;
+            } else {
+                iMaxResponse = ps.chatSession.maxHistory;
+            }
+        } else {
+            iMaxResponse = Integer.parseInt(max_history);
+            ps.chatSession.maxHistory = iMaxResponse;
         }
 
-        int iMaxResponse = Integer.parseInt(max_history);
 
         int iTemperature = 1;
         if(temperature != null) iTemperature = Integer.parseInt(temperature);
@@ -1535,16 +1529,20 @@ public class AIMLProcessor
         if(presence_penalty != null) presencePenalty = Integer.parseInt(presence_penalty);
 
 
-        log.info(ps.chatSession.sessionId + " GPT PROCESSED "
+        log.info(ps.chatSession.sessionId + " GPT "
                 + " model: " + model
                 + " user: " + user
+                + " temperature: " + temperature
+                + " max_tokens: " + max_tokens
+                + " max_history: " + iMaxResponse
+                + " top_p: " + top_p
+                + " frequency_penalty: " + frequency_penalty
+                + " presence_penalty: " + presence_penalty
+        );
+
+        log.info(ps.chatSession.sessionId + " GPT "
                 + " assistant: " + assistant
                 + " system: " + system
-                + " temperature: " + iTemperature
-                + " max_tokens: " + maxTokens
-                + " top_p: " + topP
-                + " frequency_penalty: " + frequencyPenalty
-                + " presence_penalty: " + presencePenalty
         );
 
         String response;
