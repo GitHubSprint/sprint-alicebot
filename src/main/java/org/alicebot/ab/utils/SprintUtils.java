@@ -8,6 +8,7 @@ package org.alicebot.ab.utils;
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
 import fasttext.FastTextPrediction;
+import org.alicebot.ab.MagicStrings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,11 +17,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.text.Normalizer;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,6 +32,7 @@ import java.util.Map;
  * @author skost
  */
 public class SprintUtils {
+    private static Map<String, Class<?>> classCache = new HashMap<>();
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
    
     public static Map<String, fasttext.FastText> mlaModels; 
@@ -40,8 +44,7 @@ public class SprintUtils {
      * @return 
      */
     @Deprecated
-    public static String unaccent(String src, boolean isPolishMarks) 
-    {
+    public static String unaccent(String src, boolean isPolishMarks) {
         String temp = src;
         if(src==null)
             return null;
@@ -53,12 +56,10 @@ public class SprintUtils {
 
 
 
-    public static boolean updateMlModel(String model)
-    {
+    public static boolean updateMlModel(String model) {
 
         FastText fastText = mlModels.get(model);
-        if(fastText != null)
-        {
+        if(fastText != null) {
             log.info("updateMlModel. Model " + model + " removed from system.");
             mlModels.remove(model);
         }
@@ -86,8 +87,7 @@ public class SprintUtils {
         return true;
     }
             
-    public static String mla(String model, String threshold, String score, String parameter, String sessionId)
-    {
+    public static String mla(String model, String threshold, String score, String parameter, String sessionId) {
 
         String out;
         int iMinScore = 0;
@@ -196,7 +196,11 @@ public class SprintUtils {
 
         return out;
     }
-    
+
+
+    public static void resetClassCache() {
+        classCache.clear();
+    }
     
     /**
      * Java jar integration method. 
@@ -207,53 +211,41 @@ public class SprintUtils {
      * @param sessionId sessionid
      * @return plugin reponse
      */
-    public static String callPlugin(String file, String classLoad, String methodName, String parameter, String sessionId)
-    {
-        URLClassLoader urlClassLoader = null;
-        //String f = "jar:file:///" + file + "!/";
-        
+    public static String callPlugin(String file, String classLoad, String methodName, String parameter, String sessionId) {
         File f = new File(file);
-        
-        String out = "";
+        String out;
+
         try {
-            
-            urlClassLoader = new URLClassLoader(new URL[] {f.toURI().toURL()},
-                                         SprintUtils.class.getClassLoader());
-                                    
-            //URL[] classLoaderUrls = new URL[]{new URL(f)};         
-            // Create a new URLClassLoader 
-            //urlClassLoader = new URLClassLoader(classLoaderUrls);
+            Class<?> bean = classCache.get(classLoad);
+            if (bean == null) {
+                try (URLClassLoader urlClassLoader = new URLClassLoader(new URL[]{f.toURI().toURL()},
+                        SprintUtils.class.getClassLoader())) {
 
-            // Load the target class
-            Class<?> beanClass = urlClassLoader.loadClass(classLoad);
+                    // Load the target class
+                    Class<?> beanClass = urlClassLoader.loadClass(classLoad);
 
-            // Create a new instance from the loaded class
-            Constructor<?> constructor = beanClass.getConstructor();             
+                    classCache.put(classLoad, beanClass);
 
-            Object beanObj = constructor.newInstance();        
-            // Getting a method from the loaded class and invoke it
-                        
-            Method method = beanClass.getMethod("processCustomResultPocessor", String.class, String.class, String.class);    
-            String response = (String) method.invoke(beanObj, sessionId, parameter, methodName);
-            log.info("Request: sessionId: " + sessionId + " parameter: " + parameter + " method: " + methodName + " plugin response: " + response);
-            
-            out = response;                                    
-        } 
-        catch (Exception e) 
-        {
-            out = "ERR " + e.getMessage();
-            log.error("callPlugin file: " + f + " parameter : " +parameter + " ERROR : " + e, e);
+                    Constructor<?> constructor = beanClass.getConstructor();
+                    Object beanObj = constructor.newInstance();
+                    Method method = beanClass.getMethod("processCustomResultPocessor", String.class, String.class, String.class);
+                    out = (String) method.invoke(beanObj, sessionId, parameter, methodName);
+
+                }
+            } else {
+                Constructor<?> constructor = bean.getConstructor();
+                Object beanObj = constructor.newInstance();
+                Method method = bean.getMethod("processCustomResultPocessor", String.class, String.class, String.class);
+                out = (String) method.invoke(beanObj, sessionId, parameter, methodName);
+                log.info("call from loaded class: " + classLoad);
+            }
+        } catch (Exception ex) {
+            out = "ERR " + ex.getMessage();
+            log.error("callPlugin file: " + f + " parameter : " + parameter + " ERROR", ex);
         }
-        finally {
-            if(urlClassLoader != null)
-                try {
-                    urlClassLoader.close();
-                } catch (IOException ex) {
-                    out = "ERR " + ex.getMessage();
-                    log.error("callPlugin urlClassLoader.close() file: " + f + " parameter : " +parameter + " ERROR : " + ex, ex);
-                }                       
-        } 
-        
+
+        log.info(sessionId + " : request parameter: " + parameter + " method: " + methodName + " plugin response: " + out);
+
         return out;
     }
     

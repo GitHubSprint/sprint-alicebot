@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import org.alicebot.ab.utils.IOUtils;
+import org.alicebot.ab.utils.SprintUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /* Program AB Reference AIML 2.0 implementation
@@ -170,6 +171,9 @@ public class Chat {
         return multisentenceRespond(request);
     }
 
+    public void resetClassCache() {
+        SprintUtils.resetClassCache();
+    }
 
     /**
      * return a compound response to a multiple-sentence request. "Multiple" means one or more.

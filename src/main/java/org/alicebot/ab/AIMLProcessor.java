@@ -21,6 +21,7 @@ package org.alicebot.ab;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.text.DateFormat;
@@ -1447,7 +1448,7 @@ public class AIMLProcessor
     }
 
 
-    private static String gpt(Node node, ParseState ps) throws Exception{
+    private static String gpt(Node node, ParseState ps) throws Exception {
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
         String assistant = getAttributeOrTagValue(node, ps, "assistant");
@@ -1519,7 +1520,7 @@ public class AIMLProcessor
         int iTemperature = 1;
         if(temperature != null) iTemperature = Integer.parseInt(temperature);
 
-        int maxTokens = 256;
+        int maxTokens = 50;
         if(max_tokens != null) maxTokens = Integer.parseInt(max_tokens);
 
         int topP = 1;
@@ -1565,7 +1566,9 @@ public class AIMLProcessor
 
     }
 
-
+    public static void resetClassCache() {
+        SprintUtils.resetClassCache();
+    }
 
     /**
      * Implements jar plugin integration 
@@ -1574,7 +1577,7 @@ public class AIMLProcessor
      * @return
      * @throws IOException 
      */
-    private static String plugin(Node node, ParseState ps) throws IOException {
+    private static String plugin(Node node, ParseState ps) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         
         String file = getAttributeOrTagValue(node, ps, "file");  
         String classLoad = getAttributeOrTagValue(node, ps, "class");
@@ -2458,9 +2461,7 @@ public class AIMLProcessor
                 return learn(node, ps);
             else if (extension != null && extension.extensionTagSet().contains(nodeName)) return extension.recursEval(node, ps) ;
             else return (genericXML(node, ps));
-        } 
-        catch (Exception ex) 
-        {
+        } catch (Exception ex) {
             ex.printStackTrace();
             return "ERR " + ex.getMessage();
         }

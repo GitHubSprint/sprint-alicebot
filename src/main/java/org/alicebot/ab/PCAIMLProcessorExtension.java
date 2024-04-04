@@ -35,8 +35,7 @@ import org.w3c.dom.NodeList;
  * This is just a stub to make the contactaction.aiml model work on a PC
  with some extension tags that are defined for mobile devices.
  */
-public class PCAIMLProcessorExtension implements AIMLProcessorExtension 
-{
+public class PCAIMLProcessorExtension implements AIMLProcessorExtension {
     private static final Logger log = LoggerFactory.getLogger(PCAIMLProcessorExtension.class);
     
     public Set<String> extensionTagNames = Utilities.stringSet("contactid","multipleids","displayname","dialnumber","emailaddress","contactbirthday","addinfo");
@@ -52,8 +51,7 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension
     } 
     
     
-    public static Map<String,fasttext.FastText> getMLAModels() 
-    {
+    public static Map<String,fasttext.FastText> getMLAModels() {
         Map<String, fasttext.FastText> mlaModels = new HashMap<String, fasttext.FastText>();    
         try 
         {
@@ -89,8 +87,7 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension
         return mlaModels;        
     }
 
-    public static Map<String, FastText> getMLModels()
-    {
+    public static Map<String, FastText> getMLModels() {
         Map<String, FastText> mlModels = new HashMap<String, FastText>();
         try
         {
@@ -124,45 +121,7 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension
 
         return mlModels;
     }
-    
-//    public static Map<String, FastText> getMLModels()
-//    {
-//        Map<String, FastText> mlModels = new HashMap<String, FastText>();
-//        try
-//        {
-//            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";
-//
-//            // Directory path here
-//            String model;
-//            String modelPath;
-//            File folder = new File(path);
-//            if (folder.exists()) {
-//                File[] listOfFiles = folder.listFiles();
-//                log.info("Loading ML Model files from '{}'", path);
-//                for (File listOfFile : listOfFiles) {
-//                    if (listOfFile.isDirectory()) {
-//                        model = listOfFile.getName();
-//                        modelPath = listOfFile.getAbsoluteFile().toString();
-//
-//                        log.info("Read ML Model folder: " + model + " filePath: " + modelPath);
-//
-//                        FastText fastText = FastText.Companion.loadModel(new File(modelPath), true);
-//                        //fasttext.FastText ftmodel = fasttext.FastText.loadModel(modelPath, true);
-//
-//
-//                        mlModels.put(model, fastText);
-//
-//                    }
-//                }
-//            }
-//            else log.info("addMLModels: '{}' does not exist.", path);
-//        } catch (Exception ex)  {
-//            ex.printStackTrace();
-//        }
-//
-//        return mlModels;
-//    }
-    
+
     
     
     @Override
