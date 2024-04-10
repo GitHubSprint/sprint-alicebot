@@ -53,6 +53,14 @@
 			<version>2.0.0</version>
 		</dependency>
 
+		<!-- ML FastText Libraries -->
+		<dependency>
+			<groupId>com.mayabot.mynlp</groupId>
+			<artifactId>fastText4j</artifactId>
+			<version>3.1.7</version>
+		</dependency>
+		<!-- ML Libraries -->
+
 		<!-- MLA -->
 		<!-- https://github.com/GitHubSprint/fasttext4j -->
 		<dependency>

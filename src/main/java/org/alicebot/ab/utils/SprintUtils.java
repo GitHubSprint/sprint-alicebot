@@ -8,7 +8,6 @@ package org.alicebot.ab.utils;
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
 import fasttext.FastTextPrediction;
-import org.alicebot.ab.MagicStrings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +16,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -68,17 +66,14 @@ public class SprintUtils {
 
         File file = new File(path);
 
-        if(!file.exists())
-        {
-            log.error("updateMlModel. Model " + model + " not exists. Path: " + file.getAbsolutePath());
+        if(!file.exists()) {
+            log.error("updateMlModel. Model {} not exists. Path: {}", model, file.getAbsolutePath());
             return false;
         }
         try {
             fastText = FastText.Companion.loadModelFromSingleFile(file);
-        }
-        catch (Exception ex)
-        {
-            log.error("updateMlModel ERROR : " + ex, ex);
+        } catch (Exception ex) {
+            log.error("updateMlModel ERROR : {}", ex, ex);
             return false;
         }
 
@@ -91,36 +86,33 @@ public class SprintUtils {
 
         String out;
         int iMinScore = 0;
-        if(score != null && score.length() > 0)
+        if(score != null && !score.isEmpty())
             iMinScore = Integer.parseInt(score);
 
         float fThreshold = 0f;
 
-        if(threshold != null && threshold.length() > 0)
+        if(threshold != null && !threshold.isEmpty())
             fThreshold = Float.parseFloat(threshold);
 
-        log.info("mla Request: sessionId: " + sessionId + " Model: " + model + " MinScore: " + iMinScore + " Threshold: " + fThreshold + " parameter: " + parameter);
-
+        log.info("mla Request: sessionId: {} Model: {} MinScore: {} Threshold: {} parameter: {}", sessionId, model, iMinScore, fThreshold, parameter);
 
         try {
 
-            fasttext.FastText ftmodel = mlaModels.get(model);
+            fasttext.FastText ftModel = mlaModels.get(model);
 
-            if(ftmodel == null)
-            {
-                log.warn(sessionId + "\tInvalid model name");
+            if(ftModel == null) {
+                log.warn("{}\tMLA Invalid model name", sessionId);
                 return "ERR Invalid model name";
             }
 
-            List<FastTextPrediction> result = ftmodel.predictAll(Arrays.asList(parameter.split(" ")),fThreshold);
+            List<FastTextPrediction> result = ftModel.predictAll(Arrays.asList(parameter.split(" ")),fThreshold);
 
             int iScore = (int) (result.get(0).probability() * 100);
 
-            if (!result.get(0).label().equals("__label__oos"))
-            {
-                log.info(sessionId + "\tOK:\t" + parameter + "\tresult : " + result.get(0).label() + " score: " + iScore);
+            if (!result.get(0).label().equals("__label__oos")) {
+                log.info("{}\tOK:\t{}\tresult : {} score: {}", sessionId, parameter, result.get(0).label(), iScore);
             } else {
-                log.warn(sessionId + "\tNO QUALIFICATION:\t" + parameter);
+                log.warn("{}\tNO QUALIFICATION:\t{}", sessionId, parameter);
             }
 
             if(iScore >= iMinScore)
@@ -129,13 +121,9 @@ public class SprintUtils {
                 out = "__label__oos" + " " + iScore;
 
 
-
-            //out= result.get(0).label() + " " + iScore;
-
         } catch (Exception e) {
-
             out = "ERR " + e.getMessage();
-            log.error(sessionId + "\tpredictSupervisedModel ERROR : " + e, e);
+            log.error("{}\tpredictSupervisedModel ERROR", sessionId, e);
         }
 
         return out;
@@ -151,36 +139,33 @@ public class SprintUtils {
      * @param sessionId Bot SessionId
      * @return
      */
-    public static String ml(String model, String nBest, String threshold, String score, String parameter, String sessionId)
-    {
+    public static String ml(String model, String nBest, String threshold, String score, String parameter, String sessionId) {
         String out = "ERR";
 
         try {
-            int iNbest = Integer.parseInt(nBest);
+            int best = Integer.parseInt(nBest);
             float fThreshold = Float.parseFloat(threshold);
             int iMinScore = Integer.parseInt(score);
 
 
-            log.info("ml Request: sessionId: " + sessionId + " Model: " + model + " Nbest: " + iNbest + " Threshold: " + fThreshold + " MinScore: " + iMinScore + " parameter: " + parameter);
+            log.info("ml Request: sessionId: {} Model: {} Nbest: {} Threshold: {} MinScore: {} parameter: {}", sessionId, model, best, fThreshold, iMinScore, parameter);
 
             FastText fastText = mlModels.get(model);
 
-            if(fastText == null)
-            {
-                log.warn(sessionId + "\tInvalid model name");
+            if(fastText == null) {
+                log.warn("{}\tML Invalid model name", sessionId);
                 return "ERR Invalid model name";
             }
 
-            List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), iNbest, fThreshold);
+            List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), best, fThreshold);
 
-            log.info("ml Response sessionId: " + sessionId + " result.size: " + result.size());
+            log.info("ml Response sessionId: {} result.size: {}", sessionId, result.size());
             for(ScoreLabelPair pair : result) {
                 int iScore = (int) (pair.getScore() * 100);
 
-                log.info("Response sessionId: " + sessionId + " parameter: " + parameter + " RESPONSE score: " + pair.getScore() + " iScore: " + iScore + " label: " + pair.getLabel() + " MinScore: " + iMinScore);
+                log.info("Response sessionId: {} parameter: {} RESPONSE score: {} iScore: {} label: {} MinScore: {}", sessionId, parameter, pair.getScore(), iScore, pair.getLabel(), iMinScore);
 
-                if(iScore >= iMinScore)
-                {
+                if(iScore >= iMinScore) {
                     out = pair.getLabel() + " " + iScore;
                     break;
                 }
@@ -191,7 +176,7 @@ public class SprintUtils {
         } catch (Exception e) {
 
             out = "ERR " + e.getMessage();
-            log.error("predictSupervisedModel ERROR : " + e, e);
+            log.error("predictSupervisedModel ERROR", e);
         }
 
         return out;
@@ -237,15 +222,13 @@ public class SprintUtils {
                 Object beanObj = constructor.newInstance();
                 Method method = bean.getMethod("processCustomResultPocessor", String.class, String.class, String.class);
                 out = (String) method.invoke(beanObj, sessionId, parameter, methodName);
-                log.info("call from loaded class: " + classLoad);
+                log.info("call from loaded class: {}", classLoad);
             }
         } catch (Exception ex) {
             out = "ERR " + ex.getMessage();
-            log.error("callPlugin file: " + f + " parameter : " + parameter + " ERROR", ex);
+            log.error("callPlugin file: {} parameter : {} ERROR", f, parameter, ex);
         }
-
-        log.info(sessionId + " : request parameter: " + parameter + " method: " + methodName + " plugin response: " + out);
-
+        log.info("{} : request parameter: {} method: {} plugin response: {}", sessionId, parameter, methodName, out);
         return out;
     }
     
@@ -257,8 +240,7 @@ public class SprintUtils {
      * @return 
      */
     @Deprecated
-    public static String readBashScript(String scrip, String parameters)
-    {                
+    public static String readBashScript(String scrip, String parameters) {
         String out = "";
         
         if (scrip == null)
@@ -276,13 +258,13 @@ public class SprintUtils {
             try {
                 proc.waitFor();
             } catch (InterruptedException ex) {
-                log.error("readBashScript script: " + scrip + " parameters : " +parameters + " InterruptedException ERROR : " + ex, ex); 
+                log.error("readBashScript script: {} parameters : {} InterruptedException ERROR : {}", scrip, parameters, ex, ex);
             }
             while (read.ready()) {
                 out = read.readLine();
             }
         } catch (IOException e) {
-            log.error("readBashScript script: " + scrip + " parameters : " +parameters + " IOException ERROR : " + e, e); 
+            log.error("readBashScript script: {} parameters : {} IOException ERROR : {}", scrip, parameters, e, e);
         }
         
         log.info("readBashScript: scrip = {} parameters = {} [response = {}]",scrip, parameters, out);
