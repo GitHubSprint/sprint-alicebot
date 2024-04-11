@@ -3,7 +3,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.alicebot.ab</groupId>
 	<artifactId>ab</artifactId>
-	<version>4.5.1_SPRINT</version>
+	<version>4.5.2-sprint</version>
 	<name>sprint-alicebot</name>
 	<description>
 		Program AB is the reference implementation of the AIML 2.0 draft specification.
@@ -52,12 +52,11 @@
 			<artifactId>validator</artifactId>
 			<version>2.0.0</version>
 		</dependency>
-
 		<!-- ML FastText Libraries -->
 		<dependency>
 			<groupId>com.mayabot.mynlp</groupId>
 			<artifactId>mynlp</artifactId>
-			<version>4.0.0</version>
+			<version>4.1.3-sprint</version>
 		</dependency>
 		<!-- ML Libraries -->
 
@@ -66,7 +65,7 @@
 		<dependency>
 			<groupId>fasttext</groupId>
 			<artifactId>fasttext4j</artifactId>
-			<version>0.2.4_SPRINT</version>
+			<version>0.2.5-sprint</version>
 		</dependency>
 	</dependencies>
 	<build>
