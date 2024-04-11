@@ -145,7 +145,7 @@ public class PreProcessor {
         result = result.trim();
         //log.info("Normalized: "+result);
         } catch (Exception ex)    {
-            ex.printStackTrace();
+            log.error("substitute Error", ex);
         }
         return result.trim();
     }
@@ -180,7 +180,7 @@ public class PreProcessor {
 
         }
     } catch (Exception ex) {
-        ex.printStackTrace();
+        log.error("readSubstitutionsFromInputStream Error", ex);
     }
     return subCount;
 }
@@ -252,7 +252,7 @@ public class PreProcessor {
             br.close();
         }
         catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("normalizeFile Error", ex);
         }
     }
 }

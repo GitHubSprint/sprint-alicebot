@@ -81,7 +81,7 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension {
             }
             else log.info("addMLAModels: '{}' does not exist.", path);
         } catch (Exception ex)  {
-            ex.printStackTrace();
+            log.error("addMLAModels Error", ex);
         }
         
         return mlaModels;        
@@ -116,7 +116,7 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension {
             }
             else log.info("addMLAodels: '{}' does not exist.", path);
         } catch (Exception ex)  {
-            ex.printStackTrace();
+            log.error("addMLAModels Error", ex);
         }
 
         return mlModels;
@@ -242,7 +242,7 @@ public class PCAIMLProcessorExtension implements AIMLProcessorExtension {
                     return (AIMLProcessor.genericXML(node, ps));
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("recursEval Error", ex);
             return "";
         }
     }

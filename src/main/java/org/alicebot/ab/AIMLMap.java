@@ -139,7 +139,8 @@ public class AIMLMap extends HashMap<String, String> {
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("readAIMLMapFromInputStream Error", ex);
+
         }
         return cnt;
     }

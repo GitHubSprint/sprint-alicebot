@@ -18,7 +18,6 @@ package org.alicebot.ab;
         Free Software Foundation, Inc., 51 Franklin St, Fifth Floor,
         Boston, MA  02110-1301, USA.
 */
-import fasttext.FastText;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -239,7 +238,7 @@ public class Bot {
             }
             else log.info("addCategories: '{}' does not exist.", MagicStrings.aiml_path);
         } catch (Exception ex)  {
-            ex.printStackTrace();
+            log.error("addCategoriesFromAIML Error", ex);
         }
         log.info("Loaded {} categories in {} sec", brain.getCategories().size(), timer.elapsedTimeSecs());
     }
@@ -275,7 +274,7 @@ public class Bot {
             }
             else log.info("addCategories: '{}' does not exist.", MagicStrings.aimlif_path);
         } catch (Exception ex)  {
-            ex.printStackTrace();
+            log.error("addCategoriesFromAIMLIF Error", ex);
         }
         log.info("Loaded {} categories in {} sec", brain.getCategories().size(), timer.elapsedTimeSecs());
     }
@@ -392,9 +391,9 @@ public class Bot {
                 bw.newLine();
             }
         } catch (FileNotFoundException ex) {
-            ex.printStackTrace();
+            log.error("writeIFCategories FileNotFoundException", ex);
         } catch (IOException ex) {
-            ex.printStackTrace();
+            log.error("writeIFCategories IOException", ex);
         } finally {
             //Close the bw
             try {
@@ -403,7 +402,7 @@ public class Bot {
                     bw.close();
                 }
             } catch (IOException ex) {
-                ex.printStackTrace();
+                log.error("writeIFCategories IOException", ex);
             }
         }
     }
@@ -430,10 +429,10 @@ public class Bot {
                 bw.write(Category.categoryToIF(c));
                 bw.newLine();
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("writeAIMLIFFiles IOException", ex);
             }
         }
-        Set set = fileMap.keySet();
+        Set<String> set = fileMap.keySet();
         for (Object aSet : set) {
             BufferedWriter bw = fileMap.get(aSet);
             //Close the bw
@@ -443,8 +442,7 @@ public class Bot {
                     bw.close();
                 }
             } catch (IOException ex) {
-                ex.printStackTrace();
-
+                log.error("writeAIMLIFFiles IOException", ex);
             }
 
         }
@@ -483,10 +481,10 @@ public class Bot {
                 bw.write(Category.categoryToAIML(c)+"\n");
                 //bw.newLine();
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("writeAIMLIFFiles Error", ex);
             }
         }
-        Set set = fileMap.keySet();
+        Set<String> set = fileMap.keySet();
         for (Object aSet : set) {
             BufferedWriter bw = fileMap.get(aSet);
             //Close the bw
@@ -497,8 +495,7 @@ public class Bot {
                     bw.close();
                 }
             } catch (IOException ex) {
-                ex.printStackTrace();
-
+                log.error("writeAIMLIFFiles IOException", ex);
             }
 
         }
@@ -513,7 +510,7 @@ public class Bot {
         try {
             properties.getProperties(MagicStrings.config_path+"/properties.txt");
         } catch (Exception ex)  {
-            ex.printStackTrace();
+            log.error("addProperties Error", ex);
         }
     }
 
@@ -732,7 +729,7 @@ public class Bot {
             }
             else log.info("addAIMLSets: {} does not exist.", MagicStrings.sets_path);
         } catch (Exception ex)  {
-            ex.printStackTrace();
+            log.error("addAIMLSets Error", ex);
         }
     }
 
@@ -765,43 +762,9 @@ public class Bot {
             }
             else log.info("addCategories: '{}' does not exist.", MagicStrings.aiml_path);
         } catch (Exception ex)  {
-            ex.printStackTrace();
+            log.error("addAIMLMaps Error", ex);
         }
     }
-    
-    
-//    void addMLAModels() {
-//        
-//        try {
-//            String path = new File(".").getCanonicalPath().replace("\\", "/") + "/models/";   
-//            
-//            // Directory path here
-//            String file;
-//            String filePath;
-//            File folder = new File(path);
-//            if (folder.exists()) {
-//                File[] listOfFiles = folder.listFiles();
-//                log.info("Loading MLA Model files from '{}'", path);
-//                for (File listOfFile : listOfFiles) {
-//                    if (listOfFile.isFile()) {
-//                        file = listOfFile.getName();
-//                        filePath = listOfFile.getAbsoluteFile().toString();
-//                        if (file.endsWith(".ftz") || file.endsWith(".FTZ")) {
-//                            log.info("Read MLA Model file: " + file + " filePath: " + filePath);
-//                            String modelName = file.substring(0, file.length()-".ftz".length());
-//                            log.info("Read MLA Model "+modelName);
-//                            FastText ftmodel = fasttext.FastText.loadModel(filePath);
-//                            
-//                            mlaModels.put(modelName, ftmodel);
-//                        }
-//                    }
-//                }
-//            }
-//            else log.info("addMLAModels: '{}' does not exist.", path);
-//        } catch (Exception ex)  {
-//            ex.printStackTrace();
-//        }
-//    }
 
     @Override
     public int hashCode() {

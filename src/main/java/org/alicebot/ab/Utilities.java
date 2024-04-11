@@ -67,11 +67,11 @@ public class Utilities {
         try {
             BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             while ((strLine = br.readLine()) != null)   {
-                if (strLine.length() == 0) contents.append("\n");
+                if (strLine.isEmpty()) contents.append("\n");
                 else contents.append(strLine).append("\n");
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("getFileFromInputStream Error", ex);
         }
         return contents.toString().trim();
     }
@@ -100,11 +100,11 @@ public class Utilities {
         try {
             BufferedReader br = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
             while ((strLine = br.readLine()) != null)   {
-                if (strLine.length() == 0) copyright.append("\n");
+                if (strLine.isEmpty()) copyright.append("\n");
                 else copyright.append("<!-- ").append(strLine).append(" -->\n");
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("getCopyrightFromInputStream Error", ex);
         }
         return copyright.toString();
     }

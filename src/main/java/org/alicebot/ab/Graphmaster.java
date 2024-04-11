@@ -231,8 +231,7 @@ public class Graphmaster {
              else log.debug("No match.");
          }
         } catch (Exception ex) {
-            //log.info("Match: "+input);
-            ex.printStackTrace();
+            log.error("match Error", ex);
             n = null;
         }
         if (MagicBooleans.trace_mode && Chat.matchTrace.length() < MagicNumbers.max_trace_length) {
@@ -272,7 +271,7 @@ public class Graphmaster {
         if (n != null) n.category.addMatch(inputThatTopic);
         return n;
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("match Error", ex);
             return null;
         }
     }
@@ -383,8 +382,7 @@ public class Graphmaster {
                 return null;
             }
         } catch (Exception ex) {
-            log.info("wordMatch: "+Path.pathToSentence(path)+": "+ex);
-            ex.printStackTrace();
+            log.error("wordMatch: {}", Path.pathToSentence(path), ex);
             return null;
         }
     }

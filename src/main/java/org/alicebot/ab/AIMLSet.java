@@ -125,7 +125,8 @@ public class AIMLSet extends HashSet<String> {
                 bot.brain.addCategory(c);*/
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("readAIMLSetFromInputStream Error", ex);
+
         }
         return cnt;
     }

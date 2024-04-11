@@ -39,7 +39,7 @@ public class Interval {
                 fmt.parseDateTime(date2)
         ).getHours();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("getHoursBetween Error", ex);
             return 0;
         }
     }
@@ -56,7 +56,7 @@ public class Interval {
                 fmt.parseDateTime(date2)
         ).getYears();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("getYearsBetween Error", ex);
             return 0;
         }
     }
@@ -73,7 +73,7 @@ public class Interval {
                 fmt.parseDateTime(date2)
         ).getMonths();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("getMonthsBetween Error", ex);
             return 0;
         }
     }
@@ -90,7 +90,7 @@ public class Interval {
                     fmt.parseDateTime(date2)
             ).getDays();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("getDaysBetween Error", ex);
             return 0;
         }
     }

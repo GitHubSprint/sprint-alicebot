@@ -66,7 +66,7 @@ public class Properties extends HashMap<String, String> {
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("getPropertiesFromInputStream Error", ex);
         }
     }
 

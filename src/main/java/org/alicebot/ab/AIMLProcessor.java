@@ -70,13 +70,26 @@ public class AIMLProcessor
             //log.info("CHILD: "+children.item(j).getNodeName());
             Node m = children.item(j);
             String mName = m.getNodeName();
-            
-            if (mName.equals("#text")) {/*skip*/}
-            else if (mName.equals("pattern")) pattern = DomUtils.nodeToString(m);
-            else if (mName.equals("that")) that = DomUtils.nodeToString(m);
-            else if (mName.equals("topic")) topic = DomUtils.nodeToString(m);
-            else if (mName.equals("template")) template = DomUtils.nodeToString(m);
-            else log.info("categoryProcessor: unexpected "+mName);
+
+            switch (mName) {
+                case "#text": /*skip*/
+                    break;
+                case "pattern":
+                    pattern = DomUtils.nodeToString(m);
+                    break;
+                case "that":
+                    that = DomUtils.nodeToString(m);
+                    break;
+                case "topic":
+                    topic = DomUtils.nodeToString(m);
+                    break;
+                case "template":
+                    template = DomUtils.nodeToString(m);
+                    break;
+                default:
+                    log.info("categoryProcessor: unexpected {}", mName);
+                    break;
+            }
         }
 
         pattern = trimTag(pattern, "pattern");
@@ -105,7 +118,7 @@ public class AIMLProcessor
      */
     public static ArrayList<Category> AIMLToCategories (String directory, String aimlFile) {
         try {
-            ArrayList categories = new ArrayList<Category>();
+            ArrayList<Category> categories = new ArrayList<>();
             Node root = DomUtils.parseFile(directory+"/"+aimlFile);      // <aiml> tag
             String language = MagicStrings.default_language;
             if (root.hasAttributes()) {
@@ -138,8 +151,7 @@ public class AIMLProcessor
             return categories;
         }
         catch (Exception ex) {
-            log.info("AIMLToCategories: "+ex);
-            ex.printStackTrace();
+            log.error("AIMLToCategories ERROR",ex);
             return null;
         }
     }
@@ -164,11 +176,7 @@ public class AIMLProcessor
      * @return              bot's response.
      */
     public static String respond(String input, String that, String topic, Chat chatSession) {
-        if (false /*checkForRepeat(input, chatSession) > 0*/)
-            return "Repeat!";
-        else {
-            return respond(input, that, topic, chatSession, 0);
-        }
+        return respond(input, that, topic, chatSession, 0);
     }
 
     /**
@@ -183,7 +191,7 @@ public class AIMLProcessor
      */
  public static String respond(String input, String that, String topic, Chat chatSession, int srCnt) {
         String response;
-        if (input == null || input.length()==0) input = MagicStrings.null_input;
+        if (input == null || input.isEmpty()) input = MagicStrings.null_input;
         sraiCount = srCnt;
         response = MagicStrings.default_bot_response();
         
@@ -196,7 +204,7 @@ public class AIMLProcessor
             response = evalTemplate(leaf.category.getTemplate(), ps);
             //log.info("That="+that);
         } catch (Exception ex) {
-            ex.printStackTrace();
+             log.error("respond Error", ex);
         }
         return response;
     }
@@ -259,8 +267,7 @@ public class AIMLProcessor
               
         }
         } catch (Exception ex) {
-            log.info("Something went wrong with evalTagContent");
-            ex.printStackTrace();
+            log.error("Something went wrong with evalTagContent", ex);
         }
         return result.toString();
     }
@@ -338,7 +345,7 @@ public class AIMLProcessor
             response = evalTemplate(leaf.category.getTemplate(), new ParseState(ps.depth+1, ps.chatSession, ps.input, ps.that, topic, leaf));
             //log.info("That="+that);
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("srai Error", ex);
         }
         return response.trim();
 
@@ -1699,7 +1706,7 @@ public class AIMLProcessor
     private static int getIndexValue(Node node, ParseState ps) {
         int index=0;
         String value = getAttributeOrTagValue(node, ps, "index");
-        if (value != null) try {index = Integer.parseInt(value)-1;} catch (Exception ex) {ex.printStackTrace();}
+        if (value != null) try {index = Integer.parseInt(value)-1;} catch (Exception ex) {log.error("getIndexValue Error", ex);}
         return index;
     }
 
@@ -1810,12 +1817,11 @@ public class AIMLProcessor
         String value = getAttributeOrTagValue(node, ps, "index");
         if (value != null)
             try {
-                String pair = value;
-                String[] spair = pair.split(",");
+                String[] spair = value.split(",");
                 index = Integer.parseInt(spair[0])-1;
                 jndex = Integer.parseInt(spair[1])-1;
-                log.info("That index="+index+","+jndex);
-            } catch (Exception ex) { ex.printStackTrace(); }
+                log.info("That index={},{}", index, jndex);
+            } catch (Exception ex) { log.error("that Error", ex);; }
         String that = MagicStrings.unknown_history_item;
         History hist = ps.chatSession.thatHistory.get(index);
         if (hist != null) that = (String)hist.get(jndex);
@@ -2470,7 +2476,7 @@ public class AIMLProcessor
             else if (extension != null && extension.extensionTagSet().contains(nodeName)) return extension.recursEval(node, ps) ;
             else return (genericXML(node, ps));
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("recurseEval Error", ex);
             return "ERR " + ex.getMessage();
         }
     }

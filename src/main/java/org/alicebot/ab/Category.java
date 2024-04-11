@@ -268,7 +268,7 @@ public class Category {
                     "<template>"+category.getTemplate()+"</template>"+NL+
                     "</category>"+topicEnd;
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("categoryToAIML Error", ex);
         }
         return result;
     }
