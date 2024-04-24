@@ -31,7 +31,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.alicebot.ab.gpt.ChatGPT;
+import org.alicebot.ab.gpt.GenAIHelper;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
@@ -1483,15 +1483,10 @@ public class AIMLProcessor
         if(assistant == null || assistant.equals("unknown") || assistant.isEmpty())
             assistant = ps.chatSession.lastResponse;
 
-        String json = ps.chatSession.gptJson;
+        String json = ps.chatSession.json;
 
         String sessionId = ps.chatSession.sessionId;
-        log.info(sessionId + "gpt "
-                + " user: " + user
-                + " system: " + system
-                + " assistant: " + assistant
-                + " json: " + json
-        );
+        log.info("{} gpt  user: {} system: {} assistant: {} json: {}", sessionId, user, system, assistant, json);
 
 
         if(model == null) {
@@ -1531,39 +1526,113 @@ public class AIMLProcessor
         if(presence_penalty != null) presencePenalty = Integer.parseInt(presence_penalty);
 
 
-        log.info(ps.chatSession.sessionId + " GPT "
-                + " model: " + model
-                + " user: " + user
-                + " temperature: " + temperature
-                + " max_tokens: " + max_tokens
-                + " max_history: " + iMaxResponse
-                + " top_p: " + top_p
-                + " frequency_penalty: " + frequency_penalty
-                + " presence_penalty: " + presence_penalty
-        );
+        log.info("{} GPT  model: {} user: {} temperature: {} max_tokens: {} max_history: {} top_p: {} frequency_penalty: {} presence_penalty: {}",
+                ps.chatSession.sessionId, model, user, temperature, max_tokens, iMaxResponse, top_p, frequency_penalty, presence_penalty);
 
-        log.info(ps.chatSession.sessionId + " GPT "
-                + " assistant: " + assistant
-                + " system: " + system
-        );
+        log.info("{} GPT  assistant: {} system: {}", ps.chatSession.sessionId, assistant, system);
 
         String response;
         if(json == null) {
-            JSONObject responseJson = ChatGPT
+            JSONObject responseJson = GenAIHelper
                     .createGPTResponse(model, system, user, assistant, iTemperature, maxTokens, topP, frequencyPenalty, presencePenalty);
             response = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty())
-                json = ChatGPT
-                        .addMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+                json = GenAIHelper
+                        .addGptMessageToJSON(json,"assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             if(system != null && !system.isEmpty())
-                json = ChatGPT
-                        .addMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+                json = GenAIHelper
+                        .addGptMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
-            json = ChatGPT.addMessageToJSON(json, "user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            json = GenAIHelper.addGptMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             response = json;
         }
         return "GPT=" +  response;
+
+    }
+
+    private static String gemini(Node node, ParseState ps) throws Exception {
+        String context = getAttributeOrTagValue(node, ps, "context");
+        String bot = getAttributeOrTagValue(node, ps, "bot");
+        String user = getAttributeOrTagValue(node, ps, "user");
+
+        String temperature = getAttributeOrTagValue(node, ps, "temperature");
+        String maxOutputTokens = getAttributeOrTagValue(node, ps, "maxOutputTokens");
+        String topP = getAttributeOrTagValue(node, ps, "topP");
+        String topK = getAttributeOrTagValue(node, ps, "topK");
+
+        String max_history = getAttributeOrTagValue(node, ps, "max_history");
+
+        if(user == null)
+            user = evalTagContent(node, ps, null);
+        else
+            user = ps.chatSession.predicates.get(user);
+
+
+        if(context == null)
+            context = evalTagContent(node, ps, null);
+        else
+            context = ps.chatSession.predicates.get(context);
+
+
+        if(bot == null)
+            bot = evalTagContent(node, ps, null);
+        else
+            bot = ps.chatSession.predicates.get(bot);
+
+
+        if(bot == null || bot.equals("unknown") || bot.isEmpty())
+            bot = ps.chatSession.lastResponse;
+
+        String json = ps.chatSession.json;
+
+        String sessionId = ps.chatSession.sessionId;
+        log.info("{} gemini context: {} user: {} bot: {} json: {}", sessionId, context, user, bot, json);
+
+        double dTemperature = 0.3;
+        if(temperature != null) dTemperature = Double.parseDouble(temperature);
+
+        int maxTokens = 256;
+        if(maxOutputTokens != null) maxTokens = Integer.parseInt(maxOutputTokens);
+
+        double dTopP = 0.8;
+        if(topP != null) dTopP = Double.parseDouble(topP);
+
+        int iTopK = 40;
+        if(topK != null) iTopK = Integer.parseInt(topK);
+
+        int iMaxResponse;
+        if(max_history == null) {
+            if(ps.chatSession.maxHistory == 0) {
+                max_history = readConfig(sessionId, "openai.max.history");
+                if (max_history == null) max_history = "15";
+                iMaxResponse = Integer.parseInt(max_history);
+                ps.chatSession.maxHistory = iMaxResponse;
+            } else {
+                iMaxResponse = ps.chatSession.maxHistory;
+            }
+        } else {
+            iMaxResponse = Integer.parseInt(max_history);
+            ps.chatSession.maxHistory = iMaxResponse;
+        }
+
+        log.info("{} gemini  user: {} temperature: {} maxTokens: {} topP: {} topK: {}",
+                ps.chatSession.sessionId, user, dTemperature, maxTokens, dTopP, iTopK);
+
+        String response;
+        if(json == null) {
+            JSONObject responseJson = GenAIHelper
+                    .createGeminiResponse(context, user, dTemperature, maxTokens, dTopP,iTopK);
+            response = responseJson.toString();
+        } else {
+            if(bot != null && !bot.isEmpty())
+                json = GenAIHelper
+                        .addGeminiMessageToJSON(json, context,"bot", bot.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+
+            json = GenAIHelper.addGeminiMessageToJSON(json,context,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            response = json;
+        }
+        return "GEMINI=" +  response;
 
     }
 
@@ -1576,7 +1645,7 @@ public class AIMLProcessor
             File fis = new File(configFiles);
             prop.load(new InputStreamReader(Files.newInputStream(fis.toPath())));
             model = prop.getProperty(property);
-            log.info(sessionId + " GPT config model: " + model);
+            log.info("{} config {}: {}", sessionId, property, model);
         }
         return model;
     }
@@ -2363,6 +2432,8 @@ public class AIMLProcessor
                 return plugin(node, ps);
             else if (nodeName.equals("gpt")) //sprint
                 return gpt(node, ps);
+            else if (nodeName.equals("gemini")) //sprint
+                return gemini(node, ps);
             else if (nodeName.equals("predictf")) //sprint
                 return ml(node, ps);
             else if (nodeName.equals("ml")) //sprint

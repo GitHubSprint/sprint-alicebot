@@ -48,7 +48,7 @@ public class Chat {
     public static String latitude;
 
     public String currentQuestion;
-    public String gptJson;
+    public String json;
     public String lastResponse;
     public int maxHistory = 0;
     /**
@@ -166,7 +166,7 @@ public class Chat {
         return respond(input, that, predicates.get("topic"), contextThatHistory);
     }
     public String multisentenceRespond(String request, String gptJson, String lastResponse) {
-        this.gptJson = gptJson;
+        this.json = gptJson;
         this.lastResponse = lastResponse;
         return multisentenceRespond(request);
     }
