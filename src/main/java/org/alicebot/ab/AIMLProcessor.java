@@ -32,6 +32,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.alicebot.ab.gpt.GenAIHelper;
+import org.alicebot.ab.report.GenReportHelper;
+import org.alicebot.ab.report.Report;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
@@ -458,35 +460,26 @@ public class AIMLProcessor
      * @param ps    AIML parse state
      * @return      the result of the <getall> operation
      */
-    
-    private static String getall(Node node, ParseState ps)
-    {
-        StringBuilder result = new StringBuilder(MagicStrings.unknown_map_value);
-        
-        String predicateName = getAttributeOrTagValue(node, ps, "name");         
-        Map<String, String> map = new TreeMap<>(ps.chatSession.predicates);
-        Set set2 = map.entrySet();
-        Iterator iterator2 = set2.iterator();
-        
-        result = new StringBuilder();
-        while(iterator2.hasNext()) 
-        {
-            Map.Entry me = (Map.Entry)iterator2.next();
-            String key = (String)me.getKey();
-            if(predicateName != null && predicateName.length() > 0)
-            {
-                if(key.contains(predicateName))                
-                    result.append(me.getKey()).append(" = ").append(me.getValue()).append("<br />");
+
+    private static String getall(Node node, ParseState ps) {
+        String predicateName = getAttributeOrTagValue(node, ps, "name");
+        Map<String, String> predicates = ps.chatSession.predicates;
+
+        StringBuilder result = new StringBuilder();
+        for (Map.Entry<String, String> entry : predicates.entrySet()) {
+            String key = entry.getKey();
+            if (predicateName == null || predicateName.isEmpty() || key.contains(predicateName)) {
+                result.append(key)
+                        .append(" = ")
+                        .append(entry.getValue())
+                        .append("<br />");
             }
-            else            
-                result.append(me.getKey()).append(" = ").append(me.getValue()).append("<br />");
         }
         return result.toString();
     }
     
-    private static String checkEmpty(String in)
-    {
-        if(in == null || in.length() ==0)
+    private static String checkEmpty(String in) {
+        if(in == null || in.isEmpty())
             return MagicStrings.unknown_property_value;
         return in;
     }
@@ -505,7 +498,7 @@ public class AIMLProcessor
         String threshold = getAttributeOrTagValue(node, ps, "threshold");
         String score = getAttributeOrTagValue(node, ps, "score");
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
-        log.info(ps.chatSession.sessionId + "ML currentQuestion: " + ps.chatSession.currentQuestion);
+        log.info("{} ML currentQuestion: {}", ps.chatSession.sessionId, ps.chatSession.currentQuestion);
         String input;
         if(parameter == null)
             input = evalTagContent(node, ps, null);
@@ -553,8 +546,8 @@ public class AIMLProcessor
             input = ps.chatSession.currentQuestion;
         }
 
-        log.info(ps.chatSession.sessionId + " MLA parameter: " + parameter + " input: " + input);
-        log.info(ps.chatSession.sessionId + " MLA model: " + model + " threshold:  " + threshold + " score:" + score);
+        log.info("{} MLA parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
+        log.info("{} MLA model: {} threshold:  {} score:{}", ps.chatSession.sessionId, model, threshold, score);
 
         String out = checkEmpty(SprintUtils.mla(model, threshold, score, input, ps.chatSession.sessionId));
         return out.replace("__label__", "");
@@ -566,10 +559,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
-    private static String regex(Node node, ParseState ps) throws IOException
-    {                
+    private static String regex(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String pattern = getAttributeOrTagValue(node, ps, "pattern");
         Integer group = null;
@@ -626,10 +617,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return distance in %
-     * @throws IOException 
      */
-    private static String compare(Node node, ParseState ps) throws IOException
-    {        
+    private static String compare(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String word = getAttributeOrTagValue(node, ps, "word");
         String minAccuracy = getAttributeOrTagValue(node, ps, "minaccuracy");
@@ -649,7 +638,7 @@ public class AIMLProcessor
             if(tmp != null)
                 min = Integer.parseInt(tmp);  
             else
-                log.warn("invalid minAccuracy (" + minAccuracy + ") setting to default 90.");
+                log.warn("invalid minAccuracy ({}) setting to default 90.", minAccuracy);
        } catch (Exception e) {
             log.error("compare parseInt Exception setting to default 90.");
             min = 90; 
@@ -678,10 +667,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
-    private static String lessthan(Node node, ParseState ps) throws IOException
-    {        
+    private static String lessthan(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String comparator = getAttributeOrTagValue(node, ps, "comparator");
         
@@ -715,12 +702,9 @@ public class AIMLProcessor
             result = "true";
         else
             result = "false";
-                        
-        log.info("lessthan comparator name: " + comparator
-                + " parameter name: " + parameter                 
-                + "  parameter value: " + par
-                + "  comparator value: " + com                
-                + " result: " + result);
+
+        log.info("lessthan comparator name: {} parameter name: {}  parameter value: {}  comparator value: {} result: {}",
+                comparator, parameter, par, com, result);
         
         return result;
     }
@@ -729,10 +713,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
-    private static String greaterthan(Node node, ParseState ps) throws IOException
-    {        
+    private static String greaterthan(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String comparator = getAttributeOrTagValue(node, ps, "comparator");
         
@@ -781,10 +763,9 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return PESEL or "unknown"
-     * @throws IOException 
      */
     
-    private static String pesel(Node node, ParseState ps) throws IOException {
+    private static String pesel(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
                                                                      
         String pesel; 
@@ -796,18 +777,15 @@ public class AIMLProcessor
         if(pesel.equals(MagicStrings.unknown_property_value))
             pesel = parameter; 
         
-        String result = Validator.pesel(pesel); 
-        
-        log.info("pesel "
-                + " parameter name: " + parameter                 
-                + " parameter: " + pesel
-                + " result: " + result);                 
+        String result = Validator.pesel(pesel);
+
+        log.info("pesel  parameter name: {} parameter: {} result: {}", parameter, pesel, result);
                                         
         return checkEmpty(result);
     }
     
     
-    private static String currency(Node node, ParseState ps) throws IOException {
+    private static String currency(Node node, ParseState ps) {
         
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                                                     
         
@@ -821,15 +799,13 @@ public class AIMLProcessor
             input = parameter; 
         
         String result = Validator.currency(input);
-        
-        log.info("currency "
-                + " parameter name: " + parameter                 
-                + " parameter: " + input
-                + " result: " + result);             
+
+        log.info("currency  parameter name: {} parameter: {} result: {}",
+                parameter, input, result);
                                         
         return checkEmpty(result);
     }
-    private static String txt2num(Node node, ParseState ps) throws IOException {
+    private static String txt2num(Node node, ParseState ps) {
         String language = getAttributeOrTagValue(node, ps, "language");
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         
@@ -858,7 +834,7 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
 
-    private static String txt2dec(Node node, ParseState ps) throws IOException {
+    private static String txt2dec(Node node, ParseState ps) {
         String language = getAttributeOrTagValue(node, ps, "language");
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
@@ -893,7 +869,7 @@ public class AIMLProcessor
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         
         
-        if(country == null || country.length() ==0)
+        if(country == null || country.isEmpty())
             country = "PL";
         
         country = country.toUpperCase(); 
@@ -928,7 +904,7 @@ public class AIMLProcessor
         if(format == null)
             format="dd/MM/yyyy";
 
-        if(locale == null || locale.length() ==0)
+        if(locale == null || locale.isEmpty())
             locale = "pl";
 
         String input;
@@ -1006,12 +982,11 @@ public class AIMLProcessor
     
     
     
-    private static String num2txt(Node node, ParseState ps) throws IOException
-    {
+    private static String num2txt(Node node, ParseState ps) {
         String language = getAttributeOrTagValue(node, ps, "language");
         String parameter = getAttributeOrTagValue(node, ps, "parameter");           
          
-        if(language == null || language.length() ==0)
+        if(language == null || language.isEmpty())
             language = "PL";
         
         language = language.toUpperCase(); 
@@ -1029,16 +1004,13 @@ public class AIMLProcessor
         try {
             num = Long.parseLong(input);
         } catch (Exception ex) {
-            log.error("num2txt Error : " + ex, ex); 
+            log.error("num2txt Error", ex);
             return MagicStrings.unknown_property_value; 
         }
         
-        String result = Validator.NumbersToWords(language, num); 
-        
-        log.info("num2txt "
-                + " parameter: " + parameter                 
-                + " input: " + input
-                + " result: " + result);                
+        String result = Validator.NumbersToWords(language, num);
+
+        log.info("num2txt  parameter: {} input: {} result: {}", parameter, input, result);
                                         
         return checkEmpty(result);
     }
@@ -1048,10 +1020,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return M = Men, K = Woman, "unknown" = invalid input
-     * @throws IOException 
      */    
-    private static String sexpesel(Node node, ParseState ps) throws IOException
-    {        
+    private static String sexpesel(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String pesel; 
@@ -1077,10 +1047,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
-    private static String birthpesel(Node node, ParseState ps) throws IOException
-    {        
+    private static String birtPesel(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String format = getAttributeOrTagValue(node, ps, "format");
         
@@ -1097,23 +1065,17 @@ public class AIMLProcessor
         
         PeselValidator validator = new PeselValidator(pesel);
         
-        if(!validator.isValid())
-        {
+        if(!validator.isValid()) {
             return MagicStrings.unknown_property_value;
         }
         
-        String result = Validator.getBirthdateFromPesel(pesel, format);                
-                        
-        log.info("birthpesel "
-                + " parameter: " + parameter                 
-                + " pesel: " + pesel
-                + " format: " + format
-                + " result: " + result);
+        String result = Validator.getBirthdateFromPesel(pesel, format);
+
+        log.info("birtPesel  parameter: {} pesel: {} format: {} result: {}", parameter, pesel, format, result);
         
         return checkEmpty(result);
     }
-    private static String nip(Node node, ParseState ps) throws IOException
-    {        
+    private static String nip(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String nip; 
@@ -1136,8 +1098,7 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
     
-    private static String nums(Node node, ParseState ps) throws IOException
-    {        
+    private static String nums(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String nums; 
@@ -1160,8 +1121,7 @@ public class AIMLProcessor
     }
     
     
-    private static String implode(Node node, ParseState ps) throws IOException
-    {        
+    private static String implode(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String temp; 
@@ -1196,8 +1156,7 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
     
-    private static String increment(Node node, ParseState ps) throws IOException
-    {        
+    private static String increment(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
         
         String num;
@@ -1228,8 +1187,7 @@ public class AIMLProcessor
 
         return result;
     }
-    private static String decrement(Node node, ParseState ps) throws IOException
-    {        
+    private static String decrement(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
         String num;
         if(parameter == null)        
@@ -1266,11 +1224,9 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
     
-    private static String phone(Node node, ParseState ps) throws IOException
-    {        
+    private static String phone(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String phone; 
@@ -1291,8 +1247,8 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
-    private static String txt2time(Node node, ParseState ps) throws Exception
-    {        
+
+    private static String txt2time(Node node, ParseState ps) throws Exception {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String time; 
@@ -1315,8 +1271,7 @@ public class AIMLProcessor
     }
     
     
-    private static String bankaccount(Node node, ParseState ps) throws IOException
-    {        
+    private static String bankAccount(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String account; 
@@ -1328,17 +1283,70 @@ public class AIMLProcessor
         if(account.equals(MagicStrings.unknown_property_value))
             account = parameter; 
         
-        String result = Validator.bankAccount(account); 
-        
-        log.info("bankaccount "
-                + " parameter: " + parameter                 
-                + " account: " + account
-                + " result: " + result);
+        String result = Validator.bankAccount(account);
+
+        log.info("bankAccount  parameter: {} account: {} result: {}",
+                parameter, account, result);
         
         return checkEmpty(result);
     }
-    private static String txt2date(Node node, ParseState ps)
-    {        
+
+    private static String reportSave(Node node, ParseState ps) throws Exception {
+        String reportName = getAttributeOrTagValue(node, ps, "report_name");
+
+        //fraza
+        String licznikFraz = getAttributeOrTagValue(node, ps, "licznik_fraz");
+        String frazaCala = getAttributeOrTagValue(node, ps, "fraza_cala");
+        String fraza = getAttributeOrTagValue(node, ps, "fraza");
+        String rozpoznanie = getAttributeOrTagValue(node, ps, "rozpoznanie");
+        String label = getAttributeOrTagValue(node, ps, "label");
+        String wiarygodnosc = getAttributeOrTagValue(node, ps, "wiarygodnosc");
+        String fakt = getAttributeOrTagValue(node, ps, "fakt");
+
+        //ocena
+        String licznikOcen = getAttributeOrTagValue(node, ps, "licznik_ocen");
+        String sposobOceny = getAttributeOrTagValue(node, ps, "sposob_oceny");
+        String ocena = getAttributeOrTagValue(node, ps, "ocena");
+
+        //info
+        String botName = getAttributeOrTagValue(node, ps, "bot_name");
+        String info = getAttributeOrTagValue(node, ps, "info");
+        String klucz = getAttributeOrTagValue(node, ps, "klucz");
+        String wartosc = getAttributeOrTagValue(node, ps, "wartosc");
+
+        Report report = new Report(
+                getPredicate(frazaCala, node, ps),
+                getPredicate(fraza,node, ps),
+                getPredicate(rozpoznanie,node, ps),
+                getPredicate(label,node, ps),
+                getPredicate(wiarygodnosc,node, ps),
+                getPredicate(fakt,node, ps),
+                getPredicate(licznikFraz,node, ps),
+                getPredicate(licznikOcen,node, ps),
+                getPredicate(sposobOceny,node, ps),
+                getPredicate(ocena,node, ps),
+                getPredicate(botName,node, ps),
+                getPredicate(info,node, ps),
+                getPredicate(klucz,node, ps),
+                getPredicate(wartosc,node, ps));
+
+        return GenReportHelper
+                .reportFraza(reportName, report)
+                .toString();
+    }
+
+    private static String getPredicate(String value, Node node, ParseState ps) {
+        if(value == null)
+            return null;
+        else {
+            String resp = ps.chatSession.predicates.get(value);
+            if(resp.equals(MagicStrings.unknown_property_value))
+                return null;
+            return resp;
+        }
+    }
+
+    private static String txt2date(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         String format = getAttributeOrTagValue(node, ps, "format");
         String locale = getAttributeOrTagValue(node, ps, "locale");
@@ -2454,7 +2462,9 @@ public class AIMLProcessor
             else if (nodeName.equals("phone")) //sprint NEW
                 return phone(node, ps);
             else if (nodeName.equals("bankaccount")) //sprint NEW
-                return bankaccount(node, ps);
+                return bankAccount(node, ps);
+            else if (nodeName.equals("report-save")) //sprint NEW
+                return reportSave(node, ps);
             else if (nodeName.equals("sexpesel")) //sprint NEW
                 return sexpesel(node, ps);
             else if (nodeName.equals("datetext")) //sprint NEW
@@ -2462,7 +2472,7 @@ public class AIMLProcessor
             else if (nodeName.equals("txt2date")) //sprint NEW
                 return txt2date(node, ps);
             else if (nodeName.equals("birthpesel")) //sprint NEW
-                return birthpesel(node, ps);
+                return birtPesel(node, ps);
             else if (nodeName.equals("math")) //sprint NEW
                 return math(node, ps);
             else if (nodeName.equals("compare-condition"))

@@ -158,13 +158,5 @@ public class GenAIHelper {
         return response;
     }
 
-//    public static void main(String[] args) throws JSONException {
-//        JSONObject json = createGeminiResponse("Jesteś Botem dla Sławomira", "Co Sławek lubi",0.3, 200,0.8,40);
-//        System.out.println(json);
-//        String test = addGeminiMessageToJSON(json.toString(),"Jesteś Botem dla Sławomira test", "user", "Sprawdzam", 15);
-//
-//        System.out.println(test);
-//    }
-
 
 }
