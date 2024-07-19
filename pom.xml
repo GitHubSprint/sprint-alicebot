@@ -49,7 +49,7 @@
 		<dependency>
 			<groupId>pl.sprint</groupId>
 			<artifactId>validator</artifactId>
-			<version>1.5.5_FIX</version>
+			<version>1.5.6_FIX</version>
 		</dependency>
 
 		<!-- ML -->
