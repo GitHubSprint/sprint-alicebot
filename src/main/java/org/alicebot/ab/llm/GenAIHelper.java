@@ -1,4 +1,4 @@
-package org.alicebot.ab.gpt;
+package org.alicebot.ab.llm;
 
 import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
@@ -52,6 +52,34 @@ public class GenAIHelper {
         jsonRequest.put("frequency_penalty", frequencyPenalty);
         jsonRequest.put("presence_penalty", presencePenalty);
         logger.info("createGPTResponse request: {}", jsonRequest);
+        return jsonRequest;
+    }
+
+    @NotNull
+    public static JSONObject createOllamaResponse(String model,
+                                               String system,
+                                               String user, boolean stream) throws JSONException
+    {
+        JSONObject jsonRequest = new JSONObject();
+        jsonRequest.put("model", model);
+        jsonRequest.put("stream", stream);
+        JSONArray messages = new JSONArray();
+
+        if(system != null && !system.isEmpty()) {
+            JSONObject systemMessage = new JSONObject();
+            systemMessage.put("role", "system");
+            systemMessage.put("content", system);
+            messages.put(systemMessage);
+        }
+
+        JSONObject userMessage = new JSONObject();
+        userMessage.put("role", "user");
+        userMessage.put("content", user);
+        messages.put(userMessage);
+
+        jsonRequest.put("messages", messages);
+
+        logger.info("createOllamaResponse request: {}", jsonRequest);
         return jsonRequest;
     }
 
@@ -119,6 +147,29 @@ public class GenAIHelper {
 
         String response = jsonObject.toString();
         logger.info("addMessageToJSON response: {}", response);
+        return response;
+    }
+
+    public static String addOllamaMessageToJSON(String jsonString, String role, String content, int maxResponse) throws JSONException {
+        JSONObject jsonObject = new JSONObject(jsonString);
+
+        // Pobranie tablicy "messages" z aktualnego JSON lub utworzenie nowej, jeśli nie istnieje
+        JSONArray messages = jsonObject.optJSONArray("messages");
+        if (messages == null) {
+            messages = new JSONArray();
+        }
+
+        if(messages.length() > maxResponse)
+            messages.remove(0);
+
+        // Dodanie nowej wiadomości
+        addMessage(messages, "role", role, content);
+
+        // Zaktualizowanie JSON o zaktualizowaną tablicę "messages"
+        jsonObject.put("messages", messages);
+
+        String response = jsonObject.toString();
+        logger.info("addOllamaMessageToJSON response: {}", response);
         return response;
     }
 

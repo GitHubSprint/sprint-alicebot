@@ -31,7 +31,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.alicebot.ab.gpt.GenAIHelper;
+import org.alicebot.ab.llm.GenAIHelper;
 import org.alicebot.ab.report.GenReportHelper;
 import org.alicebot.ab.report.Report;
 import org.alicebot.ab.utils.CalendarUtils;
@@ -1559,6 +1559,79 @@ public class AIMLProcessor
 
     }
 
+    private static String ollama(Node node, ParseState ps) throws Exception {
+        String model = getAttributeOrTagValue(node, ps, "model");
+        String system = getAttributeOrTagValue(node, ps, "system");
+        String user = getAttributeOrTagValue(node, ps, "user");
+        String stream = getAttributeOrTagValue(node, ps, "stream");
+        String max_history = getAttributeOrTagValue(node, ps, "max_history");
+
+        if(user == null)
+            user = evalTagContent(node, ps, null);
+        else
+            user = ps.chatSession.predicates.get(user);
+
+
+        if(system == null)
+            system = evalTagContent(node, ps, null);
+        else
+            system = ps.chatSession.predicates.get(system);
+
+
+        String json = ps.chatSession.json;
+
+        String sessionId = ps.chatSession.sessionId;
+        log.info("{} gpt  user: {} system: {} stream: {} json: {}", sessionId, user, system, stream, json);
+
+
+        if(model == null) {
+            model = readConfig(sessionId, "ollama.model");
+            if(model == null) model = "llama3.1";
+        }
+
+        int iMaxResponse;
+        if(max_history == null) {
+            if(ps.chatSession.maxHistory == 0) {
+                max_history = readConfig(sessionId, "openai.max.history");
+                if (max_history == null) max_history = "15";
+                iMaxResponse = Integer.parseInt(max_history);
+                ps.chatSession.maxHistory = iMaxResponse;
+            } else {
+                iMaxResponse = ps.chatSession.maxHistory;
+            }
+        } else {
+            iMaxResponse = Integer.parseInt(max_history);
+            ps.chatSession.maxHistory = iMaxResponse;
+        }
+
+
+        boolean bStream = false;
+        if(stream != null) bStream = Boolean.parseBoolean(stream);
+
+
+        log.info("{} Ollama  model: {} user: {} max_history: {} stream: {}",
+                ps.chatSession.sessionId, model, user, iMaxResponse, bStream);
+
+        log.info("{} Ollama system: {}", ps.chatSession.sessionId, system);
+
+        String response;
+        if(json == null) {
+            JSONObject responseJson = GenAIHelper
+                    .createOllamaResponse(model, system, user, bStream);
+
+            response = responseJson.toString();
+        } else {
+            if(system != null && !system.isEmpty())
+                json = GenAIHelper
+                        .addOllamaMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+
+            json = GenAIHelper.addOllamaMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            response = json;
+        }
+        return "OLLAMA=" +  response;
+
+    }
+
     private static String gemini(Node node, ParseState ps) throws Exception {
         String context = getAttributeOrTagValue(node, ps, "context");
         String bot = getAttributeOrTagValue(node, ps, "bot");
@@ -2440,6 +2513,8 @@ public class AIMLProcessor
                 return plugin(node, ps);
             else if (nodeName.equals("gpt")) //sprint
                 return gpt(node, ps);
+            else if (nodeName.equals("ollama")) //sprint
+                return ollama(node, ps);
             else if (nodeName.equals("gemini")) //sprint
                 return gemini(node, ps);
             else if (nodeName.equals("predictf")) //sprint

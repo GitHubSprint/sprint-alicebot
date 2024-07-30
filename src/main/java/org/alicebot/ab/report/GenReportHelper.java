@@ -1,6 +1,5 @@
 package org.alicebot.ab.report;
 
-import org.alicebot.ab.gpt.GenAIHelper;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
