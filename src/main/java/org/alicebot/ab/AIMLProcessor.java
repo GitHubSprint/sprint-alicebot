@@ -507,7 +507,7 @@ public class AIMLProcessor
 
         log.info("{} ML parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
 
-        if(input.equals(MagicStrings.unknown_property_value)) {
+        if(input == null || input.isEmpty() || input.equals(MagicStrings.unknown_property_value)) {
             input = ps.chatSession.currentQuestion;
         }
 
@@ -536,7 +536,7 @@ public class AIMLProcessor
 
         log.info("{} MLA parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
 
-        if(input.equals(MagicStrings.unknown_property_value)) {
+        if(input == null || input.isEmpty() || input.equals(MagicStrings.unknown_property_value)) {
             input = ps.chatSession.currentQuestion;
         }
 
