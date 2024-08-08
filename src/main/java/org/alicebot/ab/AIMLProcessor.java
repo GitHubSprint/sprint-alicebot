@@ -505,12 +505,9 @@ public class AIMLProcessor
         else
             input = ps.chatSession.predicates.get(parameter);
 
-        if(input != null)
-        {
-            input =  input.toLowerCase();
-            if(!input.equals(ps.chatSession.currentQuestion))
-                input = ps.chatSession.currentQuestion;
-        }else {
+        log.info("{} ML parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
+
+        if(input.equals(MagicStrings.unknown_property_value)) {
             input = ps.chatSession.currentQuestion;
         }
 
@@ -537,12 +534,9 @@ public class AIMLProcessor
         else
             input = ps.chatSession.predicates.get(parameter);
 
-        if(input != null)
-        {
-            input =  input.toLowerCase();
-            if(!input.equals(ps.chatSession.currentQuestion))
-                input = ps.chatSession.currentQuestion;
-        }else {
+        log.info("{} MLA parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
+
+        if(input.equals(MagicStrings.unknown_property_value)) {
             input = ps.chatSession.currentQuestion;
         }
 
