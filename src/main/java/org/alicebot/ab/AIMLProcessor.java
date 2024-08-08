@@ -511,7 +511,7 @@ public class AIMLProcessor
 
         log.info("{} parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
 
-        if(input.equals(MagicStrings.unknown_property_value)) {
+        if(input == null || input.isEmpty() || input.equals(MagicStrings.unknown_property_value)) {
             input = ps.chatSession.currentQuestion;
         }
 
@@ -538,7 +538,7 @@ public class AIMLProcessor
         else
             input = ps.chatSession.predicates.get(parameter);
 
-        if(input.equals(MagicStrings.unknown_property_value)) {
+        if(input == null || input.isEmpty() || input.equals(MagicStrings.unknown_property_value)) {
             input = ps.chatSession.currentQuestion;
         }
 
