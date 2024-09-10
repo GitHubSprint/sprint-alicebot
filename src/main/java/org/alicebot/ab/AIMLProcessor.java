@@ -519,33 +519,6 @@ public class AIMLProcessor
 
         return out.replace("__label__", "");
     }
-
-    private static String mla(Node node, ParseState ps) {
-
-        String model = getAttributeOrTagValue(node, ps, "model");
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");
-        String score = getAttributeOrTagValue(node, ps, "score");
-        String threshold = getAttributeOrTagValue(node, ps, "threshold");
-
-        log.info(ps.chatSession.sessionId + "MLA currentQuestion: " + ps.chatSession.currentQuestion);
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
-
-        log.info("{} MLA parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
-
-        if(input == null || input.isEmpty() || input.equals(MagicStrings.unknown_property_value)) {
-            input = ps.chatSession.currentQuestion;
-        }
-
-        log.info("{} MLA parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
-        log.info("{} MLA model: {} threshold:  {} score:{}", ps.chatSession.sessionId, model, threshold, score);
-
-        String out = checkEmpty(SprintUtils.mla(model, threshold, score, input, ps.chatSession.sessionId));
-        return out.replace("__label__", "");
-    }
     
     
     /**
@@ -2515,8 +2488,6 @@ public class AIMLProcessor
                 return ml(node, ps);
             else if (nodeName.equals("ml")) //sprint
                 return ml(node, ps);
-            else if (nodeName.equals("mla")) //sprint
-                return mla(node, ps);
             else if (nodeName.equals("regex")) //sprint
                 return regex(node, ps);
             else if (nodeName.equals("pesel")) //sprint NEW

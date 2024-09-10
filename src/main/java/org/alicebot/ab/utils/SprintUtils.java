@@ -7,7 +7,6 @@ package org.alicebot.ab.utils;
 
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
-import fasttext.FastTextPrediction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +32,7 @@ public class SprintUtils {
     private static Map<String, Class<?>> classCache = new HashMap<>();
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
    
-    public static Map<String, fasttext.FastText> mlaModels; 
+
     public static Map<String, FastText> mlModels;
     /**
      * Replace polish marks in string.
@@ -82,52 +81,7 @@ public class SprintUtils {
         return true;
     }
             
-    public static String mla(String model, String threshold, String score, String parameter, String sessionId) {
 
-        String out;
-        int iMinScore = 0;
-        if(score != null && !score.isEmpty())
-            iMinScore = Integer.parseInt(score);
-
-        float fThreshold = 0f;
-
-        if(threshold != null && !threshold.isEmpty())
-            fThreshold = Float.parseFloat(threshold);
-
-        log.info("mla Request: sessionId: {} Model: {} MinScore: {} Threshold: {} parameter: {}", sessionId, model, iMinScore, fThreshold, parameter);
-
-        try {
-
-            fasttext.FastText ftModel = mlaModels.get(model);
-
-            if(ftModel == null) {
-                log.warn("{}\tMLA Invalid model name", sessionId);
-                return "ERR Invalid model name";
-            }
-
-            List<FastTextPrediction> result = ftModel.predictAll(Arrays.asList(parameter.split(" ")),fThreshold);
-
-            int iScore = (int) (result.get(0).probability() * 100);
-
-            if (!result.get(0).label().equals("__label__oos")) {
-                log.info("{}\tOK:\t{}\tresult : {} score: {}", sessionId, parameter, result.get(0).label(), iScore);
-            } else {
-                log.warn("{}\tNO QUALIFICATION:\t{}", sessionId, parameter);
-            }
-
-            if(iScore >= iMinScore)
-                out= result.get(0).label() + " " + iScore;
-            else
-                out = "__label__oos" + " " + iScore;
-
-
-        } catch (Exception e) {
-            out = "ERR " + e.getMessage();
-            log.error("{}\tpredictSupervisedModel ERROR", sessionId, e);
-        }
-
-        return out;
-    }
 
     /**
      * Predict fastText label tranined suprvised model
