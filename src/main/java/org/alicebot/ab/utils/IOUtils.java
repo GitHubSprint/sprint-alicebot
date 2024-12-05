@@ -44,7 +44,7 @@ public class IOUtils {
             log.info("Result = {}", result.toString());
             return result.toString();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("system Error", ex);
             return failedString;
         }
 	}

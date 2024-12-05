@@ -21,9 +21,8 @@ package org.alicebot.ab;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
-import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -31,15 +30,13 @@ import java.util.*;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.alicebot.ab.gpt.ChatGPT;
+import org.alicebot.ab.llm.GenAIHelper;
+import org.alicebot.ab.report.GenReportHelper;
+import org.alicebot.ab.report.Report;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
-import org.jetbrains.annotations.NotNull;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,13 +71,26 @@ public class AIMLProcessor
             //log.info("CHILD: "+children.item(j).getNodeName());
             Node m = children.item(j);
             String mName = m.getNodeName();
-            
-            if (mName.equals("#text")) {/*skip*/}
-            else if (mName.equals("pattern")) pattern = DomUtils.nodeToString(m);
-            else if (mName.equals("that")) that = DomUtils.nodeToString(m);
-            else if (mName.equals("topic")) topic = DomUtils.nodeToString(m);
-            else if (mName.equals("template")) template = DomUtils.nodeToString(m);
-            else log.info("categoryProcessor: unexpected "+mName);
+
+            switch (mName) {
+                case "#text": /*skip*/
+                    break;
+                case "pattern":
+                    pattern = DomUtils.nodeToString(m);
+                    break;
+                case "that":
+                    that = DomUtils.nodeToString(m);
+                    break;
+                case "topic":
+                    topic = DomUtils.nodeToString(m);
+                    break;
+                case "template":
+                    template = DomUtils.nodeToString(m);
+                    break;
+                default:
+                    log.info("categoryProcessor: unexpected {}", mName);
+                    break;
+            }
         }
 
         pattern = trimTag(pattern, "pattern");
@@ -109,7 +119,7 @@ public class AIMLProcessor
      */
     public static ArrayList<Category> AIMLToCategories (String directory, String aimlFile) {
         try {
-            ArrayList categories = new ArrayList<Category>();
+            ArrayList<Category> categories = new ArrayList<>();
             Node root = DomUtils.parseFile(directory+"/"+aimlFile);      // <aiml> tag
             String language = MagicStrings.default_language;
             if (root.hasAttributes()) {
@@ -142,8 +152,7 @@ public class AIMLProcessor
             return categories;
         }
         catch (Exception ex) {
-            log.info("AIMLToCategories: "+ex);
-            ex.printStackTrace();
+            log.error("AIMLToCategories ERROR",ex);
             return null;
         }
     }
@@ -168,11 +177,7 @@ public class AIMLProcessor
      * @return              bot's response.
      */
     public static String respond(String input, String that, String topic, Chat chatSession) {
-        if (false /*checkForRepeat(input, chatSession) > 0*/)
-            return "Repeat!";
-        else {
-            return respond(input, that, topic, chatSession, 0);
-        }
+        return respond(input, that, topic, chatSession, 0);
     }
 
     /**
@@ -187,7 +192,7 @@ public class AIMLProcessor
      */
  public static String respond(String input, String that, String topic, Chat chatSession, int srCnt) {
         String response;
-        if (input == null || input.length()==0) input = MagicStrings.null_input;
+        if (input == null || input.isEmpty()) input = MagicStrings.null_input;
         sraiCount = srCnt;
         response = MagicStrings.default_bot_response();
         
@@ -200,7 +205,7 @@ public class AIMLProcessor
             response = evalTemplate(leaf.category.getTemplate(), ps);
             //log.info("That="+that);
         } catch (Exception ex) {
-            ex.printStackTrace();
+             log.error("respond Error", ex);
         }
         return response;
     }
@@ -263,8 +268,7 @@ public class AIMLProcessor
               
         }
         } catch (Exception ex) {
-            log.info("Something went wrong with evalTagContent");
-            ex.printStackTrace();
+            log.error("Something went wrong with evalTagContent", ex);
         }
         return result.toString();
     }
@@ -342,7 +346,7 @@ public class AIMLProcessor
             response = evalTemplate(leaf.category.getTemplate(), new ParseState(ps.depth+1, ps.chatSession, ps.input, ps.that, topic, leaf));
             //log.info("That="+that);
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("srai Error", ex);
         }
         return response.trim();
 
@@ -455,35 +459,26 @@ public class AIMLProcessor
      * @param ps    AIML parse state
      * @return      the result of the <getall> operation
      */
-    
-    private static String getall(Node node, ParseState ps)
-    {
-        StringBuilder result = new StringBuilder(MagicStrings.unknown_map_value);
-        
-        String predicateName = getAttributeOrTagValue(node, ps, "name");         
-        Map<String, String> map = new TreeMap<>(ps.chatSession.predicates);
-        Set set2 = map.entrySet();
-        Iterator iterator2 = set2.iterator();
-        
-        result = new StringBuilder();
-        while(iterator2.hasNext()) 
-        {
-            Map.Entry me = (Map.Entry)iterator2.next();
-            String key = (String)me.getKey();
-            if(predicateName != null && predicateName.length() > 0)
-            {
-                if(key.contains(predicateName))                
-                    result.append(me.getKey()).append(" = ").append(me.getValue()).append("<br />");
+
+    private static String getall(Node node, ParseState ps) {
+        String predicateName = getAttributeOrTagValue(node, ps, "name");
+        Map<String, String> predicates = ps.chatSession.predicates;
+
+        StringBuilder result = new StringBuilder();
+        for (Map.Entry<String, String> entry : predicates.entrySet()) {
+            String key = entry.getKey();
+            if (predicateName == null || predicateName.isEmpty() || key.contains(predicateName)) {
+                result.append(key)
+                        .append(" = ")
+                        .append(entry.getValue())
+                        .append("<br />");
             }
-            else            
-                result.append(me.getKey()).append(" = ").append(me.getValue()).append("<br />");
         }
         return result.toString();
     }
     
-    private static String checkEmpty(String in)
-    {
-        if(in == null || in.length() ==0)
+    private static String checkEmpty(String in) {
+        if(in == null || in.isEmpty())
             return MagicStrings.unknown_property_value;
         return in;
     }
@@ -502,14 +497,14 @@ public class AIMLProcessor
         String threshold = getAttributeOrTagValue(node, ps, "threshold");
         String score = getAttributeOrTagValue(node, ps, "score");
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
-        log.info(ps.chatSession.sessionId + "ML currentQuestion: " + ps.chatSession.currentQuestion);
+        log.info("{} ML currentQuestion: {}", ps.chatSession.sessionId, ps.chatSession.currentQuestion);
         String input;
         if(parameter == null)
             input = evalTagContent(node, ps, null);
         else
             input = ps.chatSession.predicates.get(parameter);
 
-        log.info("{} parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
+        log.info("{} ML parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
 
         if(input == null || input.isEmpty() || input.equals(MagicStrings.unknown_property_value)) {
             input = ps.chatSession.currentQuestion;
@@ -523,31 +518,6 @@ public class AIMLProcessor
 
         return out.replace("__label__", "");
     }
-
-    private static String mla(Node node, ParseState ps) {
-
-        String model = getAttributeOrTagValue(node, ps, "model");
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");
-        String score = getAttributeOrTagValue(node, ps, "score");
-        String threshold = getAttributeOrTagValue(node, ps, "threshold");
-
-        log.info(ps.chatSession.sessionId + "MLA currentQuestion: " + ps.chatSession.currentQuestion);
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
-
-        if(input == null || input.isEmpty() || input.equals(MagicStrings.unknown_property_value)) {
-            input = ps.chatSession.currentQuestion;
-        }
-
-        log.info(ps.chatSession.sessionId + " MLA parameter: " + parameter + " input: " + input);
-        log.info(ps.chatSession.sessionId + " MLA model: " + model + " threshold:  " + threshold + " score:" + score);
-
-        String out = checkEmpty(SprintUtils.mla(model, threshold, score, input, ps.chatSession.sessionId));
-        return out.replace("__label__", "");
-    }
     
     
     /**
@@ -555,10 +525,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
-    private static String regex(Node node, ParseState ps) throws IOException
-    {                
+    private static String regex(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String pattern = getAttributeOrTagValue(node, ps, "pattern");
         Integer group = null;
@@ -615,10 +583,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return distance in %
-     * @throws IOException 
      */
-    private static String compare(Node node, ParseState ps) throws IOException
-    {        
+    private static String compare(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String word = getAttributeOrTagValue(node, ps, "word");
         String minAccuracy = getAttributeOrTagValue(node, ps, "minaccuracy");
@@ -638,7 +604,7 @@ public class AIMLProcessor
             if(tmp != null)
                 min = Integer.parseInt(tmp);  
             else
-                log.warn("invalid minAccuracy (" + minAccuracy + ") setting to default 90.");
+                log.warn("invalid minAccuracy ({}) setting to default 90.", minAccuracy);
        } catch (Exception e) {
             log.error("compare parseInt Exception setting to default 90.");
             min = 90; 
@@ -667,10 +633,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
-    private static String lessthan(Node node, ParseState ps) throws IOException
-    {        
+    private static String lessthan(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String comparator = getAttributeOrTagValue(node, ps, "comparator");
         
@@ -704,12 +668,9 @@ public class AIMLProcessor
             result = "true";
         else
             result = "false";
-                        
-        log.info("lessthan comparator name: " + comparator
-                + " parameter name: " + parameter                 
-                + "  parameter value: " + par
-                + "  comparator value: " + com                
-                + " result: " + result);
+
+        log.info("lessthan comparator name: {} parameter name: {}  parameter value: {}  comparator value: {} result: {}",
+                comparator, parameter, par, com, result);
         
         return result;
     }
@@ -718,10 +679,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
-    private static String greaterthan(Node node, ParseState ps) throws IOException
-    {        
+    private static String greaterthan(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String comparator = getAttributeOrTagValue(node, ps, "comparator");
         
@@ -770,10 +729,9 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return PESEL or "unknown"
-     * @throws IOException 
      */
     
-    private static String pesel(Node node, ParseState ps) throws IOException {
+    private static String pesel(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
                                                                      
         String pesel; 
@@ -785,18 +743,15 @@ public class AIMLProcessor
         if(pesel.equals(MagicStrings.unknown_property_value))
             pesel = parameter; 
         
-        String result = Validator.pesel(pesel); 
-        
-        log.info("pesel "
-                + " parameter name: " + parameter                 
-                + " parameter: " + pesel
-                + " result: " + result);                 
+        String result = Validator.pesel(pesel);
+
+        log.info("pesel  parameter name: {} parameter: {} result: {}", parameter, pesel, result);
                                         
         return checkEmpty(result);
     }
     
     
-    private static String currency(Node node, ParseState ps) throws IOException {
+    private static String currency(Node node, ParseState ps) {
         
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                                                     
         
@@ -810,15 +765,13 @@ public class AIMLProcessor
             input = parameter; 
         
         String result = Validator.currency(input);
-        
-        log.info("currency "
-                + " parameter name: " + parameter                 
-                + " parameter: " + input
-                + " result: " + result);             
+
+        log.info("currency  parameter name: {} parameter: {} result: {}",
+                parameter, input, result);
                                         
         return checkEmpty(result);
     }
-    private static String txt2num(Node node, ParseState ps) throws IOException {
+    private static String txt2num(Node node, ParseState ps) {
         String language = getAttributeOrTagValue(node, ps, "language");
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         
@@ -847,7 +800,7 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
 
-    private static String txt2dec(Node node, ParseState ps) throws IOException {
+    private static String txt2dec(Node node, ParseState ps) {
         String language = getAttributeOrTagValue(node, ps, "language");
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
@@ -876,13 +829,12 @@ public class AIMLProcessor
     }
     
     
-    private static String zip(Node node, ParseState ps) throws IOException
-    {
+    private static String zip(Node node, ParseState ps) {
         String country = getAttributeOrTagValue(node, ps, "country");
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         
         
-        if(country == null || country.length() ==0)
+        if(country == null || country.isEmpty())
             country = "PL";
         
         country = country.toUpperCase(); 
@@ -896,13 +848,31 @@ public class AIMLProcessor
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;  
                                         
-        String result = Validator.zip(country, input); 
-        
-        log.info("zip "
-                + " parameter: " + parameter                 
-                + " input: " + input
-                + " result: " + result);                
+        String result = Validator.zip(country, input);
+
+        log.info("zip  parameter: {} input: {} result: {}", parameter, input, result);
                                         
+        return checkEmpty(result);
+    }
+
+    private static String getrecord(Node node, ParseState ps) {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+
+        String result = "service.fetchData(input);";
+
+        log.info("getrecord  parameter: {} input: {} result: {}", parameter, input, result);
+
         return checkEmpty(result);
     }
 
@@ -917,7 +887,7 @@ public class AIMLProcessor
         if(format == null)
             format="dd/MM/yyyy";
 
-        if(locale == null || locale.length() ==0)
+        if(locale == null || locale.isEmpty())
             locale = "pl";
 
         String input;
@@ -939,7 +909,7 @@ public class AIMLProcessor
             _days = days;
 
 
-        Locale loc = new Locale(locale);
+        Locale loc = Locale.forLanguageTag(locale);
         SimpleDateFormat dateFormat = new SimpleDateFormat(format, loc);
         int iDays = Integer.parseInt(_days);
 
@@ -975,17 +945,14 @@ public class AIMLProcessor
                                                        
         if(input.equals(MagicStrings.unknown_property_value))
             input = values;  
-        
-        
-        
+
         String[] vars = variables.split(delimiter);
         String[] vals = input.split(delimiter);
         
         if(vars.length != vals.length)
             return "ERR";
         
-        for(int i=0;i<vars.length;i++)
-        {
+        for(int i=0;i<vars.length;i++) {
             if (vars[i] != null) ps.chatSession.predicates.put(vars[i], vals[i]);
             if (vars[i] != null) ps.vars.put(vars[i], vals[i]);
         }
@@ -995,12 +962,11 @@ public class AIMLProcessor
     
     
     
-    private static String num2txt(Node node, ParseState ps) throws IOException
-    {
+    private static String num2txt(Node node, ParseState ps) {
         String language = getAttributeOrTagValue(node, ps, "language");
         String parameter = getAttributeOrTagValue(node, ps, "parameter");           
          
-        if(language == null || language.length() ==0)
+        if(language == null || language.isEmpty())
             language = "PL";
         
         language = language.toUpperCase(); 
@@ -1018,16 +984,13 @@ public class AIMLProcessor
         try {
             num = Long.parseLong(input);
         } catch (Exception ex) {
-            log.error("num2txt Error : " + ex, ex); 
+            log.error("num2txt Error", ex);
             return MagicStrings.unknown_property_value; 
         }
         
-        String result = Validator.NumbersToWords(language, num); 
-        
-        log.info("num2txt "
-                + " parameter: " + parameter                 
-                + " input: " + input
-                + " result: " + result);                
+        String result = Validator.NumbersToWords(language, num);
+
+        log.info("num2txt  parameter: {} input: {} result: {}", parameter, input, result);
                                         
         return checkEmpty(result);
     }
@@ -1037,10 +1000,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return M = Men, K = Woman, "unknown" = invalid input
-     * @throws IOException 
      */    
-    private static String sexpesel(Node node, ParseState ps) throws IOException
-    {        
+    private static String sexpesel(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String pesel; 
@@ -1066,10 +1027,8 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
-    private static String birthpesel(Node node, ParseState ps) throws IOException
-    {        
+    private static String birtPesel(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String format = getAttributeOrTagValue(node, ps, "format");
         
@@ -1086,23 +1045,17 @@ public class AIMLProcessor
         
         PeselValidator validator = new PeselValidator(pesel);
         
-        if(!validator.isValid())
-        {
+        if(!validator.isValid()) {
             return MagicStrings.unknown_property_value;
         }
         
-        String result = Validator.getBirthdateFromPesel(pesel, format);                
-                        
-        log.info("birthpesel "
-                + " parameter: " + parameter                 
-                + " pesel: " + pesel
-                + " format: " + format
-                + " result: " + result);
+        String result = Validator.getBirthdateFromPesel(pesel, format);
+
+        log.info("birtPesel  parameter: {} pesel: {} format: {} result: {}", parameter, pesel, format, result);
         
         return checkEmpty(result);
     }
-    private static String nip(Node node, ParseState ps) throws IOException
-    {        
+    private static String nip(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String nip; 
@@ -1124,9 +1077,10 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
+
+
     
-    private static String nums(Node node, ParseState ps) throws IOException
-    {        
+    private static String nums(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String nums; 
@@ -1149,8 +1103,7 @@ public class AIMLProcessor
     }
     
     
-    private static String implode(Node node, ParseState ps) throws IOException
-    {        
+    private static String implode(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String temp; 
@@ -1185,8 +1138,7 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
     
-    private static String increment(Node node, ParseState ps) throws IOException
-    {        
+    private static String increment(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
         
         String num;
@@ -1217,8 +1169,7 @@ public class AIMLProcessor
 
         return result;
     }
-    private static String decrement(Node node, ParseState ps) throws IOException
-    {        
+    private static String decrement(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
         String num;
         if(parameter == null)        
@@ -1255,11 +1206,9 @@ public class AIMLProcessor
      * @param node
      * @param ps
      * @return
-     * @throws IOException 
      */
     
-    private static String phone(Node node, ParseState ps) throws IOException
-    {        
+    private static String phone(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String phone; 
@@ -1280,8 +1229,8 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
-    private static String txt2time(Node node, ParseState ps) throws Exception
-    {        
+
+    private static String txt2time(Node node, ParseState ps) throws Exception {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String time; 
@@ -1304,8 +1253,7 @@ public class AIMLProcessor
     }
     
     
-    private static String bankaccount(Node node, ParseState ps) throws IOException
-    {        
+    private static String bankAccount(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         
         String account; 
@@ -1317,17 +1265,70 @@ public class AIMLProcessor
         if(account.equals(MagicStrings.unknown_property_value))
             account = parameter; 
         
-        String result = Validator.bankAccount(account); 
-        
-        log.info("bankaccount "
-                + " parameter: " + parameter                 
-                + " account: " + account
-                + " result: " + result);
+        String result = Validator.bankAccount(account);
+
+        log.info("bankAccount  parameter: {} account: {} result: {}",
+                parameter, account, result);
         
         return checkEmpty(result);
     }
-    private static String txt2date(Node node, ParseState ps)
-    {        
+
+    private static String reportSave(Node node, ParseState ps) throws Exception {
+        String reportName = getAttributeOrTagValue(node, ps, "report_name");
+
+        //fraza
+        String licznikFraz = getAttributeOrTagValue(node, ps, "licznik_fraz");
+        String frazaCala = getAttributeOrTagValue(node, ps, "fraza_cala");
+        String fraza = getAttributeOrTagValue(node, ps, "fraza");
+        String rozpoznanie = getAttributeOrTagValue(node, ps, "rozpoznanie");
+        String label = getAttributeOrTagValue(node, ps, "label");
+        String wiarygodnosc = getAttributeOrTagValue(node, ps, "wiarygodnosc");
+        String fakt = getAttributeOrTagValue(node, ps, "fakt");
+
+        //ocena
+        String licznikOcen = getAttributeOrTagValue(node, ps, "licznik_ocen");
+        String sposobOceny = getAttributeOrTagValue(node, ps, "sposob_oceny");
+        String ocena = getAttributeOrTagValue(node, ps, "ocena");
+
+        //info
+        String botName = getAttributeOrTagValue(node, ps, "bot_name");
+        String info = getAttributeOrTagValue(node, ps, "info");
+        String klucz = getAttributeOrTagValue(node, ps, "klucz");
+        String wartosc = getAttributeOrTagValue(node, ps, "wartosc");
+
+        Report report = new Report(
+                getPredicate(frazaCala, node, ps),
+                getPredicate(fraza,node, ps),
+                getPredicate(rozpoznanie,node, ps),
+                getPredicate(label,node, ps),
+                getPredicate(wiarygodnosc,node, ps),
+                getPredicate(fakt,node, ps),
+                getPredicate(licznikFraz,node, ps),
+                getPredicate(licznikOcen,node, ps),
+                getPredicate(sposobOceny,node, ps),
+                getPredicate(ocena,node, ps),
+                getPredicate(botName,node, ps),
+                getPredicate(info,node, ps),
+                getPredicate(klucz,node, ps),
+                getPredicate(wartosc,node, ps));
+
+        return GenReportHelper
+                .reportFraza(reportName, report)
+                .toString();
+    }
+
+    private static String getPredicate(String value, Node node, ParseState ps) {
+        if(value == null)
+            return null;
+        else {
+            String resp = ps.chatSession.predicates.get(value);
+            if(resp.equals(MagicStrings.unknown_property_value))
+                return null;
+            return resp;
+        }
+    }
+
+    private static String txt2date(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         String format = getAttributeOrTagValue(node, ps, "format");
         String locale = getAttributeOrTagValue(node, ps, "locale");
@@ -1439,28 +1440,17 @@ public class AIMLProcessor
     }
 
 
-    private static String gpt(Node node, ParseState ps) throws Exception{
+    private static String gpt(Node node, ParseState ps) throws Exception {
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
         String assistant = getAttributeOrTagValue(node, ps, "assistant");
         String temperature = getAttributeOrTagValue(node, ps, "temperature");
         String max_tokens = getAttributeOrTagValue(node, ps, "max_tokens");
+        String max_history = getAttributeOrTagValue(node, ps, "max_history");
         String top_p = getAttributeOrTagValue(node, ps, "top_p");
         String frequency_penalty = getAttributeOrTagValue(node, ps, "frequency_penalty");
         String presence_penalty = getAttributeOrTagValue(node, ps, "presence_penalty");
         String user = getAttributeOrTagValue(node, ps, "user");
-
-        log.info(ps.chatSession.sessionId + " GPT "
-                + " model: " + model
-                + " user: " + user
-                + " assistant: " + assistant
-                + " system: " + system
-                + " temperature: " + temperature
-                + " max_tokens: " + max_tokens
-                + " top_p: " + top_p
-                + " frequency_penalty: " + frequency_penalty
-                + " presence_penalty: " + presence_penalty
-        );
 
         if(user == null)
             user = evalTagContent(node, ps, null);
@@ -1483,30 +1473,32 @@ public class AIMLProcessor
         if(assistant == null || assistant.equals("unknown") || assistant.isEmpty())
             assistant = ps.chatSession.lastResponse;
 
-        String json = ps.chatSession.gptJson;
+        String json = ps.chatSession.json;
 
-        log.info(ps.chatSession.sessionId + "gpt "
-                + " user: " + user
-                + " system: " + system
-                + " assistant: " + assistant
-                + " json: " + json
-        );
-
+        String sessionId = ps.chatSession.sessionId;
+        log.info("{} gpt  user: {} system: {} assistant: {} json: {}", sessionId, user, system, assistant, json);
 
 
         if(model == null) {
-           String configFiles = "config" + File.separator + "config.properties";
-            File f = new File(configFiles);
-            if (f.exists()) {
-                Properties prop = new Properties();
-                File fis = new File(configFiles);
-                prop.load(new InputStreamReader(Files.newInputStream(fis.toPath())));
-                model = prop.getProperty("openai.model");
-                log.info(ps.chatSession.sessionId + " GPT config model: " + model);
-            }
-
+            model = readConfig(sessionId, "openai.model");
             if(model == null) model = "gpt-3.5-turbo";
         }
+
+        int iMaxResponse;
+        if(max_history == null) {
+            if(ps.chatSession.maxHistory == 0) {
+                max_history = readConfig(sessionId, "openai.max.history");
+                if (max_history == null) max_history = "15";
+                iMaxResponse = Integer.parseInt(max_history);
+                ps.chatSession.maxHistory = iMaxResponse;
+            } else {
+                iMaxResponse = ps.chatSession.maxHistory;
+            }
+        } else {
+            iMaxResponse = Integer.parseInt(max_history);
+            ps.chatSession.maxHistory = iMaxResponse;
+        }
+
 
         int iTemperature = 1;
         if(temperature != null) iTemperature = Integer.parseInt(temperature);
@@ -1524,40 +1516,206 @@ public class AIMLProcessor
         if(presence_penalty != null) presencePenalty = Integer.parseInt(presence_penalty);
 
 
-        log.info(ps.chatSession.sessionId + " GPT PROCESSED "
-                + " model: " + model
-                + " user: " + user
-                + " assistant: " + assistant
-                + " system: " + system
-                + " temperature: " + iTemperature
-                + " max_tokens: " + maxTokens
-                + " top_p: " + topP
-                + " frequency_penalty: " + frequencyPenalty
-                + " presence_penalty: " + presencePenalty
-        );
+        log.info("{} GPT  model: {} user: {} temperature: {} max_tokens: {} max_history: {} top_p: {} frequency_penalty: {} presence_penalty: {}",
+                ps.chatSession.sessionId, model, user, temperature, max_tokens, iMaxResponse, top_p, frequency_penalty, presence_penalty);
+
+        log.info("{} GPT  assistant: {} system: {}", ps.chatSession.sessionId, assistant, system);
 
         String response;
         if(json == null) {
-            JSONObject responseJson = ChatGPT
+            JSONObject responseJson = GenAIHelper
                     .createGPTResponse(model, system, user, assistant, iTemperature, maxTokens, topP, frequencyPenalty, presencePenalty);
             response = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty())
-                json = ChatGPT
-                        .addMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""));
+                json = GenAIHelper
+                        .addGptMessageToJSON(json,"assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             if(system != null && !system.isEmpty())
-                json = ChatGPT
-                        .addMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""));
+                json = GenAIHelper
+                        .addGptMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
-            json = ChatGPT.addMessageToJSON(json, "user", user.replaceAll("\\<.*?\\>", ""));
+            json = GenAIHelper.addGptMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             response = json;
         }
-
         return "GPT=" +  response;
 
     }
 
+    private static String ollama(Node node, ParseState ps) throws Exception {
+        String model = getAttributeOrTagValue(node, ps, "model");
+        String system = getAttributeOrTagValue(node, ps, "system");
+        String user = getAttributeOrTagValue(node, ps, "user");
+        String stream = getAttributeOrTagValue(node, ps, "stream");
+        String max_history = getAttributeOrTagValue(node, ps, "max_history");
 
+        if(user == null)
+            user = evalTagContent(node, ps, null);
+        else
+            user = ps.chatSession.predicates.get(user);
+
+
+        if(system == null)
+            system = evalTagContent(node, ps, null);
+        else
+            system = ps.chatSession.predicates.get(system);
+
+
+        String json = ps.chatSession.json;
+
+        String sessionId = ps.chatSession.sessionId;
+        log.info("{} gpt  user: {} system: {} stream: {} json: {}", sessionId, user, system, stream, json);
+
+
+        if(model == null) {
+            model = readConfig(sessionId, "ollama.model");
+            if(model == null) model = "llama3.1";
+        }
+
+        int iMaxResponse;
+        if(max_history == null) {
+            if(ps.chatSession.maxHistory == 0) {
+                max_history = readConfig(sessionId, "openai.max.history");
+                if (max_history == null) max_history = "15";
+                iMaxResponse = Integer.parseInt(max_history);
+                ps.chatSession.maxHistory = iMaxResponse;
+            } else {
+                iMaxResponse = ps.chatSession.maxHistory;
+            }
+        } else {
+            iMaxResponse = Integer.parseInt(max_history);
+            ps.chatSession.maxHistory = iMaxResponse;
+        }
+
+
+        boolean bStream = false;
+        if(stream != null) bStream = Boolean.parseBoolean(stream);
+
+
+        log.info("{} Ollama  model: {} user: {} max_history: {} stream: {}",
+                ps.chatSession.sessionId, model, user, iMaxResponse, bStream);
+
+        log.info("{} Ollama system: {}", ps.chatSession.sessionId, system);
+
+        String response;
+        if(json == null) {
+            JSONObject responseJson = GenAIHelper
+                    .createOllamaResponse(model, system, user, bStream);
+
+            response = responseJson.toString();
+        } else {
+            if(system != null && !system.isEmpty())
+                json = GenAIHelper
+                        .addOllamaMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+
+            json = GenAIHelper.addOllamaMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            response = json;
+        }
+        return "OLLAMA=" +  response;
+
+    }
+
+    private static String gemini(Node node, ParseState ps) throws Exception {
+        String context = getAttributeOrTagValue(node, ps, "context");
+        String bot = getAttributeOrTagValue(node, ps, "bot");
+        String user = getAttributeOrTagValue(node, ps, "user");
+
+        String temperature = getAttributeOrTagValue(node, ps, "temperature");
+        String maxOutputTokens = getAttributeOrTagValue(node, ps, "maxOutputTokens");
+        String topP = getAttributeOrTagValue(node, ps, "topP");
+        String topK = getAttributeOrTagValue(node, ps, "topK");
+
+        String max_history = getAttributeOrTagValue(node, ps, "max_history");
+
+        if(user == null)
+            user = evalTagContent(node, ps, null);
+        else
+            user = ps.chatSession.predicates.get(user);
+
+
+        if(context == null)
+            context = evalTagContent(node, ps, null);
+        else
+            context = ps.chatSession.predicates.get(context);
+
+
+        if(bot == null)
+            bot = evalTagContent(node, ps, null);
+        else
+            bot = ps.chatSession.predicates.get(bot);
+
+
+        if(bot == null || bot.equals("unknown") || bot.isEmpty())
+            bot = ps.chatSession.lastResponse;
+
+        String json = ps.chatSession.json;
+
+        String sessionId = ps.chatSession.sessionId;
+        log.info("{} gemini context: {} user: {} bot: {} json: {}", sessionId, context, user, bot, json);
+
+        double dTemperature = 0.3;
+        if(temperature != null) dTemperature = Double.parseDouble(temperature);
+
+        int maxTokens = 256;
+        if(maxOutputTokens != null) maxTokens = Integer.parseInt(maxOutputTokens);
+
+        double dTopP = 0.8;
+        if(topP != null) dTopP = Double.parseDouble(topP);
+
+        int iTopK = 40;
+        if(topK != null) iTopK = Integer.parseInt(topK);
+
+        int iMaxResponse;
+        if(max_history == null) {
+            if(ps.chatSession.maxHistory == 0) {
+                max_history = readConfig(sessionId, "openai.max.history");
+                if (max_history == null) max_history = "15";
+                iMaxResponse = Integer.parseInt(max_history);
+                ps.chatSession.maxHistory = iMaxResponse;
+            } else {
+                iMaxResponse = ps.chatSession.maxHistory;
+            }
+        } else {
+            iMaxResponse = Integer.parseInt(max_history);
+            ps.chatSession.maxHistory = iMaxResponse;
+        }
+
+        log.info("{} gemini  user: {} temperature: {} maxTokens: {} topP: {} topK: {}",
+                ps.chatSession.sessionId, user, dTemperature, maxTokens, dTopP, iTopK);
+
+        String response;
+        if(json == null) {
+            JSONObject responseJson = GenAIHelper
+                    .createGeminiResponse(context, user, dTemperature, maxTokens, dTopP,iTopK);
+            response = responseJson.toString();
+        } else {
+            if(bot != null && !bot.isEmpty())
+                json = GenAIHelper
+                        .addGeminiMessageToJSON(json, context,"bot", bot.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+
+            json = GenAIHelper.addGeminiMessageToJSON(json,context,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            response = json;
+        }
+        return "GEMINI=" +  response;
+
+    }
+
+    private static String readConfig(String sessionId, String property) throws IOException {
+        String configFiles = "config" + File.separator + "config.properties";
+        File f = new File(configFiles);
+        String model = null;
+        if (f.exists()) {
+            Properties prop = new Properties();
+            File fis = new File(configFiles);
+            prop.load(new InputStreamReader(Files.newInputStream(fis.toPath())));
+            model = prop.getProperty(property);
+            log.info("{} config {}: {}", sessionId, property, model);
+        }
+        return model;
+    }
+
+    public static void resetClassCache() {
+        SprintUtils.resetClassCache();
+    }
 
     /**
      * Implements jar plugin integration 
@@ -1566,7 +1724,7 @@ public class AIMLProcessor
      * @return
      * @throws IOException 
      */
-    private static String plugin(Node node, ParseState ps) throws IOException {
+    private static String plugin(Node node, ParseState ps) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
         
         String file = getAttributeOrTagValue(node, ps, "file");  
         String classLoad = getAttributeOrTagValue(node, ps, "class");
@@ -1680,7 +1838,7 @@ public class AIMLProcessor
     private static int getIndexValue(Node node, ParseState ps) {
         int index=0;
         String value = getAttributeOrTagValue(node, ps, "index");
-        if (value != null) try {index = Integer.parseInt(value)-1;} catch (Exception ex) {ex.printStackTrace();}
+        if (value != null) try {index = Integer.parseInt(value)-1;} catch (Exception ex) {log.error("getIndexValue Error", ex);}
         return index;
     }
 
@@ -1791,12 +1949,11 @@ public class AIMLProcessor
         String value = getAttributeOrTagValue(node, ps, "index");
         if (value != null)
             try {
-                String pair = value;
-                String[] spair = pair.split(",");
+                String[] spair = value.split(",");
                 index = Integer.parseInt(spair[0])-1;
                 jndex = Integer.parseInt(spair[1])-1;
-                log.info("That index="+index+","+jndex);
-            } catch (Exception ex) { ex.printStackTrace(); }
+                log.info("That index={},{}", index, jndex);
+            } catch (Exception ex) { log.error("that Error", ex);; }
         String that = MagicStrings.unknown_history_item;
         History hist = ps.chatSession.thatHistory.get(index);
         if (hist != null) that = (String)hist.get(jndex);
@@ -2338,12 +2495,14 @@ public class AIMLProcessor
                 return plugin(node, ps);
             else if (nodeName.equals("gpt")) //sprint
                 return gpt(node, ps);
+            else if (nodeName.equals("ollama")) //sprint
+                return ollama(node, ps);
+            else if (nodeName.equals("gemini")) //sprint
+                return gemini(node, ps);
             else if (nodeName.equals("predictf")) //sprint
                 return ml(node, ps);
             else if (nodeName.equals("ml")) //sprint
                 return ml(node, ps);
-            else if (nodeName.equals("mla")) //sprint
-                return mla(node, ps);
             else if (nodeName.equals("regex")) //sprint
                 return regex(node, ps);
             else if (nodeName.equals("pesel")) //sprint NEW
@@ -2358,7 +2517,9 @@ public class AIMLProcessor
             else if (nodeName.equals("phone")) //sprint NEW
                 return phone(node, ps);
             else if (nodeName.equals("bankaccount")) //sprint NEW
-                return bankaccount(node, ps);
+                return bankAccount(node, ps);
+            else if (nodeName.equals("report-save")) //sprint NEW
+                return reportSave(node, ps);
             else if (nodeName.equals("sexpesel")) //sprint NEW
                 return sexpesel(node, ps);
             else if (nodeName.equals("datetext")) //sprint NEW
@@ -2366,7 +2527,7 @@ public class AIMLProcessor
             else if (nodeName.equals("txt2date")) //sprint NEW
                 return txt2date(node, ps);
             else if (nodeName.equals("birthpesel")) //sprint NEW
-                return birthpesel(node, ps);
+                return birtPesel(node, ps);
             else if (nodeName.equals("math")) //sprint NEW
                 return math(node, ps);
             else if (nodeName.equals("compare-condition"))
@@ -2399,6 +2560,8 @@ public class AIMLProcessor
                 return zip(node, ps);
            else if (nodeName.equals("dateadd"))
                 return dateadd(node, ps);
+           else if (nodeName.equals("getrecord"))
+                return getrecord(node, ps);
            
            
            
@@ -2450,10 +2613,8 @@ public class AIMLProcessor
                 return learn(node, ps);
             else if (extension != null && extension.extensionTagSet().contains(nodeName)) return extension.recursEval(node, ps) ;
             else return (genericXML(node, ps));
-        } 
-        catch (Exception ex) 
-        {
-            ex.printStackTrace();
+        } catch (Exception ex) {
+            log.error("recurseEval Error", ex);
             return "ERR " + ex.getMessage();
         }
     }

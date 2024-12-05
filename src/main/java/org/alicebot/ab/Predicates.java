@@ -78,7 +78,7 @@ public class Predicates extends HashMap<String, String> implements Serializable 
                 }
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("getPredicateDefaultsFromInputStream Error", ex);
         }
     }
 

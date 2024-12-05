@@ -170,14 +170,15 @@ public class AB {
             Collections.shuffle(samples);
             int sampleSize = Math.min(MagicNumbers.displayed_input_sample_size, c.getMatches().size());
             for (int i = 0; i < sampleSize; i++) {
-                log.info("" + samples.get(i));
+                log.info("{}", samples.get(i));
             }
-            log.info("["+c.getActivationCnt()+"] "+c.inputThatTopic());
+                log.info("[{}] {}", c.getActivationCnt(), c.inputThatTopic());
             productivity(runCompletedCnt, timer);
             String textLine = "" + IOUtils.readInputTextLine();
             terminalInteractionStep(bot, "", textLine, c);
             } catch (Exception ex) {
-                ex.printStackTrace();
+                log.error("TerminalInteraction Error", ex);
+
                 log.info("Returning to Category Browser");
             }
         }

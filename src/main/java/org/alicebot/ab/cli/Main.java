@@ -54,8 +54,8 @@ public class Main {
         
         if(System.getProperty("os.name").equals("Linux"))
                     MagicStrings.root_path = "/home/slaw/d/Sprint/SRC/resources";
-        
-        log.info("Working Directory = " + MagicStrings.root_path);
+
+        log.info("Working Directory = {}", MagicStrings.root_path);
         AIMLProcessor.extension =  new PCAIMLProcessorExtension();
 
         mainFunction(args);

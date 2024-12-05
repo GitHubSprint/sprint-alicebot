@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.UUID;
 
 import org.alicebot.ab.utils.IOUtils;
+import org.alicebot.ab.utils.SprintUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /* Program AB Reference AIML 2.0 implementation
@@ -47,8 +48,9 @@ public class Chat {
     public static String latitude;
 
     public String currentQuestion;
-    public String gptJson;
+    public String json;
     public String lastResponse;
+    public int maxHistory = 0;
     /**
      * Constructor  (defualt customer ID)
      *
@@ -92,7 +94,7 @@ public class Chat {
         try {
             predicates.getPredicateDefaults(MagicStrings.config_path+"/predicates.txt") ;
         } catch (Exception ex)  {
-            ex.printStackTrace();
+            log.error("addPredicates Error", ex);
         }
     }
 
@@ -111,7 +113,7 @@ public class Chat {
                 System.out.print("Human: ");
 				request = IOUtils.readInputTextLine();
                 response = multisentenceRespond(request);
-                log.info(sessionId + " Robot: "+response);
+                log.info(sessionId + " chat Robot: "+response);
                 bw.write("Human: "+request);
                 bw.newLine();
                 bw.write("Robot: "+response);
@@ -120,7 +122,7 @@ public class Chat {
             }
             bw.close();
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("chat Error", ex);
         }
     }
 
@@ -163,13 +165,15 @@ public class Chat {
         else that = hist.getString(0);
         return respond(input, that, predicates.get("topic"), contextThatHistory);
     }
-
     public String multisentenceRespond(String request, String gptJson, String lastResponse) {
-        this.gptJson = gptJson;
+        this.json = gptJson;
         this.lastResponse = lastResponse;
         return multisentenceRespond(request);
     }
 
+    public void resetClassCache() {
+        SprintUtils.resetClassCache();
+    }
 
     /**
      * return a compound response to a multiple-sentence request. "Multiple" means one or more.
@@ -183,24 +187,23 @@ public class Chat {
         try {
             String norm = bot.preProcessor.normalize(request);
 
-            log.info(sessionId + " multisentenceRespond request = " + request + " normalized = "+norm);
+            log.info("{} multisentenceRespond request = {} normalized = {}", sessionId, request, norm);
 
             String[] sentences = bot.preProcessor.sentenceSplit(norm);
             History<String> contextThatHistory = new History<>("contextThat");
-            for(int i = 0; i < sentences.length; i++) {
-                log.info(sessionId + " Human: "+sentences[i]);
-                currentQuestion = sentences[i].toLowerCase();
+            for (String sentence : sentences) {
+                log.info("{} Human: {}", sessionId, sentence);
+                currentQuestion = sentence.toLowerCase();
                 AIMLProcessor.trace_count = 0;
-                String reply = respond(sentences[i], contextThatHistory);
+                String reply = respond(sentence, contextThatHistory);
                 response.append("  ").append(reply);
-                log.info(sessionId + " Robot: "+reply);
+                log.info("{} Robot: {}", sessionId, reply);
             }
             requestHistory.add(request);
             responseHistory.add(response.toString());
             thatHistory.add(contextThatHistory);
-        //if (MagicBooleans.trace_mode)  log.info(matchTrace);
         } catch (Exception ex) {
-            ex.printStackTrace();
+            log.error("multisentenceRespond Error", ex);
             return MagicStrings.error_bot_response();
         }
 
