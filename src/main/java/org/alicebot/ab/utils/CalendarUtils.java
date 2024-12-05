@@ -1,10 +1,7 @@
 package org.alicebot.ab.utils;
 
 import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,10 +39,7 @@ public class CalendarUtils {
             		format, locale, timezone);
         
         if (format == null) format = "dd/MM/yyyy";
-        if (locale == null)         
-            loc=new Locale("pl");
-        else
-            loc = new Locale(locale);
+        loc = Locale.forLanguageTag(Objects.requireNonNullElse(locale, "pl"));
             
         
         if (timezone == null) timezone = TimeZone.getDefault().getDisplayName();

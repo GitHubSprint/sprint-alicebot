@@ -30,7 +30,6 @@ import java.util.*;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.alicebot.ab.llm.GenAIHelper;
 import org.alicebot.ab.report.GenReportHelper;
 import org.alicebot.ab.report.Report;
@@ -830,8 +829,7 @@ public class AIMLProcessor
     }
     
     
-    private static String zip(Node node, ParseState ps) throws IOException
-    {
+    private static String zip(Node node, ParseState ps) {
         String country = getAttributeOrTagValue(node, ps, "country");
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         
@@ -850,13 +848,31 @@ public class AIMLProcessor
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;  
                                         
-        String result = Validator.zip(country, input); 
-        
-        log.info("zip "
-                + " parameter: " + parameter                 
-                + " input: " + input
-                + " result: " + result);                
+        String result = Validator.zip(country, input);
+
+        log.info("zip  parameter: {} input: {} result: {}", parameter, input, result);
                                         
+        return checkEmpty(result);
+    }
+
+    private static String getrecord(Node node, ParseState ps) {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+
+        String result = "service.fetchData(input);";
+
+        log.info("getrecord  parameter: {} input: {} result: {}", parameter, input, result);
+
         return checkEmpty(result);
     }
 
@@ -893,7 +909,7 @@ public class AIMLProcessor
             _days = days;
 
 
-        Locale loc = new Locale(locale);
+        Locale loc = Locale.forLanguageTag(locale);
         SimpleDateFormat dateFormat = new SimpleDateFormat(format, loc);
         int iDays = Integer.parseInt(_days);
 
@@ -929,17 +945,14 @@ public class AIMLProcessor
                                                        
         if(input.equals(MagicStrings.unknown_property_value))
             input = values;  
-        
-        
-        
+
         String[] vars = variables.split(delimiter);
         String[] vals = input.split(delimiter);
         
         if(vars.length != vals.length)
             return "ERR";
         
-        for(int i=0;i<vars.length;i++)
-        {
+        for(int i=0;i<vars.length;i++) {
             if (vars[i] != null) ps.chatSession.predicates.put(vars[i], vals[i]);
             if (vars[i] != null) ps.vars.put(vars[i], vals[i]);
         }
@@ -1064,6 +1077,8 @@ public class AIMLProcessor
         
         return checkEmpty(result);
     }
+
+
     
     private static String nums(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
@@ -2545,6 +2560,8 @@ public class AIMLProcessor
                 return zip(node, ps);
            else if (nodeName.equals("dateadd"))
                 return dateadd(node, ps);
+           else if (nodeName.equals("getrecord"))
+                return getrecord(node, ps);
            
            
            

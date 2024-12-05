@@ -19,10 +19,7 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.text.Normalizer;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Custom methods for polish language and jar plugin call. 
@@ -31,7 +28,11 @@ import java.util.Map;
 public class SprintUtils {
     private static Map<String, Class<?>> classCache = new HashMap<>();
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
-   
+
+    public static void main(String[] args) {
+        System.out.println(Locale.forLanguageTag("pl"));
+
+    }
 
     public static Map<String, FastText> mlModels;
     /**
