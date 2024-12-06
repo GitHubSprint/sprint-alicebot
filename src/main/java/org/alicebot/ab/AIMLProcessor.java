@@ -30,6 +30,8 @@ import java.util.*;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.llm.GenAIHelper;
 import org.alicebot.ab.report.GenReportHelper;
 import org.alicebot.ab.report.Report;
@@ -869,11 +871,29 @@ public class AIMLProcessor
             input = parameter;
 
 
-        String result = "service.fetchData(input);";
+        String result = SprintBotDbUtils.getrecord(input);
 
         log.info("getrecord  parameter: {} input: {} result: {}", parameter, input, result);
 
         return checkEmpty(result);
+    }
+
+    private static String updaterecord(Node node, ParseState ps) {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+        String result = SprintBotDbUtils.updaterecord(input);
+        log.info("updaterecord  parameter: {} input: {} result: {}", parameter, input, result);
+        return result == null ? "ERR" : result;
     }
 
     private static String dateadd(Node node, ParseState ps) throws ParseException {
@@ -2562,6 +2582,8 @@ public class AIMLProcessor
                 return dateadd(node, ps);
            else if (nodeName.equals("getrecord"))
                 return getrecord(node, ps);
+           else if (nodeName.equals("updaterecord"))
+                return updaterecord(node, ps);
            
            
            
