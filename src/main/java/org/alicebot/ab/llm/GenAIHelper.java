@@ -136,8 +136,8 @@ public class GenAIHelper {
             messages = new JSONArray();
         }
 
-        if(messages.length() > maxResponse)
-            messages.remove(0);
+        if(messages.length() > 1 && messages.length() > maxResponse)
+            messages.remove(1);
 
         // Dodanie nowej wiadomości
         addMessage(messages, "role", role, content);
@@ -159,8 +159,8 @@ public class GenAIHelper {
             messages = new JSONArray();
         }
 
-        if(messages.length() > maxResponse)
-            messages.remove(0);
+        if(messages.length() > 1 && messages.length() > maxResponse)
+            messages.remove(1);
 
         // Dodanie nowej wiadomości
         addMessage(messages, "role", role, content);
@@ -187,8 +187,8 @@ public class GenAIHelper {
         if (messages == null) {
             messages = new JSONArray();
         }
-        if(messages.length() > maxResponse)
-            messages.remove(0);
+        if(messages.length() > 1 && messages.length() > maxResponse)
+            messages.remove(1);
 
         // Dodanie nowej wiadomości
         addMessage(messages, "author", author, content);
