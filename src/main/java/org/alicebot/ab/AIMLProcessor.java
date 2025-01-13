@@ -1493,16 +1493,20 @@ public class AIMLProcessor
         if(assistant == null || assistant.equals("unknown") || assistant.isEmpty())
             assistant = ps.chatSession.lastResponse;
 
-        String json = ps.chatSession.json;
-
         String sessionId = ps.chatSession.sessionId;
-        log.info("{} gpt  user: {} system: {} assistant: {} json: {}", sessionId, user, system, assistant, json);
 
+        if(model == null)
+            model = evalTagContent(node, ps, null);
+        else
+            model = ps.chatSession.predicates.get(model);
 
-        if(model == null) {
+        if(model == null || model.equals("unknown") || model.isEmpty()) {
             model = readConfig(sessionId, "openai.model");
             if(model == null) model = "gpt-3.5-turbo";
         }
+
+        String json = ps.chatSession.json;
+        log.info("{} gpt model: {} user: {} system: {} assistant: {} json: {}", model, sessionId, user, system, assistant, json);
 
         int iMaxResponse;
         if(max_history == null) {
@@ -1542,6 +1546,11 @@ public class AIMLProcessor
         log.info("{} GPT  assistant: {} system: {}", ps.chatSession.sessionId, assistant, system);
 
         String response;
+
+        if(assistant != null && !assistant.isEmpty() && system != null && !system.isEmpty()) {
+            json = null;
+        }
+
         if(json == null) {
             JSONObject responseJson = GenAIHelper
                     .createGPTResponse(model, system, user, assistant, iTemperature, maxTokens, topP, frequencyPenalty, presencePenalty);
