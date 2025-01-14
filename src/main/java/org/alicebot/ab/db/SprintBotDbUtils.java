@@ -143,7 +143,7 @@ public class SprintBotDbUtils {
         String result = null;
 
         try (Connection connection = DriverManager.getConnection(url, username, password)) {
-            String sql = "SELECT extdata FROM bot_session where session_id= ?";
+            String sql = "SELECT extdata FROM bot_session WHERE session_id= ?";
             try (PreparedStatement selectStmt = connection.prepareStatement(sql)) {
                 selectStmt.setString(1, sessionId);
                 try (ResultSet resultSet = selectStmt.executeQuery()) {
@@ -184,7 +184,7 @@ public class SprintBotDbUtils {
 
         try (Connection connection = DriverManager.getConnection(url, username, password)) {
 
-            String selectSql = "SELECT extdata FROM bot_session where session_id = ?";
+            String selectSql = "SELECT extdata FROM bot_session WHERE session_id = ?";
             String extData = null;
 
             try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
@@ -204,7 +204,7 @@ public class SprintBotDbUtils {
 
             currentData.putAll(data);
 
-            String updateSql = "UPDATE bot_session SET extdata = ? session_id id = ?";
+            String updateSql = "UPDATE bot_session SET extdata = ? session_id = ?";
             try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
                 updateStmt.setString(1, mapper.writeValueAsString(currentData));
                 updateStmt.setString(2, sessionId);
