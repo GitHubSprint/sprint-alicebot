@@ -192,6 +192,7 @@ public class SprintBotDbUtils {
                 try (ResultSet resultSet = selectStmt.executeQuery()) {
                     if (resultSet.next()) {
                         extData = resultSet.getString("extdata");
+                        log.info("{} setData extdata: {} ", sessionId, extData);
                     }
                 }
             }
@@ -204,7 +205,7 @@ public class SprintBotDbUtils {
 
             currentData.putAll(data);
 
-            String updateSql = "UPDATE bot_session SET extdata = ? session_id = ?";
+            String updateSql = "UPDATE bot_session SET extdata = ? WHERE session_id = ?";
             try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
                 updateStmt.setString(1, mapper.writeValueAsString(currentData));
                 updateStmt.setString(2, sessionId);
