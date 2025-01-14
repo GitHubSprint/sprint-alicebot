@@ -142,28 +142,24 @@ public class SprintBotDbUtils {
 
         String result = null;
 
-        try (Connection connection = DriverManager.getConnection(url, username, password);
-             Statement statement = connection.createStatement()) {
-
-            // Wykonanie zapytania SELECT
-            String sql = "SELECT extdata FROM bot_session where session_id='" + sessionId + "'";
-            ResultSet resultSet = statement.executeQuery(sql);
-
-            // Przetwarzanie wyników
-            while (resultSet.next()) {
-                String extData = resultSet.getString("extdata");
-                log.info("{} getdata extdata: {} ",sessionId, extData);
-
-                if(extData != null) {
-                    TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
-                    Map<String,String> map = mapper.readValue(extData, typeRef);
-                    result = map.get(parameter);
+        try (Connection connection = DriverManager.getConnection(url, username, password)) {
+            String sql = "SELECT extdata FROM bot_session where session_id= ?";
+            try (PreparedStatement selectStmt = connection.prepareStatement(sql)) {
+                selectStmt.setString(1, sessionId);
+                try (ResultSet resultSet = selectStmt.executeQuery()) {
+                    if (resultSet.next()) {
+                        String extData = resultSet.getString("extdata");
+                        if(extData != null) {
+                            TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
+                            Map<String,String> map = mapper.readValue(extData, typeRef);
+                            result = map.get(parameter);
+                        }
+                    }
                 }
             }
         } catch (SQLException | JsonProcessingException e) {
             log.error("{} getdata err", sessionId, e);
         }
-
         return result;
     }
 
@@ -188,10 +184,11 @@ public class SprintBotDbUtils {
 
         try (Connection connection = DriverManager.getConnection(url, username, password)) {
 
-            String selectSql = "SELECT extdata FROM bot_session where session_id='" + sessionId + "'";
+            String selectSql = "SELECT extdata FROM bot_session where session_id = ?";
             String extData = null;
 
             try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
+                selectStmt.setString(1, sessionId);
                 try (ResultSet resultSet = selectStmt.executeQuery()) {
                     if (resultSet.next()) {
                         extData = resultSet.getString("extdata");
