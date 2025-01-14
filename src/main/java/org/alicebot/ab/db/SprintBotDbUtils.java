@@ -146,7 +146,7 @@ public class SprintBotDbUtils {
              Statement statement = connection.createStatement()) {
 
             // Wykonanie zapytania SELECT
-            String sql = "SELECT extdata FROM bot_session where session_id=" + sessionId;
+            String sql = "SELECT extdata FROM bot_session where session_id='" + sessionId + "'";
             ResultSet resultSet = statement.executeQuery(sql);
 
             // Przetwarzanie wyników
@@ -188,7 +188,7 @@ public class SprintBotDbUtils {
 
         try (Connection connection = DriverManager.getConnection(url, username, password)) {
 
-            String selectSql = "SELECT extdata FROM bot_session where session_id=" + sessionId;
+            String selectSql = "SELECT extdata FROM bot_session where session_id='" + sessionId + "'";
             String extData = null;
 
             try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
