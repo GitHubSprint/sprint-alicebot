@@ -29,18 +29,18 @@ public class SprintBotDbUtils {
         log.info("updateConfiguration url: {} driverClassName: {} username: {}", url, driverClassName, username);
     }
 
-    public static String updaterecord(String parameter) {
-        log.info("updaterecord parameter: {}", parameter);
+    public static String updateRecord(String parameter) {
+        log.info("updateRecord parameter: {}", parameter);
         if(parameter == null)
             return null;
 
         if(url == null) {
-            log.warn("updaterecord invalid dbUrl: {}", url);
+            log.warn("updateRecord invalid dbUrl: {}", url);
             return null;
         }
         String[] parameters = parameter.split("###");
         if(parameter.length() < 3){
-            log.warn("updaterecord invalid parameter: {}", parameter);
+            log.warn("updateRecord invalid parameter: {}", parameter);
             return null;
         }
 
@@ -73,11 +73,11 @@ public class SprintBotDbUtils {
                 updateStmt.setString(1, mapper.writeValueAsString(currentData));
                 updateStmt.setInt(2, Integer.parseInt(parameters[0]));
                 int rowsUpdated = updateStmt.executeUpdate();
-                log.info("updaterecord updated rows: {} ", rowsUpdated);
+                log.info("updateRecord updated rows: {} ", rowsUpdated);
             }
 
         } catch (SQLException | JsonProcessingException e) {
-            log.error("updaterecord err", e);
+            log.error("updateRecord err", e);
             return null;
         }
 
@@ -85,13 +85,13 @@ public class SprintBotDbUtils {
     }
 
 
-    public static String getrecord(String parameter) {
-        log.info("getrecord parameter: {}", parameter);
+    public static String getRecord(String parameter) {
+        log.info("getRecord parameter: {}", parameter);
         if(parameter == null)
             return null;
 
         if(url == null) {
-            log.warn("getrecord invalid dbUrl: {}", url);
+            log.warn("getRecord invalid dbUrl: {}", url);
             return null;
         }
 
@@ -101,7 +101,7 @@ public class SprintBotDbUtils {
         //17###komunikat
         String[] parameters = parameter.split("###");
         if(parameter.length() < 2){
-            log.warn("getrecord invalid parameter: {}", parameter);
+            log.warn("getRecord invalid parameter: {}", parameter);
             return null;
         }
 
@@ -109,13 +109,13 @@ public class SprintBotDbUtils {
              Statement statement = connection.createStatement()) {
 
             // Wykonanie zapytania SELECT
-            String sql = "SELECT ext_data  FROM bot_dialer_contact_record where id=" + parameters[0];
+            String sql = "SELECT ext_data FROM bot_dialer_contact_record where id=" + parameters[0];
             ResultSet resultSet = statement.executeQuery(sql);
 
             // Przetwarzanie wyników
             while (resultSet.next()) {
                 String extData = resultSet.getString("ext_data");
-                log.info("getrecord ext_data: {} ",extData);
+                log.info("getRecord ext_data: {} ",extData);
 
                 if(extData != null) {
                     TypeReference<HashMap<String, String>> typeRef = new TypeReference<HashMap<String, String>>() {};
@@ -124,10 +124,103 @@ public class SprintBotDbUtils {
                 }
             }
         } catch (SQLException | JsonProcessingException e) {
-            log.error("getrecord err", e);
+            log.error("getRecord err", e);
         }
 
         return result;
+    }
+
+    public static String getData(String parameter, String sessionId) {
+        log.info("{} getdata parameter: {}", sessionId, parameter);
+        if(parameter == null)
+            return null;
+
+        if(url == null) {
+            log.warn("{} getdata invalid dbUrl: {}", sessionId, url);
+            return null;
+        }
+
+        String result = null;
+
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             Statement statement = connection.createStatement()) {
+
+            // Wykonanie zapytania SELECT
+            String sql = "SELECT extdata FROM bot_session where session_id=" + sessionId;
+            ResultSet resultSet = statement.executeQuery(sql);
+
+            // Przetwarzanie wyników
+            while (resultSet.next()) {
+                String extData = resultSet.getString("extdata");
+                log.info("{} getdata extdata: {} ",sessionId, extData);
+
+                if(extData != null) {
+                    TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
+                    Map<String,String> map = mapper.readValue(extData, typeRef);
+                    result = map.get(parameter);
+                }
+            }
+        } catch (SQLException | JsonProcessingException e) {
+            log.error("{} getdata err", sessionId, e);
+        }
+
+        return result;
+    }
+
+    public static String setData(String parameter, String sessionId) {
+        log.info("{} setData parameter: {}", sessionId, parameter);
+        if(parameter == null)
+            return null;
+
+        if(url == null) {
+            log.warn("{} setData invalid dbUrl: {}", sessionId, url);
+            return null;
+        }
+
+        String[] parameters = parameter.split("###");
+        if(parameter.length() < 2){
+            log.warn("{} setData invalid parameter: {}", sessionId, parameter);
+            return null;
+        }
+
+        Map<String, String> data = new HashMap<>();
+        data.put(parameters[0], parameters[1]);
+
+        try (Connection connection = DriverManager.getConnection(url, username, password)) {
+
+            String selectSql = "SELECT extdata FROM bot_session where session_id=" + sessionId;
+            String extData = null;
+
+            try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
+                try (ResultSet resultSet = selectStmt.executeQuery()) {
+                    if (resultSet.next()) {
+                        extData = resultSet.getString("extdata");
+                    }
+                }
+            }
+
+            TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
+
+            Map<String, String> currentData = extData != null ?
+                    mapper.readValue(extData, typeRef) :
+                    new HashMap<>();
+
+            currentData.putAll(data);
+
+            String updateSql = "UPDATE bot_session SET extdata = ? session_id id = ?";
+            try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
+                updateStmt.setString(1, mapper.writeValueAsString(currentData));
+                updateStmt.setString(2, sessionId);
+                int rowsUpdated = updateStmt.executeUpdate();
+                log.info("{} setData updated rows: {} ", sessionId, rowsUpdated);
+            }
+
+        } catch (SQLException | JsonProcessingException e) {
+            log.error("{} setData err", sessionId, e);
+            return null;
+        }
+
+        return "OK";
     }
 
 }

@@ -512,8 +512,8 @@ public class AIMLProcessor
             input = ps.chatSession.currentQuestion;
         }
 
-        log.info(ps.chatSession.sessionId + " ML parameter: " + parameter + " input: " + input);
-        log.info(ps.chatSession.sessionId + " ML model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score);
+        log.info("{} ML parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
+        log.info("{} ML model: {} nBest: {} threshold:  {} score:{}", ps.chatSession.sessionId, model, nBest, threshold, score);
 
         String out = checkEmpty(SprintUtils.ml(model, nBest, threshold, score, input, ps.chatSession.sessionId));
 
@@ -822,10 +822,7 @@ public class AIMLProcessor
 
         String result = Validator.WordsToNumbersDec(language, input);
 
-        log.info("txt2dec "
-                + " parameter: " + parameter
-                + " input: " + input
-                + " result: " + result);
+        log.info("txt2dec  parameter: {} input: {} result: {}", parameter, input, result);
 
         return checkEmpty(result);
     }
@@ -857,7 +854,7 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
 
-    private static String getrecord(Node node, ParseState ps) {
+    private static String getRecord(Node node, ParseState ps) {
 
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
@@ -871,14 +868,31 @@ public class AIMLProcessor
             input = parameter;
 
 
-        String result = SprintBotDbUtils.getrecord(input);
+        String result = SprintBotDbUtils.getRecord(input);
 
-        log.info("getrecord  parameter: {} input: {} result: {}", parameter, input, result);
+        log.info("getRecord  parameter: {} input: {} result: {}", parameter, input, result);
+
+        return checkEmpty(result);
+    }
+    private static String getData(Node node, ParseState ps) {
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+        String result = SprintBotDbUtils.getData(input, ps.chatSession.sessionId);
+
+        log.info("{} getdata parameter: {} input: {} result: {}", ps.chatSession.sessionId, parameter, input, result);
 
         return checkEmpty(result);
     }
 
-    private static String updaterecord(Node node, ParseState ps) {
+    private static String updateRecord(Node node, ParseState ps) {
 
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
@@ -891,8 +905,25 @@ public class AIMLProcessor
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;
 
-        String result = SprintBotDbUtils.updaterecord(input);
-        log.info("updaterecord  parameter: {} input: {} result: {}", parameter, input, result);
+        String result = SprintBotDbUtils.updateRecord(input);
+        log.info("updateRecord  parameter: {} input: {} result: {}", parameter, input, result);
+        return result == null ? "ERR" : result;
+    }
+    private static String setData(Node node, ParseState ps) {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+        String result = SprintBotDbUtils.setData(input, ps.chatSession.sessionId);
+        log.info("{} setData  parameter: {} input: {} result: {}", ps.chatSession.sessionId, parameter, input, result);
         return result == null ? "ERR" : result;
     }
 
@@ -2590,9 +2621,13 @@ public class AIMLProcessor
            else if (nodeName.equals("dateadd"))
                 return dateadd(node, ps);
            else if (nodeName.equals("getrecord"))
-                return getrecord(node, ps);
+                return getRecord(node, ps);
            else if (nodeName.equals("updaterecord"))
-                return updaterecord(node, ps);
+                return updateRecord(node, ps);
+           else if (nodeName.equals("getdata"))
+                return getData(node, ps);
+           else if (nodeName.equals("setdata"))
+                return setData(node, ps);
            
            
            
