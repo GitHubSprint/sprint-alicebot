@@ -1494,6 +1494,11 @@ public class AIMLProcessor
 
         String addparams = getAttributeOrTagValue(node, ps, "addparams");
 
+        if(addparams == null)
+            addparams = evalTagContent(node, ps, null);
+        else
+            addparams = ps.chatSession.predicates.get(addparams);
+
         if(user == null)
             user = evalTagContent(node, ps, null);
         else
@@ -1666,9 +1671,12 @@ public class AIMLProcessor
         String user = getAttributeOrTagValue(node, ps, "user");
 
         String max_history = getAttributeOrTagValue(node, ps, "max_history");
-
-
         String addparams = getAttributeOrTagValue(node, ps, "addparams");
+
+        if(addparams == null)
+            addparams = evalTagContent(node, ps, null);
+        else
+            addparams = ps.chatSession.predicates.get(addparams);
 
         Map<String, String> additionalParameters = new HashMap<>();
         if(addparams != null && !addparams.isEmpty()) {
