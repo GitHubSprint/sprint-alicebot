@@ -7,19 +7,58 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 public class GenAIHelper {
     private static final Logger logger = LoggerFactory.getLogger(GenAIHelper.class);
+
+
+    public static void main(String[] args) {
+        try {
+            JSONObject json = createGPTResponse("gpt-3.5-turbo",
+                    "System message",
+                    "User message",
+                    "Assistant message",
+                    Map.of("temperature", "0.5",
+                            "max_tokens", "100",
+                            "top_p", "0.9",
+                            "frequency_penalty", "0.0",
+                            "presence_penalty", "0.0"));
+            logger.info("json: {}", json);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            JSONObject json = createOllamaResponse("ollama",
+                    "System message",
+                    "User message", false);
+            logger.info("json: {}", json);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+
+        try {
+            JSONObject json = createGeminiResponse("context",
+                    "User message",
+                    Map.of("temperature", "0.5",
+                            "max_tokens", "100",
+                            "top_p", "0.9",
+                            "frequency_penalty", "0.0",
+                            "presence_penalty", "0.0"));
+            logger.info("json: {}", json);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
 
     @NotNull
     public static JSONObject createGPTResponse(String model,
                                                String system,
                                                String user,
                                                String assistant,
-                                               int iTemperature,
-                                               int maxTokens,
-                                               int topP,
-                                               int frequencyPenalty,
-                                               int presencePenalty) throws JSONException
+                                               Map<String, String> addParams) throws JSONException
     {
         JSONObject jsonRequest = new JSONObject();
         jsonRequest.put("model", model);
@@ -46,11 +85,13 @@ public class GenAIHelper {
 
         jsonRequest.put("messages", messages);
 
-        jsonRequest.put("temperature", iTemperature);
-        jsonRequest.put("max_tokens", maxTokens);
-        jsonRequest.put("top_p", topP);
-        jsonRequest.put("frequency_penalty", frequencyPenalty);
-        jsonRequest.put("presence_penalty", presencePenalty);
+        for(Map.Entry<String, String> entry : addParams.entrySet()) {
+            if(isNumeric(entry.getValue()))
+                jsonRequest.put(entry.getKey(), Double.parseDouble(entry.getValue()));
+            else
+                jsonRequest.put(entry.getKey(), entry.getValue());
+        }
+
         logger.info("createGPTResponse request: {}", jsonRequest);
         return jsonRequest;
     }
@@ -86,17 +127,18 @@ public class GenAIHelper {
     @NotNull
     public static JSONObject createGeminiResponse(String context,
                                                   String user,
-                                                  double temperature,
-                                                  int maxOutputTokens,
-                                                  double topP,
-                                                  int topK) throws JSONException
+                                                  Map<String, String> addParams) throws JSONException
     {
         JSONObject jsonRequest = new JSONObject();
         JSONObject parameters = new JSONObject();
-        parameters.put("temperature", temperature);
-        parameters.put("maxOutputTokens", maxOutputTokens);
-        parameters.put("topP", topP);
-        parameters.put("topK", topK);
+
+        for(Map.Entry<String, String> entry : addParams.entrySet()) {
+            if(isNumeric(entry.getValue()))
+                parameters.put(entry.getKey(), Double.parseDouble(entry.getValue()));
+            else
+                parameters.put(entry.getKey(), entry.getValue());
+        }
+
         jsonRequest.put("parameters", parameters);
 
         JSONArray instances = new JSONArray();
@@ -207,6 +249,18 @@ public class GenAIHelper {
 
         logger.info("addGeminiMessageToJSON response: {}", response);
         return response;
+    }
+
+    private static boolean isNumeric(String str) {
+        if (str == null) {
+            return false;
+        }
+        try {
+            Double.parseDouble(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
 
