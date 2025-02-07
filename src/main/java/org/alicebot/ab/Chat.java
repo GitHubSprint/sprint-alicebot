@@ -51,13 +51,15 @@ public class Chat {
     public String json;
     public String lastResponse;
     public int maxHistory = 0;
+    public String channel;
+
     /**
      * Constructor  (defualt customer ID)
      *
      * @param bot    the bot to chat with
      */
     public Chat(Bot bot)  {
-        this(bot, UUID.randomUUID().toString());
+        this(bot, UUID.randomUUID().toString(), "CHAT");
     }
 
     /**
@@ -65,11 +67,12 @@ public class Chat {
      * @param bot             bot to chat with
      * @param sessionId      unique session id      
      */
-    public Chat(Bot bot, String sessionId) {
+    public Chat(Bot bot, String sessionId, String channel) {
         this.sessionId = sessionId;
         this.bot = bot;
-        this.sessionCreated = Calendar.getInstance().getTime();        
-        History<String> contextThatHistory = new History<String>();
+        this.sessionCreated = Calendar.getInstance().getTime();
+        this.channel = channel;
+        History<String> contextThatHistory = new History<>();
         contextThatHistory.add(MagicStrings.default_that);
         thatHistory.add(contextThatHistory);
         addPredicates();

@@ -33,6 +33,8 @@ import java.util.regex.Pattern;
 
 import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.llm.GenAIHelper;
+import org.alicebot.ab.llm.LLMConfiguration;
+import org.alicebot.ab.llm.LLMService;
 import org.alicebot.ab.report.GenReportHelper;
 import org.alicebot.ab.report.Report;
 import org.alicebot.ab.utils.CalendarUtils;
@@ -54,11 +56,10 @@ import pl.sprint.sprintvalidator.utils.PeselValidator;
  * AIML 2.0 Working Draft document
  * https://docs.google.com/document/d/1wNT25hJRyupcG51aO89UcQEiG-HkXRXusukADpFnDs4/pub
  */
-public class AIMLProcessor 
-{
+public class AIMLProcessor {
 	
     private static final Logger log = LoggerFactory.getLogger(AIMLProcessor.class);        
-    
+
     /**
      * when parsing an AIML file, process a category element.
      *
@@ -1485,7 +1486,27 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
 
+
+    private static String aiCheckResponse(String channel, String response) {
+        log.info("aiCheckResponse channel: {} response: {}", channel, response);
+        if(channel == null)
+            return response;
+
+        if(response == null)
+            return null;
+
+        if(channel.equals("VOICE"))
+            response = response
+                    .replace("\\n",".");
+        else
+            response = response
+                    .replace("\\n","<br />");
+        return response;
+    }
+
     private static String gpt(Node node, ParseState ps) throws Exception {
+        if(!LLMConfiguration.gptEnabled)
+            return MagicStrings.invalid_llm_configuration;
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
         String assistant = getAttributeOrTagValue(node, ps, "assistant");
@@ -1586,13 +1607,19 @@ public class AIMLProcessor
                         .addGptMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
             json = GenAIHelper.addGptMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+
             response = json;
         }
-        return "GPT=" +  response;
+        ps.chatSession.json = response;
+        return aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(response));
 
     }
 
     private static String ollama(Node node, ParseState ps) throws Exception {
+
+        if(!LLMConfiguration.ollamaEnabled)
+            return MagicStrings.invalid_llm_configuration;
+
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
         String user = getAttributeOrTagValue(node, ps, "user");
@@ -1661,11 +1688,15 @@ public class AIMLProcessor
             json = GenAIHelper.addOllamaMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             response = json;
         }
-        return "OLLAMA=" +  response;
+        ps.chatSession.json = response;
+        return aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(response));
 
     }
 
     private static String gemini(Node node, ParseState ps) throws Exception {
+        if(!LLMConfiguration.geminiEnabled)
+            return MagicStrings.invalid_llm_configuration;
+
         String context = getAttributeOrTagValue(node, ps, "context");
         String bot = getAttributeOrTagValue(node, ps, "bot");
         String user = getAttributeOrTagValue(node, ps, "user");
@@ -1747,7 +1778,9 @@ public class AIMLProcessor
             json = GenAIHelper.addGeminiMessageToJSON(json,context,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             response = json;
         }
-        return "GEMINI=" +  response;
+
+        ps.chatSession.json = response;
+        return aiCheckResponse(ps.chatSession.channel, LLMService.chatGemini(response));
 
     }
 

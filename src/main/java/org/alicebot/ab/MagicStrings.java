@@ -127,5 +127,7 @@ public class MagicStrings {
     public static String maps_path = bot_path+"/maps";
     
     public final static String UTF8 = "UTF-8";
+
+    public final static String invalid_llm_configuration = "LLM Service is not properly configured!";
 }
 

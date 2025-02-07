@@ -3,6 +3,7 @@ package org.alicebot.ab.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.alicebot.ab.llm.LLMConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,17 +18,45 @@ public class SprintBotDbUtils {
     private static String driverClassName;
     private static String username;
     private static String password;
-
+    private static String schema;
     private final static ObjectMapper mapper = new ObjectMapper();
 
+    public static void updateGeminiToken(String token) {
+        LLMConfiguration.geminiToken = token;
+    }
 
-    public static void updateConfiguration(String newUrl, String newDriverClassName, String newUsername, String newPassword) {
+    public static void updateLLMConfiguration(String gptToken,
+                                              String gptApiUrl,
+                                              String ollamaApiUrl,
+                                              String geminiToken,
+                                              String geminiApiUrl,
+                                              boolean gptEnabled,
+                                              boolean ollamaEnabled,
+                                              boolean geminiEnabled)
+    {
+        log.info("updateLLMConfiguration gptEnabled: {} ollamaEnabled: {}  geminiEnabled: {}", gptEnabled, ollamaEnabled, geminiEnabled);
+        log.info("updateLLMConfiguration gptApiUrl: {} ollamaApiUrl: {}  geminiApiUrl: {}", gptApiUrl, ollamaApiUrl, geminiApiUrl);
+        LLMConfiguration.gptToken = gptToken;
+        LLMConfiguration.gptApiUrl = gptApiUrl;
+        LLMConfiguration.ollamaApiUrl = ollamaApiUrl;
+        LLMConfiguration.geminiToken = geminiToken;
+        LLMConfiguration.geminiApiUrl = geminiApiUrl;
+        LLMConfiguration.gptEnabled = gptEnabled;
+        LLMConfiguration.ollamaEnabled = ollamaEnabled;
+        LLMConfiguration.geminiEnabled = geminiEnabled;
+
+
+    }
+
+    public static void updateConfiguration(String newUrl, String newDriverClassName, String newUsername, String newPassword, String newSchema) {
         url = newUrl;
         driverClassName = newDriverClassName;
         username = newUsername;
         password = newPassword;
-        log.info("updateConfiguration url: {} driverClassName: {} username: {}", url, driverClassName, username);
+        schema = newSchema;
+        log.info("updateConfiguration url: {} driverClassName: {} username: {} schema: {}", url, driverClassName, username, schema);
     }
+
 
     public static String updateRecord(String parameter) {
         log.info("updateRecord parameter: {}", parameter);
@@ -49,7 +78,7 @@ public class SprintBotDbUtils {
 
         try (Connection connection = DriverManager.getConnection(url, username, password)) {
 
-            String selectSql = "SELECT ext_data FROM bot_dialer_contact_record where id=" + parameters[0];
+            String selectSql = "SELECT ext_data FROM " + schema + ".bot_dialer_contact_record where id=" + parameters[0];
             String extData = null;
 
             try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
@@ -68,7 +97,7 @@ public class SprintBotDbUtils {
 
             currentData.putAll(data);
 
-            String updateSql = "UPDATE bot_dialer_contact_record SET ext_data = ? WHERE id = ?";
+            String updateSql = "UPDATE " + schema + ".bot_dialer_contact_record SET ext_data = ? WHERE id = ?";
             try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
                 updateStmt.setString(1, mapper.writeValueAsString(currentData));
                 updateStmt.setInt(2, Integer.parseInt(parameters[0]));
@@ -109,7 +138,7 @@ public class SprintBotDbUtils {
              Statement statement = connection.createStatement()) {
 
             // Wykonanie zapytania SELECT
-            String sql = "SELECT ext_data FROM bot_dialer_contact_record where id=" + parameters[0];
+            String sql = "SELECT ext_data FROM " + schema + ".bot_dialer_contact_record where id=" + parameters[0];
             ResultSet resultSet = statement.executeQuery(sql);
 
             // Przetwarzanie wyników
@@ -143,7 +172,7 @@ public class SprintBotDbUtils {
         String result = null;
 
         try (Connection connection = DriverManager.getConnection(url, username, password)) {
-            String sql = "SELECT extdata FROM bot_session WHERE session_id= ?";
+            String sql = "SELECT extdata FROM " + schema + ".bot_session WHERE session_id= ?";
             try (PreparedStatement selectStmt = connection.prepareStatement(sql)) {
                 selectStmt.setString(1, sessionId);
                 try (ResultSet resultSet = selectStmt.executeQuery()) {
@@ -184,7 +213,7 @@ public class SprintBotDbUtils {
 
         try (Connection connection = DriverManager.getConnection(url, username, password)) {
 
-            String selectSql = "SELECT extdata FROM bot_session WHERE session_id = ?";
+            String selectSql = "SELECT extdata FROM " + schema + ".bot_session WHERE session_id = ?";
             String extData = null;
 
             try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
@@ -205,7 +234,7 @@ public class SprintBotDbUtils {
 
             currentData.putAll(data);
 
-            String updateSql = "UPDATE bot_session SET extdata = ? WHERE session_id = ?";
+            String updateSql = "UPDATE " + schema + ".bot_session SET extdata = ? WHERE session_id = ?";
             try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
                 updateStmt.setString(1, mapper.writeValueAsString(currentData));
                 updateStmt.setString(2, sessionId);
