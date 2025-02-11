@@ -1,14 +1,13 @@
 package org.alicebot.ab.llm;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class LLMConfiguration {
-    public static String gptToken;
+    public static Map<String, String> gptTokens = new HashMap<>();
     public static String gptApiUrl;
     public static String ollamaApiUrl;
-    public static String geminiToken;
+    public static Map<String, String> geminiTokens = new HashMap<>();
     public static String geminiApiUrl;
-
-    public static boolean gptEnabled;
-    public static boolean ollamaEnabled;
-    public static boolean geminiEnabled;
 
 }

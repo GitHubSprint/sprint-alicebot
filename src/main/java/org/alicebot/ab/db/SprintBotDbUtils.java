@@ -15,46 +15,18 @@ public class SprintBotDbUtils {
     private static final Logger log = LoggerFactory.getLogger(SprintBotDbUtils.class);
 
     private static String url = null;
-    private static String driverClassName;
     private static String username;
     private static String password;
     private static String schema;
     private final static ObjectMapper mapper = new ObjectMapper();
 
-    public static void updateGeminiToken(String token) {
-        LLMConfiguration.geminiToken = token;
-    }
-
-    public static void updateLLMConfiguration(String gptToken,
-                                              String gptApiUrl,
-                                              String ollamaApiUrl,
-                                              String geminiToken,
-                                              String geminiApiUrl,
-                                              boolean gptEnabled,
-                                              boolean ollamaEnabled,
-                                              boolean geminiEnabled)
-    {
-        log.info("updateLLMConfiguration gptEnabled: {} ollamaEnabled: {}  geminiEnabled: {}", gptEnabled, ollamaEnabled, geminiEnabled);
-        log.info("updateLLMConfiguration gptApiUrl: {} ollamaApiUrl: {}  geminiApiUrl: {}", gptApiUrl, ollamaApiUrl, geminiApiUrl);
-        LLMConfiguration.gptToken = gptToken;
-        LLMConfiguration.gptApiUrl = gptApiUrl;
-        LLMConfiguration.ollamaApiUrl = ollamaApiUrl;
-        LLMConfiguration.geminiToken = geminiToken;
-        LLMConfiguration.geminiApiUrl = geminiApiUrl;
-        LLMConfiguration.gptEnabled = gptEnabled;
-        LLMConfiguration.ollamaEnabled = ollamaEnabled;
-        LLMConfiguration.geminiEnabled = geminiEnabled;
-
-
-    }
 
     public static void updateConfiguration(String newUrl, String newDriverClassName, String newUsername, String newPassword, String newSchema) {
         url = newUrl;
-        driverClassName = newDriverClassName;
         username = newUsername;
         password = newPassword;
         schema = newSchema;
-        log.info("updateConfiguration url: {} driverClassName: {} username: {} schema: {}", url, driverClassName, username, schema);
+        log.info("updateConfiguration url: {} driverClassName: {} username: {} schema: {}", url, newDriverClassName, username, schema);
     }
 
 

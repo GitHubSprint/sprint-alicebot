@@ -7,6 +7,7 @@ package org.alicebot.ab.utils;
 
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
+import org.alicebot.ab.llm.LLMConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +34,26 @@ public class SprintUtils {
         System.out.println(Locale.forLanguageTag("pl"));
 
     }
+
+
+    public static void updateGeminiToken(Map<String, String> tokens) {
+        LLMConfiguration.geminiTokens = new HashMap<>(tokens);
+    }
+
+    public static void updateLLMConfiguration(Map<String, String> gptTokens,
+                                              String gptApiUrl,
+                                              String ollamaApiUrl,
+                                              Map<String, String> geminiTokens,
+                                              String geminiApiUrl)
+    {
+        log.info("updateLLMConfiguration gptApiUrl: {} ollamaApiUrl: {}  geminiApiUrl: {}", gptApiUrl, ollamaApiUrl, geminiApiUrl);
+        LLMConfiguration.gptTokens = new HashMap<>(gptTokens);
+        LLMConfiguration.gptApiUrl = gptApiUrl;
+        LLMConfiguration.ollamaApiUrl = ollamaApiUrl;
+        LLMConfiguration.geminiTokens = new HashMap<>(geminiTokens);
+        LLMConfiguration.geminiApiUrl = geminiApiUrl;
+    }
+
 
     public static Map<String, FastText> mlModels;
     /**

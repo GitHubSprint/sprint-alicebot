@@ -2,7 +2,6 @@ package org.alicebot.ab.llm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.alicebot.ab.MagicStrings;
-import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.exception.InternalServerException;
 import org.alicebot.ab.llm.dto.google.Candidates;
 import org.alicebot.ab.llm.dto.google.GeminiChatResponse;
@@ -11,16 +10,13 @@ import org.alicebot.ab.llm.dto.gpt.Choice;
 import org.alicebot.ab.llm.dto.gpt.GptChatResponse;
 import org.alicebot.ab.llm.dto.ollama.OllamaChatResponse;
 import org.alicebot.ab.llm.report.CustomReport;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 import static org.alicebot.ab.MagicStrings.invalid_llm_configuration;
 
@@ -34,8 +30,8 @@ public class LLMService {
                 .build();
     }
 
-    public static String chatGpt(String json) throws Exception {
-        if(LLMConfiguration.gptApiUrl == null || LLMConfiguration.gptToken == null) {
+    public static String chatGpt(String json, String token) throws Exception {
+        if(LLMConfiguration.gptApiUrl == null || token == null) {
             logger.warn("chatGpt invalid llmConfiguration: {}", LLMConfiguration.gptApiUrl);
             throw new InternalServerException(invalid_llm_configuration);
         }
@@ -54,7 +50,7 @@ public class LLMService {
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(LLMConfiguration.gptApiUrl))
-                .header("Authorization", "Bearer " + LLMConfiguration.gptToken)
+                .header("Authorization", "Bearer " + token)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
                 .build();
@@ -76,8 +72,8 @@ public class LLMService {
         return MagicStrings.error_bot_response();
     }
 
-    public static String chatGemini(String json) throws Exception {
-        if(LLMConfiguration.geminiApiUrl == null || LLMConfiguration.geminiToken == null) {
+    public static String chatGemini(String json, String token) throws Exception {
+        if(LLMConfiguration.geminiApiUrl == null || token == null) {
             logger.warn("chatGemini invalid llmConfiguration: {}", LLMConfiguration.geminiApiUrl);
             throw new InternalServerException(invalid_llm_configuration);
         }
@@ -96,7 +92,7 @@ public class LLMService {
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(LLMConfiguration.geminiApiUrl))
-                .header("Authorization", "Bearer " + LLMConfiguration.geminiToken)
+                .header("Authorization", "Bearer " + token)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
                 .build();

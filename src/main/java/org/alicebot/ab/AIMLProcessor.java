@@ -30,7 +30,6 @@ import java.util.*;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.llm.GenAIHelper;
 import org.alicebot.ab.llm.LLMConfiguration;
@@ -1505,8 +1504,7 @@ public class AIMLProcessor {
     }
 
     private static String gpt(Node node, ParseState ps) throws Exception {
-        if(!LLMConfiguration.gptEnabled)
-            return MagicStrings.invalid_llm_configuration;
+
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
         String assistant = getAttributeOrTagValue(node, ps, "assistant");
@@ -1570,8 +1568,10 @@ public class AIMLProcessor {
             ps.chatSession.maxHistory = iMaxResponse;
         }
 
-        log.info("{} gpt model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {} json: {}",
-                sessionId, model, user, system, assistant, addparams, iMaxResponse, json);
+        String botname = ps.chatSession.bot.name;
+
+        log.info("{} gpt botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {} json: {}",
+                sessionId, botname, model, user, system, assistant, addparams, iMaxResponse, json);
 
 
         Map<String, String> additionalParameters = new HashMap<>();
@@ -1588,7 +1588,7 @@ public class AIMLProcessor {
 
         log.info("{} GPT  assistant: {} system: {}", ps.chatSession.sessionId, assistant, system);
 
-        String response;
+        String request;
 
         if(assistant != null && !assistant.isEmpty() && system != null && !system.isEmpty()) {
             json = null;
@@ -1597,7 +1597,7 @@ public class AIMLProcessor {
         if(json == null) {
             JSONObject responseJson = GenAIHelper
                     .createGPTResponse(model, system, user, assistant, additionalParameters);
-            response = responseJson.toString();
+            request = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty())
                 json = GenAIHelper
@@ -1608,17 +1608,16 @@ public class AIMLProcessor {
 
             json = GenAIHelper.addGptMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
-            response = json;
+            request = json;
         }
-        ps.chatSession.json = response;
-        return aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(response));
+        ps.chatSession.json = request;
+
+
+        return aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
 
     }
 
     private static String ollama(Node node, ParseState ps) throws Exception {
-
-        if(!LLMConfiguration.ollamaEnabled)
-            return MagicStrings.invalid_llm_configuration;
 
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
@@ -1668,34 +1667,31 @@ public class AIMLProcessor {
         boolean bStream = false;
         if(stream != null) bStream = Boolean.parseBoolean(stream);
 
-
         log.info("{} Ollama  model: {} user: {} max_history: {} stream: {}",
                 ps.chatSession.sessionId, model, user, iMaxResponse, bStream);
 
         log.info("{} Ollama system: {}", ps.chatSession.sessionId, system);
 
-        String response;
+        String request;
         if(json == null) {
             JSONObject responseJson = GenAIHelper
                     .createOllamaResponse(model, system, user, bStream);
 
-            response = responseJson.toString();
+            request = responseJson.toString();
         } else {
             if(system != null && !system.isEmpty())
                 json = GenAIHelper
                         .addOllamaMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
             json = GenAIHelper.addOllamaMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-            response = json;
+            request = json;
         }
-        ps.chatSession.json = response;
-        return aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(response));
+        ps.chatSession.json = request;
+        return aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
 
     }
 
     private static String gemini(Node node, ParseState ps) throws Exception {
-        if(!LLMConfiguration.geminiEnabled)
-            return MagicStrings.invalid_llm_configuration;
 
         String context = getAttributeOrTagValue(node, ps, "context");
         String bot = getAttributeOrTagValue(node, ps, "bot");
@@ -1745,7 +1741,10 @@ public class AIMLProcessor {
         String json = ps.chatSession.json;
 
         String sessionId = ps.chatSession.sessionId;
-        log.info("{} gemini context: {} user: {} bot: {} json: {}", sessionId, context, user, bot, json);
+
+        String botname = ps.chatSession.bot.name;
+        log.info("{} gemini botname: {} context: {} user: {} bot: {} json: {}",
+                sessionId, botname, context, user, bot, json);
 
         int iMaxResponse;
         if(max_history == null) {
@@ -1765,22 +1764,22 @@ public class AIMLProcessor {
         log.info("{} gemini  user: {} addparams: {}",
                 ps.chatSession.sessionId, user, addparams);
 
-        String response;
+        String request;
         if(json == null) {
             JSONObject responseJson = GenAIHelper
                     .createGeminiResponse(context, user, additionalParameters);
-            response = responseJson.toString();
+            request = responseJson.toString();
         } else {
             if(bot != null && !bot.isEmpty())
                 json = GenAIHelper
                         .addGeminiMessageToJSON(json, context,"bot", bot.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
             json = GenAIHelper.addGeminiMessageToJSON(json,context,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-            response = json;
+            request = json;
         }
 
-        ps.chatSession.json = response;
-        return aiCheckResponse(ps.chatSession.channel, LLMService.chatGemini(response));
+        ps.chatSession.json = request;
+        return aiCheckResponse(ps.chatSession.channel, LLMService.chatGemini(request, LLMConfiguration.geminiTokens.get(botname)));
 
     }
 
