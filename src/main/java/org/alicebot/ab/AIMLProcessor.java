@@ -1612,8 +1612,12 @@ public class AIMLProcessor {
         }
         ps.chatSession.json = request;
 
+        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
+        ps.chatSession.lastResponse = response;
 
-        return aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
+        log.info("GPT response: {}", response);
+
+        return response;
 
     }
 
@@ -1687,7 +1691,13 @@ public class AIMLProcessor {
             request = json;
         }
         ps.chatSession.json = request;
-        return aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
+
+        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
+        ps.chatSession.lastResponse = response;
+
+        log.info("OLLAMA response: {}", response);
+
+        return response;
 
     }
 
@@ -1779,7 +1789,13 @@ public class AIMLProcessor {
         }
 
         ps.chatSession.json = request;
-        return aiCheckResponse(ps.chatSession.channel, LLMService.chatGemini(request, LLMConfiguration.geminiTokens.get(botname)));
+
+        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGemini(request, LLMConfiguration.geminiTokens.get(botname)));
+        ps.chatSession.lastResponse = response;
+
+        log.info("GEMINI response: {}", response);
+
+        return response;
 
     }
 
