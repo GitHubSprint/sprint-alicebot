@@ -32,23 +32,32 @@ public class CalendarUtils {
 	}
 
 
+    public static void main(String[] args) {
+        System.out.println(date("HH:mm", "pl","Europe/Warsaw"));
+        System.out.println(date("HH:mm", "pl","America/Panama"));
+    }
+
     public static String date(String format, String locale, String timezone)  {
         //HashSet<String> attributeNames = Utilities.stringSet("jformat","format","locale","timezone");
         Locale loc;
+        
         log.info("CalendarUtils. date: Format = {} Locale = {} Timezone = {}",
             		format, locale, timezone);
         
         if (format == null) format = "dd/MM/yyyy";
         loc = Locale.forLanguageTag(Objects.requireNonNullElse(locale, "pl"));
-            
+        TimeZone tz = TimeZone.getTimeZone(Objects.requireNonNullElse(timezone, TimeZone.getDefault().getID()));
         
         if (timezone == null) timezone = TimeZone.getDefault().getDisplayName();
-        //log.info("Format = "+format+" Locale = "+locale+" Timezone = "+timezone);
+        log.info("Format = "+format+" Locale = "+locale+" Timezone = "+timezone);
         String dateAsString = new Date().toString();
         try {
-        SimpleDateFormat simpleDateFormat =
-                new SimpleDateFormat(format,loc);
-          dateAsString = simpleDateFormat.format(new Date());
+            SimpleDateFormat simpleDateFormat =
+                    new SimpleDateFormat(format,loc);
+
+            simpleDateFormat.setTimeZone(tz);
+
+            dateAsString = simpleDateFormat.format(new Date());
         }
         catch (Exception ex) {
             log.info("CalendarUtils.date Bad date: Format = {} Locale = {} Timezone = {}",
