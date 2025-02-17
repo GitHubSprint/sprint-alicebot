@@ -1895,9 +1895,26 @@ public class AIMLProcessor {
         String format = getAttributeOrTagValue(node, ps, "format");      // AIML 2.0
         String locale = getAttributeOrTagValue(node, ps, "locale");
         String timezone = getAttributeOrTagValue(node, ps, "timezone");
-        log.info("Format = "+format+" Locale = "+locale+" Timezone = "+timezone);
-        String dateAsString = CalendarUtils.date(format, locale, timezone);
-        //log.info(dateAsString);
+
+        String configLocale = Objects.equals(ps.chatSession.bot.properties.get("locale"), MagicStrings.unknown_property_value) ?
+                null : ps.chatSession.bot.properties.get("locale");
+        String configTimezone = Objects.equals(ps.chatSession.bot.properties.get("timezone"), MagicStrings.unknown_property_value) ?
+                null : ps.chatSession.bot.properties.get("timezone");
+
+        log.info("date format: {} locale: {} timezone: {} configLocale: {} configTimezone: {}",
+                format, locale, timezone, configLocale, configTimezone);
+
+        if(locale == null) locale = configLocale;
+        if(timezone == null) timezone = configTimezone;
+
+        Locale loc = Locale.forLanguageTag(Objects.requireNonNullElse(locale, "pl"));
+        TimeZone tz = TimeZone.getTimeZone(Objects.requireNonNullElse(timezone, TimeZone.getDefault().getID()));
+
+        log.info("Format = {} Locale = {} Timezone = {}", format, locale, timezone);
+
+        String dateAsString = CalendarUtils.date(format, loc, tz);
+
+        log.info(dateAsString);
         return dateAsString;
     }
     
@@ -1913,11 +1930,27 @@ public class AIMLProcessor {
         String format = getAttributeOrTagValue(node, ps, "format");      // AIML 2.0
         String from = getAttributeOrTagValue(node, ps, "from");
         String to = getAttributeOrTagValue(node, ps, "to");
+
+
+        String locale = Objects.equals(ps.chatSession.bot.properties.get("locale"), MagicStrings.unknown_property_value) ?
+                null : ps.chatSession.bot.properties.get("locale");
+        String timezone = Objects.equals(ps.chatSession.bot.properties.get("timezone"), MagicStrings.unknown_property_value) ?
+                null : ps.chatSession.bot.properties.get("timezone");
+
+        log.info("interval format: {} locale: {} timezone: {}", format, locale, timezone);
+
+        if(locale == null || locale.equals(MagicStrings.unknown_property_value)) locale = null;
+        if(timezone == null || timezone.equals(MagicStrings.unknown_property_value)) timezone = null;
+
+        Locale loc = Locale.forLanguageTag(Objects.requireNonNullElse(locale, "pl"));
+        TimeZone tz = TimeZone.getTimeZone(Objects.requireNonNullElse(timezone, TimeZone.getDefault().getID()));
+
+
         if (style == null) style = "years";
         if (format == null) format = "MMMMMMMMM dd, yyyy";
         if (from == null) from = "January 1, 1970";
         if (to == null) {
-            to = CalendarUtils.date(format, null, null);
+            to = CalendarUtils.date(format, loc, tz);
         }
         String result = "unknown";
         if (style.equals("years")) result = ""+Interval.getYearsBetween(from, to, format);
