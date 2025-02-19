@@ -1,9 +1,7 @@
 package org.alicebot.ab;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
@@ -52,6 +50,7 @@ public class Chat {
     public String lastResponse;
     public int maxHistory = 0;
     public String channel;
+    public Map<String, String> llmContext = new HashMap<>();
 
     /**
      * Constructor  (defualt customer ID)

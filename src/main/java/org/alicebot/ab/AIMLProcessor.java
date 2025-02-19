@@ -1503,7 +1503,39 @@ public class AIMLProcessor {
         return response;
     }
 
-    private static String gpt(Node node, ParseState ps) throws Exception {
+    private static String getContext(Node node, ParseState ps) throws Exception {
+
+        String type = getAttributeOrTagValue(node, ps, "type");
+        if(type.equals(MagicStrings.unknown_property_value))
+            return "ERR";
+
+        String context = ps.chatSession.llmContext.get(type);
+        log.info("getContext type: {} context: {}", type, context);
+
+        if(context == null)
+            return "ERR";
+
+        String response = "ERR";
+        switch (type) {
+            case "gpt" -> response = gpt(node, ps, context);
+            case "ollama" -> response = ollama(node, ps, context);
+            case "gemini" -> response = gemini(node, ps, context);
+        }
+        return response;
+    }
+
+    private static String saveContext(Node node, ParseState ps) {
+        String type = getAttributeOrTagValue(node, ps, "type");
+        if(type.equals(MagicStrings.unknown_property_value))
+            return "ERR";
+
+        log.info("saveContext type: {} json: {}", type, ps.chatSession.json);
+
+        ps.chatSession.llmContext.put(type,ps.chatSession.json);
+        return "OK";
+    }
+
+    private static String gpt(Node node, ParseState ps, String context) throws Exception {
 
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
@@ -1552,6 +1584,7 @@ public class AIMLProcessor {
         }
 
         String json = ps.chatSession.json;
+        if(context != null) json = context;
 
         int iMaxResponse;
         if(max_history == null) {
@@ -1584,7 +1617,6 @@ public class AIMLProcessor {
                 }
             }
         }
-
 
         log.info("{} GPT  assistant: {} system: {}", ps.chatSession.sessionId, assistant, system);
 
@@ -1621,7 +1653,7 @@ public class AIMLProcessor {
 
     }
 
-    private static String ollama(Node node, ParseState ps) throws Exception {
+    private static String ollama(Node node, ParseState ps, String context) throws Exception {
 
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
@@ -1642,6 +1674,7 @@ public class AIMLProcessor {
 
 
         String json = ps.chatSession.json;
+        if(context != null) json = context;
 
         String sessionId = ps.chatSession.sessionId;
         log.info("{} gpt  user: {} system: {} stream: {} json: {}", sessionId, user, system, stream, json);
@@ -1701,7 +1734,7 @@ public class AIMLProcessor {
 
     }
 
-    private static String gemini(Node node, ParseState ps) throws Exception {
+    private static String gemini(Node node, ParseState ps, String gContext) throws Exception {
 
         String context = getAttributeOrTagValue(node, ps, "context");
         String bot = getAttributeOrTagValue(node, ps, "bot");
@@ -1749,6 +1782,8 @@ public class AIMLProcessor {
             bot = ps.chatSession.lastResponse;
 
         String json = ps.chatSession.json;
+
+        if(gContext != null) json = gContext;
 
         String sessionId = ps.chatSession.sessionId;
 
@@ -2627,11 +2662,15 @@ public class AIMLProcessor {
             else if (nodeName.equals("plugin")) //sprint
                 return plugin(node, ps);
             else if (nodeName.equals("gpt")) //sprint
-                return gpt(node, ps);
+                return gpt(node, ps, null);
             else if (nodeName.equals("ollama")) //sprint
-                return ollama(node, ps);
+                return ollama(node, ps, null);
             else if (nodeName.equals("gemini")) //sprint
-                return gemini(node, ps);
+                return gemini(node, ps, null);
+            else if (nodeName.equals("save-context")) //sprint
+                return saveContext(node, ps);
+            else if (nodeName.equals("get-context")) //sprint
+                return getContext(node, ps);
             else if (nodeName.equals("predictf")) //sprint
                 return ml(node, ps);
             else if (nodeName.equals("ml")) //sprint
