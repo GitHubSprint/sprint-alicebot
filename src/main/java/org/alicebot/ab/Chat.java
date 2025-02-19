@@ -200,7 +200,7 @@ public class Chat {
             }
             if (maskInputLength > 0 && request.length() > maskInputLength) {
                 request = request.substring(0, maskInputLength);
-                log.warn("Request length {} exceeds max_input_length {}. Truncating request. new request: {}",
+                log.warn("Request length {} exceeds max_input_length {}. Truncating request. New request: {}",
                         request.length(), maskInputLength, request);
             }
 
