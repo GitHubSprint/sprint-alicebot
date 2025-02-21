@@ -1403,16 +1403,12 @@ public class AIMLProcessor {
         String result = MagicStrings.unknown_property_value; 
         try {
             result = Validator.dateFormat(date, format, isPast,  locale);
-        } catch (Exception ex) {            
-            log.error("datetext Error : " + ex, ex);             
+        } catch (Exception ex) {
+            log.error("datetext Error", ex);
         }
-                                        
-        log.info("datetext "
-                + " parameter: " + parameter                                
-                + " date: " + date
-                + " format: " + format
-                + " isPast: " + isPast
-                + " output: " + result);
+
+        log.info("datetext  parameter: {} date: {} format: {} isPast: {} output: {}",
+                parameter, date, format, isPast, result);
         
         return checkEmpty(result);
     }
@@ -1442,15 +1438,11 @@ public class AIMLProcessor {
         try {
             result = Validator.txt2dateTime(date, format, isPast, locale);
         } catch (Exception ex) {            
-            log.error("txt2dateTime Error : " + ex, ex);             
+            log.error("txt2dateTime Error", ex);
         }
-                                        
-        log.info("txt2dateTime "
-                + " parameter: " + parameter                                
-                + " date: " + date
-                + " format: " + format
-                + " isPast: " + isPast
-                + " output: " + result);
+
+        log.info("txt2dateTime  parameter: {} date: {} format: {} isPast: {} output: {}",
+                parameter, date, format, isPast, result);
         
         return checkEmpty(result);
     }
@@ -1473,12 +1465,9 @@ public class AIMLProcessor {
         operation = operation.replaceAll(",", ".");
 
         log.info("math  operation: {} format: {}", operation, format);
-        
-        
-        String result = MagicStrings.unknown_property_value; 
                   
         //result = String.format(format,Validator.math(operation));
-        result = new DecimalFormat(format).format(Validator.math(operation));
+        String result = new DecimalFormat(format).format(Validator.math(operation));
 
         log.info("math  operation: {} format: {} result: {}", operation, format, result);
         
@@ -1506,11 +1495,12 @@ public class AIMLProcessor {
     private static String getContext(Node node, ParseState ps) throws Exception {
 
         String type = getAttributeOrTagValue(node, ps, "type");
-        if(type.equals(MagicStrings.unknown_property_value))
+        String name = getAttributeOrTagValue(node, ps, "name");
+        if(type.equals(MagicStrings.unknown_property_value) || name.equals(MagicStrings.unknown_property_value))
             return "ERR";
 
-        String context = ps.chatSession.llmContext.get(type);
-        log.info("getContext type: {} context: {}", type, context);
+        String context = ps.chatSession.llmContext.get(type+name);
+        log.info("getContext type: {} name: {} context: {}", type,name , context);
 
         if(context == null)
             return "ERR";
@@ -1526,12 +1516,13 @@ public class AIMLProcessor {
 
     private static String saveContext(Node node, ParseState ps) {
         String type = getAttributeOrTagValue(node, ps, "type");
-        if(type.equals(MagicStrings.unknown_property_value))
+        String name = getAttributeOrTagValue(node, ps, "name");
+        if(type.equals(MagicStrings.unknown_property_value) || name.equals(MagicStrings.unknown_property_value))
             return "ERR";
 
-        log.info("saveContext type: {} json: {}", type, ps.chatSession.json);
+        log.info("saveContext type: {} name : {} json: {}", type, name, ps.chatSession.json);
 
-        ps.chatSession.llmContext.put(type,ps.chatSession.json);
+        ps.chatSession.llmContext.put(type+name,ps.chatSession.json);
         return "OK";
     }
 
