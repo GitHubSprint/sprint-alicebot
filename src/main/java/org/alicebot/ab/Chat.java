@@ -187,6 +187,23 @@ public class Chat {
         StringBuilder response= new StringBuilder();
         matchTrace="";
         try {
+
+            String configLocale = Objects.equals(bot.properties.get("max_input_length"), MagicStrings.unknown_property_value) ?
+                    null : bot.properties.get("max_input_length");
+
+            log.info("max_input_length: {}", configLocale);
+
+            int maskInputLength = 0;
+            if (configLocale != null) {
+                 maskInputLength = Integer.parseInt(configLocale);
+                 log.info("max_input_length: {}", maskInputLength);
+            }
+            if (maskInputLength > 0 && request.length() > maskInputLength) {
+                request = request.substring(0, maskInputLength);
+                log.warn("Request length {} exceeds max_input_length {}. Truncating request. New request: {}",
+                        request.length(), maskInputLength, request);
+            }
+
             String norm = bot.preProcessor.normalize(request);
 
             log.info("{} multisentenceRespond request = {} normalized = {}", sessionId, request, norm);
