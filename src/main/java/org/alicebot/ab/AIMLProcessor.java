@@ -1496,11 +1496,15 @@ public class AIMLProcessor {
 
         String type = getAttributeOrTagValue(node, ps, "type");
         String name = getAttributeOrTagValue(node, ps, "name");
+
+        String sessionId = ps.chatSession.sessionId;
+
         if(type.equals(MagicStrings.unknown_property_value) || name.equals(MagicStrings.unknown_property_value))
             return "ERR";
 
         String context = ps.chatSession.llmContext.get(type+name);
-        log.info("getContext type: {} name: {} context: {}", type,name , context);
+
+        log.info("{}\tgetContext type: {} name: {} context: \n{}\n", sessionId, type,name , context);
 
         if(context == null)
             return "ERR";
@@ -1514,16 +1518,27 @@ public class AIMLProcessor {
         return response;
     }
 
-    private static String saveContext(Node node, ParseState ps) {
+    private static String saveContext(Node node, ParseState ps) throws Exception{
         String type = getAttributeOrTagValue(node, ps, "type");
         String name = getAttributeOrTagValue(node, ps, "name");
+
+        String sessionId = ps.chatSession.sessionId;
+
         if(type.equals(MagicStrings.unknown_property_value) || name.equals(MagicStrings.unknown_property_value))
             return "ERR";
 
-        log.info("saveContext type: {} name : {} json: {}", type, name, ps.chatSession.json);
-
         ps.chatSession.llmContext.put(type+name,ps.chatSession.json);
-        return "OK";
+
+        log.info("{}\tsaveContext type: {} name : {} json: \n{}\n", sessionId, type, name, ps.chatSession.json);
+
+
+        String response = "ERR";
+        switch (type) {
+            case "gpt" -> response = gpt(node, ps, ps.chatSession.json);
+            case "ollama" -> response = ollama(node, ps, ps.chatSession.json);
+            case "gemini" -> response = gemini(node, ps, ps.chatSession.json);
+        }
+        return response;
     }
 
     private static String gpt(Node node, ParseState ps, String context) throws Exception {
@@ -1569,32 +1584,26 @@ public class AIMLProcessor {
         else
             model = ps.chatSession.predicates.get(model);
 
-        if(model == null || model.equals("unknown") || model.isEmpty()) {
-            model = readConfig(sessionId, "openai.model");
-            if(model == null) model = "gpt-3.5-turbo";
+        if(model == null || model.equals(MagicStrings.unknown_property_value) || model.isEmpty()) {
+            model = LLMConfiguration.gptDefaultModel;
         }
 
         String json = ps.chatSession.json;
         if(context != null) json = context;
 
-        int iMaxResponse;
-        if(max_history == null) {
-            if(ps.chatSession.maxHistory == 0) {
-                max_history = readConfig(sessionId, "openai.max.history");
-                if (max_history == null) max_history = "15";
-                iMaxResponse = Integer.parseInt(max_history);
-                ps.chatSession.maxHistory = iMaxResponse;
+        int iMaxResponse = ps.chatSession.maxHistory;
+        if(iMaxResponse == 0) {
+            if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
+                iMaxResponse = LLMConfiguration.gptMaxHistory;
             } else {
-                iMaxResponse = ps.chatSession.maxHistory;
+                iMaxResponse = Integer.parseInt(max_history);
             }
-        } else {
-            iMaxResponse = Integer.parseInt(max_history);
             ps.chatSession.maxHistory = iMaxResponse;
         }
 
         String botname = ps.chatSession.bot.name;
 
-        log.info("{} gpt botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {} json: {}",
+        log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {} json: \n{}\n",
                 sessionId, botname, model, user, system, assistant, addparams, iMaxResponse, json);
 
 
@@ -1609,7 +1618,7 @@ public class AIMLProcessor {
             }
         }
 
-        log.info("{} GPT  assistant: {} system: {}", ps.chatSession.sessionId, assistant, system);
+        log.info("{}\tGPT  assistant: {} system: {}", sessionId, assistant, system);
 
         String request;
 
@@ -1638,7 +1647,7 @@ public class AIMLProcessor {
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
         ps.chatSession.lastResponse = response;
 
-        log.info("GPT response: {}", response);
+        log.info("{}\tGPT response: {}", sessionId, response);
 
         return response;
 
@@ -1668,37 +1677,32 @@ public class AIMLProcessor {
         if(context != null) json = context;
 
         String sessionId = ps.chatSession.sessionId;
-        log.info("{} gpt  user: {} system: {} stream: {} json: {}", sessionId, user, system, stream, json);
+        log.info("{} OLLAMA  user: {} system: {} stream: {} json: \n{}\n", sessionId, user, system, stream, json);
 
 
-        if(model == null) {
-            model = readConfig(sessionId, "ollama.model");
-            if(model == null) model = "llama3.1";
+        if(model == null || model.equals(MagicStrings.unknown_property_value) || model.isEmpty()) {
+            model = LLMConfiguration.ollamaDefaultModel;
         }
 
-        int iMaxResponse;
-        if(max_history == null) {
-            if(ps.chatSession.maxHistory == 0) {
-                max_history = readConfig(sessionId, "openai.max.history");
-                if (max_history == null) max_history = "15";
-                iMaxResponse = Integer.parseInt(max_history);
-                ps.chatSession.maxHistory = iMaxResponse;
+        int iMaxResponse = ps.chatSession.maxHistory;
+        if(iMaxResponse == 0) {
+            if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
+                iMaxResponse = LLMConfiguration.ollamaMaxHistory;
             } else {
-                iMaxResponse = ps.chatSession.maxHistory;
+                iMaxResponse = Integer.parseInt(max_history);
             }
-        } else {
-            iMaxResponse = Integer.parseInt(max_history);
             ps.chatSession.maxHistory = iMaxResponse;
         }
+
 
 
         boolean bStream = false;
         if(stream != null) bStream = Boolean.parseBoolean(stream);
 
-        log.info("{} Ollama  model: {} user: {} max_history: {} stream: {}",
+        log.info("{} OLLAMA  model: {} user: {} max_history: {} stream: {}",
                 ps.chatSession.sessionId, model, user, iMaxResponse, bStream);
 
-        log.info("{} Ollama system: {}", ps.chatSession.sessionId, system);
+        log.info("{} OLLAMA system: {}", ps.chatSession.sessionId, system);
 
         String request;
         if(json == null) {
@@ -1779,21 +1783,16 @@ public class AIMLProcessor {
         String sessionId = ps.chatSession.sessionId;
 
         String botname = ps.chatSession.bot.name;
-        log.info("{} gemini botname: {} context: {} user: {} bot: {} json: {}",
+        log.info("{} gemini botname: {} context: {} user: {} bot: {} json: \n{}\n",
                 sessionId, botname, context, user, bot, json);
 
-        int iMaxResponse;
-        if(max_history == null) {
-            if(ps.chatSession.maxHistory == 0) {
-                max_history = readConfig(sessionId, "openai.max.history");
-                if (max_history == null) max_history = "15";
-                iMaxResponse = Integer.parseInt(max_history);
-                ps.chatSession.maxHistory = iMaxResponse;
+        int iMaxResponse = ps.chatSession.maxHistory;
+        if(iMaxResponse == 0) {
+            if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
+                iMaxResponse = LLMConfiguration.geminiMaxHistory;
             } else {
-                iMaxResponse = ps.chatSession.maxHistory;
+                iMaxResponse = Integer.parseInt(max_history);
             }
-        } else {
-            iMaxResponse = Integer.parseInt(max_history);
             ps.chatSession.maxHistory = iMaxResponse;
         }
 
@@ -1823,20 +1822,6 @@ public class AIMLProcessor {
 
         return response;
 
-    }
-
-    private static String readConfig(String sessionId, String property) throws IOException {
-        String configFiles = "config" + File.separator + "config.properties";
-        File f = new File(configFiles);
-        String model = null;
-        if (f.exists()) {
-            Properties prop = new Properties();
-            File fis = new File(configFiles);
-            prop.load(new InputStreamReader(Files.newInputStream(fis.toPath())));
-            model = prop.getProperty(property);
-            log.info("{} config {}: {}", sessionId, property, model);
-        }
-        return model;
     }
 
     public static void resetClassCache() {

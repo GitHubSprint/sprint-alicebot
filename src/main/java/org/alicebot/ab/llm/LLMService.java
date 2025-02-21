@@ -46,7 +46,7 @@ public class LLMService {
             json = json.substring(0,idxReport);
         }
 
-        logger.info("chatGpt json: {}", json);
+        logger.info("chatGpt json: \n{}\n", json);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(LLMConfiguration.gptApiUrl))
@@ -87,7 +87,7 @@ public class LLMService {
             json = json.substring(0,idxReport);
         }
 
-        logger.info("chatGemini json: {}", json);
+        logger.info("chatGemini json: \n{}\n", json);
 
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
@@ -122,7 +122,17 @@ public class LLMService {
             throw new InternalServerException(invalid_llm_configuration);
         }
 
-        logger.info("chatOllama json: {}", json);
+        logger.info("chatOllama json: \n{}\n", json);
+
+        String report = "";
+        int idxReport = json.indexOf("{\"report\":");
+        if(idxReport >= 0) {
+            CustomReport customReport = mapper.readValue(json.substring(idxReport), CustomReport.class);
+            if(customReport != null) {
+                report = mapper.writeValueAsString(customReport);
+            }
+            json = json.substring(0,idxReport);
+        }
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(LLMConfiguration.ollamaApiUrl))
@@ -137,7 +147,7 @@ public class LLMService {
         logger.info("chatOllama response: {}", response);
 
         if(response != null) {
-            return response.getMessage().getContent();
+            return response.getMessage().getContent() + report;
         }
         return MagicStrings.error_bot_response();
     }

@@ -44,14 +44,28 @@ public class SprintUtils {
                                               String gptApiUrl,
                                               String ollamaApiUrl,
                                               Map<String, String> geminiTokens,
-                                              String geminiApiUrl)
+                                              String geminiApiUrl,
+                                              String gptDefaultModel,
+                                              String ollamaDefaultModel,
+                                              int gptMaxHistory,
+                                              int ollamaMaxHistory,
+                                              int geminiMaxHistory)
     {
-        log.info("updateLLMConfiguration gptApiUrl: {} ollamaApiUrl: {}  geminiApiUrl: {}", gptApiUrl, ollamaApiUrl, geminiApiUrl);
         LLMConfiguration.gptTokens = new HashMap<>(gptTokens);
         LLMConfiguration.gptApiUrl = gptApiUrl;
         LLMConfiguration.ollamaApiUrl = ollamaApiUrl;
         LLMConfiguration.geminiTokens = new HashMap<>(geminiTokens);
         LLMConfiguration.geminiApiUrl = geminiApiUrl;
+
+        LLMConfiguration.gptDefaultModel = gptDefaultModel;
+        LLMConfiguration.ollamaDefaultModel = ollamaDefaultModel;
+        LLMConfiguration.gptMaxHistory = gptMaxHistory;
+        LLMConfiguration.ollamaMaxHistory = ollamaMaxHistory;
+        LLMConfiguration.geminiMaxHistory = geminiMaxHistory;
+
+        log.info("updateLLMConfiguration gptApiUrl: {} ollamaApiUrl: {}  geminiApiUrl: {}", LLMConfiguration.gptApiUrl, LLMConfiguration.ollamaApiUrl, LLMConfiguration.geminiApiUrl);
+        log.info("updateLLMConfiguration gptDefaultModel: {} ollamaDefaultModel: {}", LLMConfiguration.gptDefaultModel, LLMConfiguration.ollamaDefaultModel);
+        log.info("updateLLMConfiguration gptMaxHistory: {} ollamaMaxHistory: {} geminiMaxHistory: {}", LLMConfiguration.gptMaxHistory, LLMConfiguration.ollamaMaxHistory, LLMConfiguration.geminiMaxHistory);
     }
 
 
