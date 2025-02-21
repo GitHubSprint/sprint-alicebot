@@ -193,6 +193,8 @@ public class Chat {
             String configLocale = Objects.equals(bot.properties.get("max_input_length"), MagicStrings.unknown_property_value) ?
                     null : bot.properties.get("max_input_length");
 
+            log.info("max_input_length: {}", configLocale);
+
             int maskInputLength = 0;
             if (configLocale != null) {
                  maskInputLength = Integer.parseInt(configLocale);
