@@ -3,13 +3,16 @@ package org.alicebot.ab.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.alicebot.ab.llm.LLMConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.*;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class SprintBotDbUtils {
     private static final Logger log = LoggerFactory.getLogger(SprintBotDbUtils.class);
@@ -18,15 +21,44 @@ public class SprintBotDbUtils {
     private static String username;
     private static String password;
     private static String schema;
+    private static String timezone;
     private final static ObjectMapper mapper = new ObjectMapper();
 
 
-    public static void updateConfiguration(String newUrl, String newDriverClassName, String newUsername, String newPassword, String newSchema) {
+    public static void updateConfiguration(String newUrl, String newDriverClassName, String newUsername, String newPassword, String newSchema, String newTimezone) {
         url = newUrl;
         username = newUsername;
         password = newPassword;
         schema = newSchema;
-        log.info("updateConfiguration url: {} driverClassName: {} username: {} schema: {}", url, newDriverClassName, username, schema);
+        timezone = newTimezone;
+        log.info("updateConfiguration url: {} driverClassName: {} username: {} schema: {} timezone: {}", url, newDriverClassName, username, schema, timezone);
+    }
+
+
+    public static CompletableFuture<Void> saveReportAsync(String name, String symbol, Report report, String sessionId) {
+        return CompletableFuture.runAsync(() -> {
+            log.info("saveReport sessionId: {} name: {} symbol: {} report: {}", sessionId, name, symbol, report);
+
+            if (url == null) {
+                log.warn("{} saveReport invalid dbUrl: {}", sessionId, url);
+                return;
+            }
+
+            switch (name) {
+                case "fraza":
+                    botFraza(symbol, report, sessionId);
+                    break;
+                case "ocena":
+                    botOcena(symbol, report, sessionId);
+                    break;
+                case "info":
+                    botInfo(name, symbol, report, sessionId);
+                    break;
+                default:
+                    log.warn("{} saveReport invalid reportName: {} ", sessionId, name);
+                    break;
+            }
+        });
     }
 
 
@@ -162,6 +194,90 @@ public class SprintBotDbUtils {
             log.error("{} getdata err", sessionId, e);
         }
         return result;
+    }
+
+    private static void botInfo(String name, String symbol, Report report, String sessionId) {
+        String sql = "INSERT INTO " + schema + ".bot_info (botname, idsesji, info, klucz, symbol, timestamp, wartosc) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setString(1, name);
+            preparedStatement.setString(2, sessionId);
+            preparedStatement.setString(3, report.info());
+            preparedStatement.setString(4, report.klucz());
+            preparedStatement.setString(5, symbol);
+            preparedStatement.setTimestamp(6, getTimestamp());
+            preparedStatement.setString(7, report.wartosc());
+
+            int rowsAffected = preparedStatement.executeUpdate();
+            log.info("botInfo save report rows affected: {}", rowsAffected);
+
+        } catch (SQLException e) {
+            log.warn("botInfo save report error", e);
+        }
+    }
+
+    private static void botOcena(String symbol, Report report, String sessionId) {
+        String sql = "INSERT INTO " + schema + ".bot_ocena (idsesji, licznikfraz, licznikocen, ocena, sposoboceny, symbol, timestamp) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setString(1, sessionId);
+            if(report.licznikFraz() != null)
+                preparedStatement.setInt(2, Integer.parseInt(report.licznikFraz()));
+            if(report.licznikOcen() != null)
+                preparedStatement.setInt(3, Integer.parseInt(report.licznikOcen()));
+            preparedStatement.setString(4, report.ocena());
+            preparedStatement.setString(5, report.sposobOceny());
+            preparedStatement.setString(6, symbol);
+            preparedStatement.setTimestamp(7, getTimestamp());
+
+
+            int rowsAffected = preparedStatement.executeUpdate();
+            log.info("botOcena save report rows affected: {}", rowsAffected);
+
+        } catch (SQLException e) {
+            log.warn("botOcena save report error", e);
+        }
+    }
+
+    private static void botFraza(String symbol, Report report, String sessionId) {
+        String sql = "INSERT INTO " + schema + ".BOT_FRAZA (fakt, fraza, frazacala, idsesji, label, licznikfraz, rozpoznanie, symbol, timestamp, wiarygodnosc) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+
+            preparedStatement.setString(1, report.fakt());
+            preparedStatement.setString(2, report.fraza());
+            preparedStatement.setString(3, report.frazaCala());
+            preparedStatement.setString(4, sessionId);
+            preparedStatement.setString(5, report.label());
+            if(report.licznikFraz() != null)
+                preparedStatement.setInt(6, Integer.parseInt(report.licznikFraz()));
+            preparedStatement.setString(7, report.rozpoznanie());
+            preparedStatement.setString(8, symbol);
+            preparedStatement.setTimestamp(9, getTimestamp());
+            if(report.wiarygodnosc() != null)
+                preparedStatement.setInt(10, Integer.parseInt(report.wiarygodnosc()));
+
+            int rowsAffected = preparedStatement.executeUpdate();
+            log.info("botFraza save report rows affected: {}", rowsAffected);
+
+        } catch (SQLException e) {
+            log.warn("botFraza save report error", e);
+        }
+    }
+
+
+    public static Timestamp getTimestamp() {
+        Instant instant = Instant.now();
+        ZonedDateTime zdt = instant.atZone(ZoneId.of(timezone));
+        return Timestamp.from(zdt.toInstant());
     }
 
     public static String setData(String parameter, String sessionId) {
