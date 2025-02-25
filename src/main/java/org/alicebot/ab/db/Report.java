@@ -1,4 +1,4 @@
-package org.alicebot.ab.report;
+package org.alicebot.ab.db;
 
 public record Report(
         String frazaCala,

@@ -53,6 +53,7 @@ public class Chat {
     public String lastResponse;
     public int maxHistory = 0;
     public String channel;
+    public String symbol;
 
     /**
      * Constructor  (defualt customer ID)
@@ -60,7 +61,7 @@ public class Chat {
      * @param bot    the bot to chat with
      */
     public Chat(Bot bot)  {
-        this(bot, UUID.randomUUID().toString(), "CHAT");
+        this(bot, UUID.randomUUID().toString(), "CHAT", "sprint");
     }
 
     /**
@@ -68,11 +69,12 @@ public class Chat {
      * @param bot             bot to chat with
      * @param sessionId      unique session id      
      */
-    public Chat(Bot bot, String sessionId, String channel) {
+    public Chat(Bot bot, String sessionId, String channel, String symbol) {
         this.sessionId = sessionId;
         this.bot = bot;
         this.sessionCreated = Calendar.getInstance().getTime();
         this.channel = channel;
+        this.symbol = symbol;
         History<String> contextThatHistory = new History<>();
         contextThatHistory.add(MagicStrings.default_that);
         thatHistory.add(contextThatHistory);

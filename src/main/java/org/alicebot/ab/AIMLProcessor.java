@@ -28,14 +28,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.llm.GenAIHelper;
 import org.alicebot.ab.llm.LLMConfiguration;
 import org.alicebot.ab.llm.LLMService;
-import org.alicebot.ab.report.GenReportHelper;
-import org.alicebot.ab.report.Report;
+import org.alicebot.ab.db.Report;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
@@ -1324,7 +1324,7 @@ public class AIMLProcessor {
         return checkEmpty(result);
     }
 
-    private static String reportSave(Node node, ParseState ps) throws Exception {
+    private static String reportSave(Node node, ParseState ps) {
         String reportName = getAttributeOrTagValue(node, ps, "report_name");
 
         //fraza
@@ -1360,12 +1360,18 @@ public class AIMLProcessor {
                 getPredicate(ocena,node, ps),
                 getPredicate(botName,node, ps),
                 getPredicate(info,node, ps),
-                getPredicate(klucz,node, ps),
+                getPredicate(klucz,     node, ps),
                 getPredicate(wartosc,node, ps));
 
-        return GenReportHelper
-                .reportFraza(reportName, report)
-                .toString();
+        CompletableFuture<Void> future = SprintBotDbUtils.saveReportAsync(reportName, ps.chatSession.symbol, report, ps.chatSession.sessionId);
+
+        future.thenRun(() -> log.info("saveReportAsync reportName: {} saved", reportName))
+                .exceptionally(ex -> {
+                    log.warn("saveReportAsync Error", ex);
+                    return null;
+                });
+
+        return "";
     }
 
     private static String getPredicate(String value, Node node, ParseState ps) {
