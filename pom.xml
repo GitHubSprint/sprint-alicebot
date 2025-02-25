@@ -91,10 +91,11 @@
 			<version>2.18.2</version>
 		</dependency>
 
+		<!-- dependency used in SprintBot server spring test -->
 		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20250107</version>
+			<groupId>com.vaadin.external.google</groupId>
+			<artifactId>android-json</artifactId>
+			<version>0.0.20131108.vaadin1</version>
 		</dependency>
 
 	</dependencies>
