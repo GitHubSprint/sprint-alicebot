@@ -25,12 +25,22 @@ import static org.alicebot.ab.MagicStrings.invalid_llm_configuration;
 public class LLMService {
     private static final Logger logger = LoggerFactory.getLogger(LLMService.class);
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static final HttpClient client;
-    
+    private static HttpClient client;
+
+
     static {
-        client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(10))
+        client = createHttpClient(LLMConfiguration.timeout);
+    }
+
+    private static HttpClient createHttpClient(int timeout) {
+        return HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(timeout))
                 .build();
+    }
+
+    public static void setTimeout(int timeout) {
+        LLMConfiguration.timeout = timeout;
+        client = createHttpClient(LLMConfiguration.timeout);
     }
 
     public static String chatGpt(String json, String token) throws Exception {

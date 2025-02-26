@@ -1618,6 +1618,14 @@ public class AIMLProcessor {
         }
         ps.chatSession.json = request;
 
+        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
+                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
+
+        if(LLMConfiguration.timeout != timeout) {
+            LLMService.setTimeout(timeout);
+            log.info("GPT new timeout: {}", timeout);
+        }
+
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
         ps.chatSession.lastResponse = response;
 
@@ -1697,6 +1705,14 @@ public class AIMLProcessor {
             request = json;
         }
         ps.chatSession.json = request;
+
+        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
+                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
+
+        if(LLMConfiguration.timeout != timeout) {
+            LLMService.setTimeout(timeout);
+            log.info("OLLAMA new timeout: {}", timeout);
+        }
 
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
         ps.chatSession.lastResponse = response;
@@ -1795,6 +1811,14 @@ public class AIMLProcessor {
         }
 
         ps.chatSession.json = request;
+
+        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
+                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
+
+        if(LLMConfiguration.timeout != timeout) {
+            LLMService.setTimeout(timeout);
+            log.info("GEMINI new timeout: {}", timeout);
+        }
 
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGemini(request, LLMConfiguration.geminiTokens.get(botname)));
         ps.chatSession.lastResponse = response;
