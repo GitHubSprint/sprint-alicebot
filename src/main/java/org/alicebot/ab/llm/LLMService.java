@@ -1,6 +1,7 @@
 package org.alicebot.ab.llm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.alicebot.ab.MagicNumbers;
 import org.alicebot.ab.MagicStrings;
 import org.alicebot.ab.exception.InternalServerException;
 import org.alicebot.ab.llm.dto.google.Candidates;
@@ -17,6 +18,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 
 import static org.alicebot.ab.MagicStrings.invalid_llm_configuration;
 
@@ -27,6 +29,7 @@ public class LLMService {
     
     static {
         client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(10))
                 .build();
     }
 
