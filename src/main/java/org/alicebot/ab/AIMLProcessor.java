@@ -1498,76 +1498,56 @@ public class AIMLProcessor {
         return response;
     }
 
-    private static String getContext(Node node, ParseState ps) throws Exception {
-
+    private static String saveContext(Node node, ParseState ps) {
         String type = getAttributeOrTagValue(node, ps, "type");
         String name = getAttributeOrTagValue(node, ps, "name");
 
         String sessionId = ps.chatSession.sessionId;
 
         if(type.equals(MagicStrings.unknown_property_value) || name.equals(MagicStrings.unknown_property_value))
-            return "ERR";
-
-        String context = ps.chatSession.llmContext.get(type+name);
-
-        log.info("{}\tgetContext type: {} name: {} context: \n{}\n", sessionId, type,name , context);
-
-        if(context == null)
-            return "ERR";
-
-        String response = "ERR";
-        switch (type) {
-            case "gpt" -> response = gpt(node, ps, context);
-            case "ollama" -> response = ollama(node, ps, context);
-            case "gemini" -> response = gemini(node, ps, context);
-        }
-        return response;
-    }
-
-    private static String saveContext(Node node, ParseState ps) throws Exception{
-        String type = getAttributeOrTagValue(node, ps, "type");
-        String name = getAttributeOrTagValue(node, ps, "name");
-
-        String sessionId = ps.chatSession.sessionId;
-
-        if(type.equals(MagicStrings.unknown_property_value) || name.equals(MagicStrings.unknown_property_value))
-            return "ERR";
+            return "";
 
         ps.chatSession.llmContext.put(type+name,ps.chatSession.json);
 
         log.info("{}\tsaveContext type: {} name : {} json: \n{}\n", sessionId, type, name, ps.chatSession.json);
 
-
-        String response = "ERR";
-        switch (type) {
-            case "gpt" -> response = gpt(node, ps, ps.chatSession.json);
-            case "ollama" -> response = ollama(node, ps, ps.chatSession.json);
-            case "gemini" -> response = gemini(node, ps, ps.chatSession.json);
-        }
-        return response;
+        return "";
     }
 
-    private static String gpt(Node node, ParseState ps, String context) throws Exception {
+    private static String gpt(Node node, ParseState ps) throws Exception {
 
         String model = getAttributeOrTagValue(node, ps, "model");
-        String system = getAttributeOrTagValue(node, ps, "system");
+
         String assistant = getAttributeOrTagValue(node, ps, "assistant");
-        String user = getAttributeOrTagValue(node, ps, "user");
         String max_history = getAttributeOrTagValue(node, ps, "max_history");
 
-        String addparams = getAttributeOrTagValue(node, ps, "addparams");
+        String contextName = getAttributeOrTagValue(node, ps, "context");
+        if(contextName == null)
+            contextName = evalTagContent(node, ps, null);
+        else
+            contextName = ps.chatSession.predicates.get(contextName);
 
+        String context = null;
+
+        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
+            context = ps.chatSession.llmContext.get("gpt"+contextName);
+            log.info("GPT context name: {} value: {}", contextName, context);
+        }
+
+
+        String addparams = getAttributeOrTagValue(node, ps, "addparams");
         if(addparams == null)
             addparams = evalTagContent(node, ps, null);
         else
             addparams = ps.chatSession.predicates.get(addparams);
 
+        String user = getAttributeOrTagValue(node, ps, "user");
         if(user == null)
             user = evalTagContent(node, ps, null);
         else
             user = ps.chatSession.predicates.get(user);
 
-
+        String system = getAttributeOrTagValue(node, ps, "system");
         if(system == null)
             system = evalTagContent(node, ps, null);
         else
@@ -1659,13 +1639,29 @@ public class AIMLProcessor {
 
     }
 
-    private static String ollama(Node node, ParseState ps, String context) throws Exception {
+    private static String ollama(Node node, ParseState ps) throws Exception {
 
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
         String user = getAttributeOrTagValue(node, ps, "user");
         String stream = getAttributeOrTagValue(node, ps, "stream");
         String max_history = getAttributeOrTagValue(node, ps, "max_history");
+
+
+        String contextName = getAttributeOrTagValue(node, ps, "context");
+        if(contextName == null)
+            contextName = evalTagContent(node, ps, null);
+        else
+            contextName = ps.chatSession.predicates.get(contextName);
+
+
+        String context = null;
+
+        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
+            context = ps.chatSession.llmContext.get("gpt"+contextName);
+            log.info("OLLAMA context name: {} value: {}", contextName, context);
+        }
+
 
         if(user == null)
             user = evalTagContent(node, ps, null);
@@ -1735,7 +1731,7 @@ public class AIMLProcessor {
 
     }
 
-    private static String gemini(Node node, ParseState ps, String gContext) throws Exception {
+    private static String gemini(Node node, ParseState ps) throws Exception {
 
         String context = getAttributeOrTagValue(node, ps, "context");
         String bot = getAttributeOrTagValue(node, ps, "bot");
@@ -1760,6 +1756,19 @@ public class AIMLProcessor {
             }
         }
 
+        String contextName = getAttributeOrTagValue(node, ps, "context");
+        if(contextName == null)
+            contextName = evalTagContent(node, ps, null);
+        else
+            contextName = ps.chatSession.predicates.get(contextName);
+
+
+        String gContext = null;
+
+        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
+            gContext = ps.chatSession.llmContext.get("gpt"+contextName);
+            log.info("GEMINI context name: {} value: {}", contextName, gContext);
+        }
 
         if(user == null)
             user = evalTagContent(node, ps, null);
@@ -2644,15 +2653,13 @@ public class AIMLProcessor {
             else if (nodeName.equals("plugin")) //sprint
                 return plugin(node, ps);
             else if (nodeName.equals("gpt")) //sprint
-                return gpt(node, ps, null);
+                return gpt(node, ps);
             else if (nodeName.equals("ollama")) //sprint
-                return ollama(node, ps, null);
+                return ollama(node, ps);
             else if (nodeName.equals("gemini")) //sprint
-                return gemini(node, ps, null);
+                return gemini(node, ps);
             else if (nodeName.equals("save-context")) //sprint
                 return saveContext(node, ps);
-            else if (nodeName.equals("get-context")) //sprint
-                return getContext(node, ps);
             else if (nodeName.equals("predictf")) //sprint
                 return ml(node, ps);
             else if (nodeName.equals("ml")) //sprint
