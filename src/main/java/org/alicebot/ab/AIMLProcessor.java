@@ -1500,16 +1500,21 @@ public class AIMLProcessor {
 
     private static String saveContext(Node node, ParseState ps) {
         String type = getAttributeOrTagValue(node, ps, "type");
-        String name = getAttributeOrTagValue(node, ps, "name");
+        String contextName = getAttributeOrTagValue(node, ps, "name");
+
+        if(contextName == null)
+            contextName = evalTagContent(node, ps, null);
+        else
+            contextName = ps.chatSession.predicates.get(contextName);
 
         String sessionId = ps.chatSession.sessionId;
 
-        if(type.equals(MagicStrings.unknown_property_value) || name.equals(MagicStrings.unknown_property_value))
+        if(type.equals(MagicStrings.unknown_property_value) || contextName.equals(MagicStrings.unknown_property_value))
             return "";
 
-        ps.chatSession.llmContext.put(type+name,ps.chatSession.json);
+        ps.chatSession.llmContext.put(type+contextName,ps.chatSession.json);
 
-        log.info("{}\tsaveContext type: {} name : {} json: \n{}\n", sessionId, type, name, ps.chatSession.json);
+        log.info("{}\tsaveContext type: {} name : {} json: \n{}\n", sessionId, type, contextName, ps.chatSession.json);
 
         return "";
     }
@@ -1529,9 +1534,11 @@ public class AIMLProcessor {
 
         String context = null;
 
+        String sessionId = ps.chatSession.sessionId;
+
         if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
             context = ps.chatSession.llmContext.get("gpt"+contextName);
-            log.info("GPT context name: {} value: {}", contextName, context);
+            log.info("{}\tgetContext context name: {} value: {}", sessionId, contextName, context);
         }
 
 
@@ -1563,7 +1570,7 @@ public class AIMLProcessor {
         if(assistant == null || assistant.equals("unknown") || assistant.isEmpty())
             assistant = ps.chatSession.lastResponse;
 
-        String sessionId = ps.chatSession.sessionId;
+
 
         if(model == null)
             model = evalTagContent(node, ps, null);
