@@ -1514,7 +1514,7 @@ public class AIMLProcessor {
 
         ps.chatSession.llmContext.put(type+contextName,ps.chatSession.json);
 
-        log.info("{}\tsaveContext type: {} name : {} json: \n{}\n", sessionId, type, contextName, ps.chatSession.json);
+        log.info("{}\tsaveContext type: {} name : {} json:\t{}", sessionId, type, contextName, ps.chatSession.json);
 
         return "";
     }
@@ -1538,7 +1538,7 @@ public class AIMLProcessor {
 
         if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
             context = ps.chatSession.llmContext.get("gpt"+contextName);
-            log.info("{}\tgetContext context name: {} value: {}", sessionId, contextName, context);
+            log.info("{}\tgetContext context name: {} value:\t{}", sessionId, contextName, context);
         }
 
 
