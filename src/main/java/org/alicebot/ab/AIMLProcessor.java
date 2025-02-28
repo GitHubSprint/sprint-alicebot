@@ -1509,12 +1509,14 @@ public class AIMLProcessor {
 
         String sessionId = ps.chatSession.sessionId;
 
+        log.info("{}\tsaveContext type: {} name : {}", sessionId, type, contextName);
+
         if(type.equals(MagicStrings.unknown_property_value) || contextName.equals(MagicStrings.unknown_property_value))
             return "";
 
         ps.chatSession.llmContext.put(type+contextName,ps.chatSession.json);
 
-        log.info("{}\tsaveContext type: {} name : {} json:\t{}", sessionId, type, contextName, ps.chatSession.json);
+        log.info("{}\tsaveContext json:\t{}", sessionId, ps.chatSession.json);
 
         return "";
     }
