@@ -28,11 +28,14 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Properties;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.llm.GenAIHelper;
-import org.alicebot.ab.report.GenReportHelper;
-import org.alicebot.ab.report.Report;
+import org.alicebot.ab.llm.LLMConfiguration;
+import org.alicebot.ab.llm.LLMService;
+import org.alicebot.ab.db.Report;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
@@ -52,11 +55,10 @@ import pl.sprint.sprintvalidator.utils.PeselValidator;
  * AIML 2.0 Working Draft document
  * https://docs.google.com/document/d/1wNT25hJRyupcG51aO89UcQEiG-HkXRXusukADpFnDs4/pub
  */
-public class AIMLProcessor 
-{
+public class AIMLProcessor {
 	
     private static final Logger log = LoggerFactory.getLogger(AIMLProcessor.class);        
-    
+
     /**
      * when parsing an AIML file, process a category element.
      *
@@ -510,8 +512,8 @@ public class AIMLProcessor
             input = ps.chatSession.currentQuestion;
         }
 
-        log.info(ps.chatSession.sessionId + " ML parameter: " + parameter + " input: " + input);
-        log.info(ps.chatSession.sessionId + " ML model: " + model + " nBest: " + nBest +   " threshold:  " + threshold + " score:" + score);
+        log.info("{} ML parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
+        log.info("{} ML model: {} nBest: {} threshold:  {} score:{}", ps.chatSession.sessionId, model, nBest, threshold, score);
 
         String out = checkEmpty(SprintUtils.ml(model, nBest, threshold, score, input, ps.chatSession.sessionId));
 
@@ -820,10 +822,7 @@ public class AIMLProcessor
 
         String result = Validator.WordsToNumbersDec(language, input);
 
-        log.info("txt2dec "
-                + " parameter: " + parameter
-                + " input: " + input
-                + " result: " + result);
+        log.info("txt2dec  parameter: {} input: {} result: {}", parameter, input, result);
 
         return checkEmpty(result);
     }
@@ -855,7 +854,7 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
 
-    private static String getrecord(Node node, ParseState ps) {
+    private static String getRecord(Node node, ParseState ps) {
 
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
@@ -869,11 +868,63 @@ public class AIMLProcessor
             input = parameter;
 
 
-        String result = "service.fetchData(input);";
+        String result = SprintBotDbUtils.getRecord(input);
 
-        log.info("getrecord  parameter: {} input: {} result: {}", parameter, input, result);
+        log.info("getRecord  parameter: {} input: {} result: {}", parameter, input, result);
 
         return checkEmpty(result);
+    }
+    private static String getData(Node node, ParseState ps) {
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+        String result = SprintBotDbUtils.getData(input, ps.chatSession.sessionId);
+
+        log.info("{} getdata parameter: {} input: {} result: {}", ps.chatSession.sessionId, parameter, input, result);
+
+        return checkEmpty(result);
+    }
+
+    private static String updateRecord(Node node, ParseState ps) {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+        String result = SprintBotDbUtils.updateRecord(input);
+        log.info("updateRecord  parameter: {} input: {} result: {}", parameter, input, result);
+        return result == null ? "ERR" : result;
+    }
+    private static String setData(Node node, ParseState ps) {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+        String result = SprintBotDbUtils.setData(input, ps.chatSession.sessionId);
+        log.info("{} setData  parameter: {} input: {} result: {}", ps.chatSession.sessionId, parameter, input, result);
+        return result == null ? "ERR" : result;
     }
 
     private static String dateadd(Node node, ParseState ps) throws ParseException {
@@ -1273,7 +1324,7 @@ public class AIMLProcessor
         return checkEmpty(result);
     }
 
-    private static String reportSave(Node node, ParseState ps) throws Exception {
+    private static String reportSave(Node node, ParseState ps) {
         String reportName = getAttributeOrTagValue(node, ps, "report_name");
 
         //fraza
@@ -1309,12 +1360,18 @@ public class AIMLProcessor
                 getPredicate(ocena,node, ps),
                 getPredicate(botName,node, ps),
                 getPredicate(info,node, ps),
-                getPredicate(klucz,node, ps),
+                getPredicate(klucz,     node, ps),
                 getPredicate(wartosc,node, ps));
 
-        return GenReportHelper
-                .reportFraza(reportName, report)
-                .toString();
+        CompletableFuture<Void> future = SprintBotDbUtils.saveReportAsync(reportName, ps.chatSession.symbol, report, ps.chatSession.sessionId);
+
+        future.thenRun(() -> log.info("saveReportAsync reportName: {} saved", reportName))
+                .exceptionally(ex -> {
+                    log.warn("saveReportAsync Error", ex);
+                    return null;
+                });
+
+        return "";
     }
 
     private static String getPredicate(String value, Node node, ParseState ps) {
@@ -1352,16 +1409,12 @@ public class AIMLProcessor
         String result = MagicStrings.unknown_property_value; 
         try {
             result = Validator.dateFormat(date, format, isPast,  locale);
-        } catch (Exception ex) {            
-            log.error("datetext Error : " + ex, ex);             
+        } catch (Exception ex) {
+            log.error("datetext Error", ex);
         }
-                                        
-        log.info("datetext "
-                + " parameter: " + parameter                                
-                + " date: " + date
-                + " format: " + format
-                + " isPast: " + isPast
-                + " output: " + result);
+
+        log.info("datetext  parameter: {} date: {} format: {} isPast: {} output: {}",
+                parameter, date, format, isPast, result);
         
         return checkEmpty(result);
     }
@@ -1391,15 +1444,11 @@ public class AIMLProcessor
         try {
             result = Validator.txt2dateTime(date, format, isPast, locale);
         } catch (Exception ex) {            
-            log.error("txt2dateTime Error : " + ex, ex);             
+            log.error("txt2dateTime Error", ex);
         }
-                                        
-        log.info("txt2dateTime "
-                + " parameter: " + parameter                                
-                + " date: " + date
-                + " format: " + format
-                + " isPast: " + isPast
-                + " output: " + result);
+
+        log.info("txt2dateTime  parameter: {} date: {} format: {} isPast: {} output: {}",
+                parameter, date, format, isPast, result);
         
         return checkEmpty(result);
     }
@@ -1420,44 +1469,94 @@ public class AIMLProcessor
                                                                
         
         operation = operation.replaceAll(",", ".");
-        
-        log.info("math "
-                + " operation: " + operation                                
-                + " format: " + format);                                                
-        
-        
-        String result = MagicStrings.unknown_property_value; 
+
+        log.info("math  operation: {} format: {}", operation, format);
                   
         //result = String.format(format,Validator.math(operation));
-        result = new DecimalFormat(format).format(Validator.math(operation));
-                                        
-        log.info("math "
-                + " operation: " + operation                                
-                + " format: " + format                                
-                + " result: " + result);                               
+        String result = new DecimalFormat(format).format(Validator.math(operation));
+
+        log.info("math  operation: {} format: {} result: {}", operation, format, result);
         
         return checkEmpty(result);
     }
 
 
-    private static String gpt(Node node, ParseState ps) throws Exception {
-        String model = getAttributeOrTagValue(node, ps, "model");
-        String system = getAttributeOrTagValue(node, ps, "system");
-        String assistant = getAttributeOrTagValue(node, ps, "assistant");
-        String temperature = getAttributeOrTagValue(node, ps, "temperature");
-        String max_tokens = getAttributeOrTagValue(node, ps, "max_tokens");
-        String max_history = getAttributeOrTagValue(node, ps, "max_history");
-        String top_p = getAttributeOrTagValue(node, ps, "top_p");
-        String frequency_penalty = getAttributeOrTagValue(node, ps, "frequency_penalty");
-        String presence_penalty = getAttributeOrTagValue(node, ps, "presence_penalty");
-        String user = getAttributeOrTagValue(node, ps, "user");
+    private static String aiCheckResponse(String channel, String response) {
+        log.info("aiCheckResponse channel: {} response: {}", channel, response);
+        if(channel == null)
+            return response;
 
+        if(response == null)
+            return null;
+
+        if(channel.equals("VOICE"))
+            response = response
+                    .replace("\\n",".");
+        else
+            response = response
+                    .replace("\\n","<br />");
+        return response;
+    }
+
+    private static String saveContext(Node node, ParseState ps) {
+        String type = getAttributeOrTagValue(node, ps, "type");
+        String contextName = getAttributeOrTagValue(node, ps, "name");
+
+        if(contextName == null)
+            contextName = evalTagContent(node, ps, null);
+        else
+            contextName = ps.chatSession.predicates.get(contextName);
+
+        String sessionId = ps.chatSession.sessionId;
+
+        log.info("{}\tsaveContext type: {} name : {}", sessionId, type, contextName);
+
+        if(type.equals(MagicStrings.unknown_property_value) || contextName.equals(MagicStrings.unknown_property_value))
+            return "";
+
+        ps.chatSession.llmContext.put(type+contextName,ps.chatSession.json);
+
+        log.info("{}\tsaveContext json:\t{}", sessionId, ps.chatSession.json);
+
+        return "";
+    }
+
+    private static String gpt(Node node, ParseState ps) throws Exception {
+
+        String model = getAttributeOrTagValue(node, ps, "model");
+
+        String assistant = getAttributeOrTagValue(node, ps, "assistant");
+        String max_history = getAttributeOrTagValue(node, ps, "max_history");
+
+        String contextName = getAttributeOrTagValue(node, ps, "context");
+        if(contextName == null)
+            contextName = evalTagContent(node, ps, null);
+        else
+            contextName = ps.chatSession.predicates.get(contextName);
+
+        String context = null;
+
+        String sessionId = ps.chatSession.sessionId;
+
+        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
+            context = ps.chatSession.llmContext.get("gpt"+contextName);
+            log.info("{}\tgetContext context name: {} value:\t{}", sessionId, contextName, context);
+        }
+
+
+        String addparams = getAttributeOrTagValue(node, ps, "addparams");
+        if(addparams == null)
+            addparams = evalTagContent(node, ps, null);
+        else
+            addparams = ps.chatSession.predicates.get(addparams);
+
+        String user = getAttributeOrTagValue(node, ps, "user");
         if(user == null)
             user = evalTagContent(node, ps, null);
         else
             user = ps.chatSession.predicates.get(user);
 
-
+        String system = getAttributeOrTagValue(node, ps, "system");
         if(system == null)
             system = evalTagContent(node, ps, null);
         else
@@ -1473,59 +1572,59 @@ public class AIMLProcessor
         if(assistant == null || assistant.equals("unknown") || assistant.isEmpty())
             assistant = ps.chatSession.lastResponse;
 
-        String json = ps.chatSession.json;
-
-        String sessionId = ps.chatSession.sessionId;
-        log.info("{} gpt  user: {} system: {} assistant: {} json: {}", sessionId, user, system, assistant, json);
 
 
-        if(model == null) {
-            model = readConfig(sessionId, "openai.model");
-            if(model == null) model = "gpt-3.5-turbo";
+        if(model == null)
+            model = evalTagContent(node, ps, null);
+        else
+            model = ps.chatSession.predicates.get(model);
+
+        if(model == null || model.equals(MagicStrings.unknown_property_value) || model.isEmpty()) {
+            model = LLMConfiguration.gptDefaultModel;
         }
 
-        int iMaxResponse;
-        if(max_history == null) {
-            if(ps.chatSession.maxHistory == 0) {
-                max_history = readConfig(sessionId, "openai.max.history");
-                if (max_history == null) max_history = "15";
-                iMaxResponse = Integer.parseInt(max_history);
-                ps.chatSession.maxHistory = iMaxResponse;
+        String json = ps.chatSession.json;
+        if(context != null) json = context;
+
+        int iMaxResponse = ps.chatSession.maxHistory;
+        if(iMaxResponse == 0) {
+            if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
+                iMaxResponse = LLMConfiguration.gptMaxHistory;
             } else {
-                iMaxResponse = ps.chatSession.maxHistory;
+                iMaxResponse = Integer.parseInt(max_history);
             }
-        } else {
-            iMaxResponse = Integer.parseInt(max_history);
             ps.chatSession.maxHistory = iMaxResponse;
         }
 
+        String botname = ps.chatSession.bot.name;
 
-        int iTemperature = 1;
-        if(temperature != null) iTemperature = Integer.parseInt(temperature);
-
-        int maxTokens = 256;
-        if(max_tokens != null) maxTokens = Integer.parseInt(max_tokens);
-
-        int topP = 1;
-        if(top_p != null) topP = Integer.parseInt(top_p);
-
-        int frequencyPenalty = 0;
-        if(frequency_penalty != null) frequencyPenalty = Integer.parseInt(frequency_penalty);
-
-        int presencePenalty = 0;
-        if(presence_penalty != null) presencePenalty = Integer.parseInt(presence_penalty);
+        log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {} json: \n{}\n",
+                sessionId, botname, model, user, system, assistant, addparams, iMaxResponse, json);
 
 
-        log.info("{} GPT  model: {} user: {} temperature: {} max_tokens: {} max_history: {} top_p: {} frequency_penalty: {} presence_penalty: {}",
-                ps.chatSession.sessionId, model, user, temperature, max_tokens, iMaxResponse, top_p, frequency_penalty, presence_penalty);
+        Map<String, String> additionalParameters = new HashMap<>();
+        if(addparams != null && !addparams.isEmpty()) {
+            String[] params = addparams.split(",");
+            for(String param : params) {
+                String[] keyVal = param.split("=");
+                if(keyVal.length == 2) {
+                    additionalParameters.put(keyVal[0].trim(), keyVal[1].trim());
+                }
+            }
+        }
 
-        log.info("{} GPT  assistant: {} system: {}", ps.chatSession.sessionId, assistant, system);
+        log.info("{}\tGPT  assistant: {} system: {}", sessionId, assistant, system);
 
-        String response;
+        String request;
+
+        if(assistant != null && !assistant.isEmpty() && system != null && !system.isEmpty()) {
+            json = null;
+        }
+
         if(json == null) {
             JSONObject responseJson = GenAIHelper
-                    .createGPTResponse(model, system, user, assistant, iTemperature, maxTokens, topP, frequencyPenalty, presencePenalty);
-            response = responseJson.toString();
+                    .createGPTResponse(model, system, user, assistant, additionalParameters);
+            request = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty())
                 json = GenAIHelper
@@ -1535,18 +1634,51 @@ public class AIMLProcessor
                         .addGptMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
             json = GenAIHelper.addGptMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-            response = json;
+
+            request = json;
         }
-        return "GPT=" +  response;
+        ps.chatSession.json = request;
+
+        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
+                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
+
+        if(LLMConfiguration.timeout != timeout) {
+            LLMService.setTimeout(timeout);
+            log.info("GPT new timeout: {}", timeout);
+        }
+
+        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
+        ps.chatSession.lastResponse = response;
+
+        log.info("{}\tGPT response: {}", sessionId, response);
+
+        return response;
 
     }
 
     private static String ollama(Node node, ParseState ps) throws Exception {
+
         String model = getAttributeOrTagValue(node, ps, "model");
         String system = getAttributeOrTagValue(node, ps, "system");
         String user = getAttributeOrTagValue(node, ps, "user");
         String stream = getAttributeOrTagValue(node, ps, "stream");
         String max_history = getAttributeOrTagValue(node, ps, "max_history");
+
+
+        String contextName = getAttributeOrTagValue(node, ps, "context");
+        if(contextName == null)
+            contextName = evalTagContent(node, ps, null);
+        else
+            contextName = ps.chatSession.predicates.get(contextName);
+
+
+        String context = null;
+
+        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
+            context = ps.chatSession.llmContext.get("gpt"+contextName);
+            log.info("OLLAMA context name: {} value: {}", contextName, context);
+        }
+
 
         if(user == null)
             user = evalTagContent(node, ps, null);
@@ -1561,70 +1693,107 @@ public class AIMLProcessor
 
 
         String json = ps.chatSession.json;
+        if(context != null) json = context;
 
         String sessionId = ps.chatSession.sessionId;
-        log.info("{} gpt  user: {} system: {} stream: {} json: {}", sessionId, user, system, stream, json);
+        log.info("{} OLLAMA  user: {} system: {} stream: {} json: \n{}\n", sessionId, user, system, stream, json);
 
 
-        if(model == null) {
-            model = readConfig(sessionId, "ollama.model");
-            if(model == null) model = "llama3.1";
+        if(model == null || model.equals(MagicStrings.unknown_property_value) || model.isEmpty()) {
+            model = LLMConfiguration.ollamaDefaultModel;
         }
 
-        int iMaxResponse;
-        if(max_history == null) {
-            if(ps.chatSession.maxHistory == 0) {
-                max_history = readConfig(sessionId, "openai.max.history");
-                if (max_history == null) max_history = "15";
-                iMaxResponse = Integer.parseInt(max_history);
-                ps.chatSession.maxHistory = iMaxResponse;
+        int iMaxResponse = ps.chatSession.maxHistory;
+        if(iMaxResponse == 0) {
+            if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
+                iMaxResponse = LLMConfiguration.ollamaMaxHistory;
             } else {
-                iMaxResponse = ps.chatSession.maxHistory;
+                iMaxResponse = Integer.parseInt(max_history);
             }
-        } else {
-            iMaxResponse = Integer.parseInt(max_history);
             ps.chatSession.maxHistory = iMaxResponse;
         }
+
 
 
         boolean bStream = false;
         if(stream != null) bStream = Boolean.parseBoolean(stream);
 
-
-        log.info("{} Ollama  model: {} user: {} max_history: {} stream: {}",
+        log.info("{} OLLAMA  model: {} user: {} max_history: {} stream: {}",
                 ps.chatSession.sessionId, model, user, iMaxResponse, bStream);
 
-        log.info("{} Ollama system: {}", ps.chatSession.sessionId, system);
+        log.info("{} OLLAMA system: {}", ps.chatSession.sessionId, system);
 
-        String response;
+        String request;
         if(json == null) {
             JSONObject responseJson = GenAIHelper
                     .createOllamaResponse(model, system, user, bStream);
 
-            response = responseJson.toString();
+            request = responseJson.toString();
         } else {
             if(system != null && !system.isEmpty())
                 json = GenAIHelper
                         .addOllamaMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
             json = GenAIHelper.addOllamaMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-            response = json;
+            request = json;
         }
-        return "OLLAMA=" +  response;
+        ps.chatSession.json = request;
+
+        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
+                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
+
+        if(LLMConfiguration.timeout != timeout) {
+            LLMService.setTimeout(timeout);
+            log.info("OLLAMA new timeout: {}", timeout);
+        }
+
+        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
+        ps.chatSession.lastResponse = response;
+
+        log.info("OLLAMA response: {}", response);
+
+        return response;
 
     }
 
     private static String gemini(Node node, ParseState ps) throws Exception {
+
         String context = getAttributeOrTagValue(node, ps, "context");
         String bot = getAttributeOrTagValue(node, ps, "bot");
         String user = getAttributeOrTagValue(node, ps, "user");
 
-        String temperature = getAttributeOrTagValue(node, ps, "temperature");
-        String maxOutputTokens = getAttributeOrTagValue(node, ps, "maxOutputTokens");
-        String topP = getAttributeOrTagValue(node, ps, "topP");
-        String topK = getAttributeOrTagValue(node, ps, "topK");
-
         String max_history = getAttributeOrTagValue(node, ps, "max_history");
+        String addparams = getAttributeOrTagValue(node, ps, "addparams");
+
+        if(addparams == null)
+            addparams = evalTagContent(node, ps, null);
+        else
+            addparams = ps.chatSession.predicates.get(addparams);
+
+        Map<String, String> additionalParameters = new HashMap<>();
+        if(addparams != null && !addparams.isEmpty()) {
+            String[] params = addparams.split(",");
+            for(String param : params) {
+                String[] keyVal = param.split("=");
+                if(keyVal.length == 2) {
+                    additionalParameters.put(keyVal[0].trim(), keyVal[1].trim());
+                }
+            }
+        }
+
+        String contextName = getAttributeOrTagValue(node, ps, "context");
+        if(contextName == null)
+            contextName = evalTagContent(node, ps, null);
+        else
+            contextName = ps.chatSession.predicates.get(contextName);
+
+
+        String gContext = null;
+
+        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
+            gContext = ps.chatSession.llmContext.get("gpt"+contextName);
+            log.info("GEMINI context name: {} value: {}", contextName, gContext);
+        }
 
         if(user == null)
             user = evalTagContent(node, ps, null);
@@ -1649,68 +1818,58 @@ public class AIMLProcessor
 
         String json = ps.chatSession.json;
 
+        if(gContext != null) json = gContext;
+
         String sessionId = ps.chatSession.sessionId;
-        log.info("{} gemini context: {} user: {} bot: {} json: {}", sessionId, context, user, bot, json);
 
-        double dTemperature = 0.3;
-        if(temperature != null) dTemperature = Double.parseDouble(temperature);
+        String botname = ps.chatSession.bot.name;
+        log.info("{} gemini botname: {} context: {} user: {} bot: {} json: \n{}\n",
+                sessionId, botname, context, user, bot, json);
 
-        int maxTokens = 256;
-        if(maxOutputTokens != null) maxTokens = Integer.parseInt(maxOutputTokens);
-
-        double dTopP = 0.8;
-        if(topP != null) dTopP = Double.parseDouble(topP);
-
-        int iTopK = 40;
-        if(topK != null) iTopK = Integer.parseInt(topK);
-
-        int iMaxResponse;
-        if(max_history == null) {
-            if(ps.chatSession.maxHistory == 0) {
-                max_history = readConfig(sessionId, "openai.max.history");
-                if (max_history == null) max_history = "15";
-                iMaxResponse = Integer.parseInt(max_history);
-                ps.chatSession.maxHistory = iMaxResponse;
+        int iMaxResponse = ps.chatSession.maxHistory;
+        if(iMaxResponse == 0) {
+            if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
+                iMaxResponse = LLMConfiguration.geminiMaxHistory;
             } else {
-                iMaxResponse = ps.chatSession.maxHistory;
+                iMaxResponse = Integer.parseInt(max_history);
             }
-        } else {
-            iMaxResponse = Integer.parseInt(max_history);
             ps.chatSession.maxHistory = iMaxResponse;
         }
 
-        log.info("{} gemini  user: {} temperature: {} maxTokens: {} topP: {} topK: {}",
-                ps.chatSession.sessionId, user, dTemperature, maxTokens, dTopP, iTopK);
+        log.info("{} gemini  user: {} addparams: {}",
+                ps.chatSession.sessionId, user, addparams);
 
-        String response;
+        String request;
         if(json == null) {
             JSONObject responseJson = GenAIHelper
-                    .createGeminiResponse(context, user, dTemperature, maxTokens, dTopP,iTopK);
-            response = responseJson.toString();
+                    .createGeminiResponse(context, user, additionalParameters);
+            request = responseJson.toString();
         } else {
             if(bot != null && !bot.isEmpty())
                 json = GenAIHelper
                         .addGeminiMessageToJSON(json, context,"bot", bot.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
             json = GenAIHelper.addGeminiMessageToJSON(json,context,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-            response = json;
+            request = json;
         }
-        return "GEMINI=" +  response;
 
-    }
+        ps.chatSession.json = request;
 
-    private static String readConfig(String sessionId, String property) throws IOException {
-        String configFiles = "config" + File.separator + "config.properties";
-        File f = new File(configFiles);
-        String model = null;
-        if (f.exists()) {
-            Properties prop = new Properties();
-            File fis = new File(configFiles);
-            prop.load(new InputStreamReader(Files.newInputStream(fis.toPath())));
-            model = prop.getProperty(property);
-            log.info("{} config {}: {}", sessionId, property, model);
+        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
+                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
+
+        if(LLMConfiguration.timeout != timeout) {
+            LLMService.setTimeout(timeout);
+            log.info("GEMINI new timeout: {}", timeout);
         }
-        return model;
+
+        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGemini(request, LLMConfiguration.geminiTokens.get(botname)));
+        ps.chatSession.lastResponse = response;
+
+        log.info("GEMINI response: {}", response);
+
+        return response;
+
     }
 
     public static void resetClassCache() {
@@ -1795,9 +1954,26 @@ public class AIMLProcessor
         String format = getAttributeOrTagValue(node, ps, "format");      // AIML 2.0
         String locale = getAttributeOrTagValue(node, ps, "locale");
         String timezone = getAttributeOrTagValue(node, ps, "timezone");
-        log.info("Format = "+format+" Locale = "+locale+" Timezone = "+timezone);
-        String dateAsString = CalendarUtils.date(format, locale, timezone);
-        //log.info(dateAsString);
+
+        String configLocale = Objects.equals(ps.chatSession.bot.properties.get("locale"), MagicStrings.unknown_property_value) ?
+                null : ps.chatSession.bot.properties.get("locale");
+        String configTimezone = Objects.equals(ps.chatSession.bot.properties.get("timezone"), MagicStrings.unknown_property_value) ?
+                null : ps.chatSession.bot.properties.get("timezone");
+
+        log.info("date format: {} locale: {} timezone: {} configLocale: {} configTimezone: {}",
+                format, locale, timezone, configLocale, configTimezone);
+
+        if(locale == null) locale = configLocale;
+        if(timezone == null) timezone = configTimezone;
+
+        Locale loc = Locale.forLanguageTag(Objects.requireNonNullElse(locale, "pl"));
+        TimeZone tz = TimeZone.getTimeZone(Objects.requireNonNullElse(timezone, TimeZone.getDefault().getID()));
+
+        log.info("Format = {} Locale = {} Timezone = {}", format, locale, timezone);
+
+        String dateAsString = CalendarUtils.date(format, loc, tz);
+
+        log.info(dateAsString);
         return dateAsString;
     }
     
@@ -1813,11 +1989,27 @@ public class AIMLProcessor
         String format = getAttributeOrTagValue(node, ps, "format");      // AIML 2.0
         String from = getAttributeOrTagValue(node, ps, "from");
         String to = getAttributeOrTagValue(node, ps, "to");
+
+
+        String locale = Objects.equals(ps.chatSession.bot.properties.get("locale"), MagicStrings.unknown_property_value) ?
+                null : ps.chatSession.bot.properties.get("locale");
+        String timezone = Objects.equals(ps.chatSession.bot.properties.get("timezone"), MagicStrings.unknown_property_value) ?
+                null : ps.chatSession.bot.properties.get("timezone");
+
+        log.info("interval format: {} locale: {} timezone: {}", format, locale, timezone);
+
+        if(locale == null || locale.equals(MagicStrings.unknown_property_value)) locale = null;
+        if(timezone == null || timezone.equals(MagicStrings.unknown_property_value)) timezone = null;
+
+        Locale loc = Locale.forLanguageTag(Objects.requireNonNullElse(locale, "pl"));
+        TimeZone tz = TimeZone.getTimeZone(Objects.requireNonNullElse(timezone, TimeZone.getDefault().getID()));
+
+
         if (style == null) style = "years";
         if (format == null) format = "MMMMMMMMM dd, yyyy";
         if (from == null) from = "January 1, 1970";
         if (to == null) {
-            to = CalendarUtils.date(format, null, null);
+            to = CalendarUtils.date(format, loc, tz);
         }
         String result = "unknown";
         if (style.equals("years")) result = ""+Interval.getYearsBetween(from, to, format);
@@ -2499,6 +2691,8 @@ public class AIMLProcessor
                 return ollama(node, ps);
             else if (nodeName.equals("gemini")) //sprint
                 return gemini(node, ps);
+            else if (nodeName.equals("save-context")) //sprint
+                return saveContext(node, ps);
             else if (nodeName.equals("predictf")) //sprint
                 return ml(node, ps);
             else if (nodeName.equals("ml")) //sprint
@@ -2561,7 +2755,13 @@ public class AIMLProcessor
            else if (nodeName.equals("dateadd"))
                 return dateadd(node, ps);
            else if (nodeName.equals("getrecord"))
-                return getrecord(node, ps);
+                return getRecord(node, ps);
+           else if (nodeName.equals("updaterecord"))
+                return updateRecord(node, ps);
+           else if (nodeName.equals("getdata"))
+                return getData(node, ps);
+           else if (nodeName.equals("setdata"))
+                return setData(node, ps);
            
            
            

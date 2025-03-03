@@ -65,7 +65,7 @@ public class MagicStrings {
     public static String unknown_history_item = "unknown";
     public static String default_bot_response()
     {
-        if(default_language.equals("PL"))
+        if(default_language.equalsIgnoreCase("PL"))
             return "SYSTEM|Przykro mi ale nie rozumiem.";
         else
             return "SYSTEM|I'm sorry I don't understand.";
@@ -127,5 +127,7 @@ public class MagicStrings {
     public static String maps_path = bot_path+"/maps";
     
     public final static String UTF8 = "UTF-8";
+
+    public final static String invalid_llm_configuration = "LLM Service is not properly configured!";
 }
 

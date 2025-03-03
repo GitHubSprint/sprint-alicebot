@@ -56,7 +56,7 @@ public class ThreadTest {
     private void testCEZBot() throws Exception {
         Bot bot = new Bot("testowa", MagicStrings.root_path, "chat");
         String session = UUID.randomUUID().toString();
-        Chat chatSession = new Chat(bot, session);
+        Chat chatSession = new Chat(bot, session, "CHAT", "sprint");
         Map<String,String> req = new HashMap<>();
         for(int i=0; i<15;i++)
         {

@@ -1,9 +1,7 @@
 package org.alicebot.ab;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
@@ -51,13 +49,17 @@ public class Chat {
     public String json;
     public String lastResponse;
     public int maxHistory = 0;
+    public String channel;
+    public Map<String, String> llmContext = new HashMap<>();
+    public String symbol;
+
     /**
      * Constructor  (defualt customer ID)
      *
      * @param bot    the bot to chat with
      */
     public Chat(Bot bot)  {
-        this(bot, UUID.randomUUID().toString());
+        this(bot, UUID.randomUUID().toString(), "CHAT", "sprint");
     }
 
     /**
@@ -65,11 +67,13 @@ public class Chat {
      * @param bot             bot to chat with
      * @param sessionId      unique session id      
      */
-    public Chat(Bot bot, String sessionId) {
+    public Chat(Bot bot, String sessionId, String channel, String symbol) {
         this.sessionId = sessionId;
         this.bot = bot;
-        this.sessionCreated = Calendar.getInstance().getTime();        
-        History<String> contextThatHistory = new History<String>();
+        this.sessionCreated = Calendar.getInstance().getTime();
+        this.channel = channel;
+        this.symbol = symbol;
+        History<String> contextThatHistory = new History<>();
         contextThatHistory.add(MagicStrings.default_that);
         thatHistory.add(contextThatHistory);
         addPredicates();
@@ -185,6 +189,23 @@ public class Chat {
         StringBuilder response= new StringBuilder();
         matchTrace="";
         try {
+
+            String configLocale = Objects.equals(bot.properties.get("max_input_length"), MagicStrings.unknown_property_value) ?
+                    null : bot.properties.get("max_input_length");
+
+            log.info("max_input_length: {}", configLocale);
+
+            int maskInputLength = 0;
+            if (configLocale != null) {
+                 maskInputLength = Integer.parseInt(configLocale);
+                 log.info("max_input_length: {}", maskInputLength);
+            }
+            if (maskInputLength > 0 && request.length() > maskInputLength) {
+                request = request.substring(0, maskInputLength);
+                log.warn("Request length {} exceeds max_input_length {}. Truncating request. New request: {}",
+                        request.length(), maskInputLength, request);
+            }
+
             String norm = bot.preProcessor.normalize(request);
 
             log.info("{} multisentenceRespond request = {} normalized = {}", sessionId, request, norm);

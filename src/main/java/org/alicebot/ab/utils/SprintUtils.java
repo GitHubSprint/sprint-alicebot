@@ -7,6 +7,7 @@ package org.alicebot.ab.utils;
 
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
+import org.alicebot.ab.llm.LLMConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +34,40 @@ public class SprintUtils {
         System.out.println(Locale.forLanguageTag("pl"));
 
     }
+
+
+    public static void updateGeminiToken(Map<String, String> tokens) {
+        LLMConfiguration.geminiTokens = new HashMap<>(tokens);
+    }
+
+    public static void updateLLMConfiguration(Map<String, String> gptTokens,
+                                              String gptApiUrl,
+                                              String ollamaApiUrl,
+                                              Map<String, String> geminiTokens,
+                                              String geminiApiUrl,
+                                              String gptDefaultModel,
+                                              String ollamaDefaultModel,
+                                              int gptMaxHistory,
+                                              int ollamaMaxHistory,
+                                              int geminiMaxHistory)
+    {
+        LLMConfiguration.gptTokens = new HashMap<>(gptTokens);
+        LLMConfiguration.gptApiUrl = gptApiUrl;
+        LLMConfiguration.ollamaApiUrl = ollamaApiUrl;
+        LLMConfiguration.geminiTokens = new HashMap<>(geminiTokens);
+        LLMConfiguration.geminiApiUrl = geminiApiUrl;
+
+        LLMConfiguration.gptDefaultModel = gptDefaultModel;
+        LLMConfiguration.ollamaDefaultModel = ollamaDefaultModel;
+        LLMConfiguration.gptMaxHistory = gptMaxHistory;
+        LLMConfiguration.ollamaMaxHistory = ollamaMaxHistory;
+        LLMConfiguration.geminiMaxHistory = geminiMaxHistory;
+
+        log.info("updateLLMConfiguration gptApiUrl: {} ollamaApiUrl: {}  geminiApiUrl: {}", LLMConfiguration.gptApiUrl, LLMConfiguration.ollamaApiUrl, LLMConfiguration.geminiApiUrl);
+        log.info("updateLLMConfiguration gptDefaultModel: {} ollamaDefaultModel: {}", LLMConfiguration.gptDefaultModel, LLMConfiguration.ollamaDefaultModel);
+        log.info("updateLLMConfiguration gptMaxHistory: {} ollamaMaxHistory: {} geminiMaxHistory: {}", LLMConfiguration.gptMaxHistory, LLMConfiguration.ollamaMaxHistory, LLMConfiguration.geminiMaxHistory);
+    }
+
 
     public static Map<String, FastText> mlModels;
     /**
