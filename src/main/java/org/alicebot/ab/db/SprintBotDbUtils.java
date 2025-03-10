@@ -205,7 +205,7 @@ public class SprintBotDbUtils {
 
             preparedStatement.setString(1, name);
             preparedStatement.setString(2, sessionId);
-            preparedStatement.setString(3, report.info());
+            preparedStatement.setString(3, report.botName());
             preparedStatement.setString(4, report.klucz());
             preparedStatement.setString(5, symbol);
             preparedStatement.setTimestamp(6, getTimestamp());
