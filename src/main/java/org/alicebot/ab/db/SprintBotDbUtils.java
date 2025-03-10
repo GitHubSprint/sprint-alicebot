@@ -197,15 +197,17 @@ public class SprintBotDbUtils {
     }
 
     private static void botInfo(String name, String symbol, Report report, String sessionId) {
+        log.info("botInfo report: {}", report);
+
         String sql = "INSERT INTO " + schema + ".bot_info (botname, idsesji, info, klucz, symbol, timestamp, wartosc) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection connection = DriverManager.getConnection(url, username, password);
              PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
 
-            preparedStatement.setString(1, name);
+            preparedStatement.setString(1, report.botName());
             preparedStatement.setString(2, sessionId);
-            preparedStatement.setString(3, report.botName());
+            preparedStatement.setString(3, report.info());
             preparedStatement.setString(4, report.klucz());
             preparedStatement.setString(5, symbol);
             preparedStatement.setTimestamp(6, getTimestamp());
