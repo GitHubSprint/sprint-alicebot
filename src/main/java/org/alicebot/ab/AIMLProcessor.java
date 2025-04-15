@@ -1271,12 +1271,10 @@ public class AIMLProcessor {
         if(phone.equals(MagicStrings.unknown_property_value))
             phone = parameter; 
         
-        String result = Validator.phone(phone);                 
-                        
-        log.info("phone "
-                + " parameter: " + parameter                 
-                + " phone: " + phone
-                + " result: " + result);
+        String result = Validator.phone(phone);
+
+        log.info("phone  parameter: {} phone: {} result: {}",
+                parameter, phone, result);
         
         return checkEmpty(result);
     }
