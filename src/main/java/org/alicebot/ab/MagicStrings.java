@@ -75,7 +75,7 @@ public class MagicStrings {
         // = "Something is wrong with my brain.";
         
         if(default_language.equals("PL"))
-            return "ERR|Przepraszamy wystąpił problem techniczny. Coś jest nie tak z moim mózgiem.";
+            return "ERR|Przepraszamy wystąpił problem techniczny.";
         else
             return "ERR|Something is wrong with my brain.";
         
