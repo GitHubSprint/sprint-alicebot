@@ -1260,8 +1260,9 @@ public class AIMLProcessor {
      */
     
     private static String phone(Node node, ParseState ps) {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        boolean ext = Boolean.parseBoolean(getAttributeOrTagValue(node, ps, "ext"));
+
         String phone; 
         if(parameter == null)        
             phone = evalTagContent(node, ps, null);     
@@ -1270,8 +1271,11 @@ public class AIMLProcessor {
                                                        
         if(phone.equals(MagicStrings.unknown_property_value))
             phone = parameter; 
-        
+
         String result = Validator.phone(phone);
+
+        if(ext && (result == null || result.equals(MagicStrings.unknown_property_value)))
+            result = Validator.extphone(phone);
 
         log.info("phone  parameter: {} phone: {} result: {}",
                 parameter, phone, result);
