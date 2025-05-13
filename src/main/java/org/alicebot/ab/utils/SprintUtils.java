@@ -16,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -191,38 +192,38 @@ public class SprintUtils {
         String out;
 
         try {
-            Class<?> bean = classCache.get(classLoad);
-            if (bean == null) {
+            Class<?> beanClass = classCache.get(classLoad);
+
+            if (beanClass == null) {
                 try (URLClassLoader urlClassLoader = new URLClassLoader(new URL[]{f.toURI().toURL()},
-                        SprintUtils.class.getClassLoader())) {
+                        ClassLoader.getSystemClassLoader())) {
 
-                    // Load the target class
-                    Class<?> beanClass = urlClassLoader.loadClass(classLoad);
-
+                    beanClass = urlClassLoader.loadClass(classLoad);
                     classCache.put(classLoad, beanClass);
-
-                    Constructor<?> constructor = beanClass.getConstructor();
-                    Object beanObj = constructor.newInstance();
-                    Method method = beanClass.getMethod("processCustomResultPocessor", String.class, String.class, String.class);
-                    out = (String) method.invoke(beanObj, sessionId, parameter, methodName);
-
                 }
-            } else {
-                Constructor<?> constructor = bean.getConstructor();
-                Object beanObj = constructor.newInstance();
-                Method method = bean.getMethod("processCustomResultPocessor", String.class, String.class, String.class);
-                out = (String) method.invoke(beanObj, sessionId, parameter, methodName);
-                log.info("call from loaded class: {}", classLoad);
             }
+
+            Constructor<?> constructor = beanClass.getConstructor();
+            Object beanObj = constructor.newInstance();
+
+            Method method = beanClass.getMethod("processCustomResultPocessor", String.class, String.class, String.class);
+            out = (String) method.invoke(beanObj, sessionId, parameter, methodName);
+
+        } catch (InvocationTargetException ex) {
+            Throwable cause = ex.getCause();
+            out = "ERR " + (cause != null ? cause.getMessage() : ex.getMessage());
+            log.error("callPlugin file: {} parameter : {} ERROR: {}", f, parameter, out, ex);
         } catch (Exception ex) {
             out = "ERR " + ex.getMessage();
             log.error("callPlugin file: {} parameter : {} ERROR", f, parameter, ex);
         }
+
         log.info("{} : request parameter: {} method: {} plugin response: {}", sessionId, parameter, methodName, out);
         return out;
     }
-    
-    
+
+
+
     /**
      * Deprecated method to call bash script, changed to jar callPlugin.
      * @param scrip
