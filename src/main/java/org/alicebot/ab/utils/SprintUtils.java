@@ -28,7 +28,8 @@ import java.util.*;
  * @author skost
  */
 public class SprintUtils {
-    private static Map<String, Class<?>> classCache = new HashMap<>();
+    private static final Map<String, Class<?>> classCache = new HashMap<>();
+    private static final Map<String, URLClassLoader> loaderCache = new HashMap<>();
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
 
     public static void main(String[] args) {
@@ -176,6 +177,14 @@ public class SprintUtils {
 
     public static void resetClassCache() {
         classCache.clear();
+        loaderCache.forEach((k, loader) -> {
+            try {
+                loader.close();
+            } catch (IOException e) {
+                log.error("Error closing URLClassLoader", e);
+            }
+        });
+        loaderCache.clear();
     }
     
     /**
@@ -193,14 +202,16 @@ public class SprintUtils {
 
         try {
             Class<?> beanClass = classCache.get(classLoad);
+            URLClassLoader urlClassLoader = loaderCache.get(file);
 
-            if (beanClass == null) {
-                try (URLClassLoader urlClassLoader = new URLClassLoader(new URL[]{f.toURI().toURL()},
-                        ClassLoader.getSystemClassLoader())) {
+            if (beanClass == null || urlClassLoader == null) {
+                log.info("{} : callPlugin load new plugin class: {} file: {}", sessionId, classLoad, file);
+                urlClassLoader = new URLClassLoader(new URL[]{f.toURI().toURL()},
+                        ClassLoader.getSystemClassLoader());
 
-                    beanClass = urlClassLoader.loadClass(classLoad);
-                    classCache.put(classLoad, beanClass);
-                }
+                beanClass = urlClassLoader.loadClass(classLoad);
+                classCache.put(classLoad, beanClass);
+                loaderCache.put(file, urlClassLoader);
             }
 
             Constructor<?> constructor = beanClass.getConstructor();
@@ -212,13 +223,13 @@ public class SprintUtils {
         } catch (InvocationTargetException ex) {
             Throwable cause = ex.getCause();
             out = "ERR " + (cause != null ? cause.getMessage() : ex.getMessage());
-            log.error("callPlugin file: {} parameter : {} ERROR: {}", f, parameter, out, ex);
+            log.error("{} : callPlugin file: {} parameter : {} ERROR: {}", sessionId, f, parameter, out, ex);
         } catch (Exception ex) {
             out = "ERR " + ex.getMessage();
-            log.error("callPlugin file: {} parameter : {} ERROR", f, parameter, ex);
+            log.error("{} : callPlugin file: {} parameter : {} ERROR", sessionId, f, parameter, ex);
         }
 
-        log.info("{} : request parameter: {} method: {} plugin response: {}", sessionId, parameter, methodName, out);
+        log.info("{} : callPlugin request parameter: {} method: {} plugin response: {}", sessionId, parameter, methodName, out);
         return out;
     }
 
