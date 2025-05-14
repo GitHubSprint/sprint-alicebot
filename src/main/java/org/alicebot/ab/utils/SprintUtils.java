@@ -206,8 +206,7 @@ public class SprintUtils {
 
             if (beanClass == null || urlClassLoader == null) {
                 log.info("{} : callPlugin load new plugin class: {} file: {}", sessionId, classLoad, file);
-                urlClassLoader = new URLClassLoader(new URL[]{f.toURI().toURL()},
-                        ClassLoader.getSystemClassLoader());
+                urlClassLoader = new URLClassLoader(new URL[]{f.toURI().toURL()}, SprintUtils.class.getClassLoader());
 
                 beanClass = urlClassLoader.loadClass(classLoad);
                 classCache.put(classLoad, beanClass);
