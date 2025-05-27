@@ -105,4 +105,21 @@ public class OllamaChatResponse {
 	public void setDone(boolean done) {
 		this.done = done;
 	}
+
+	@Override
+	public String toString() {
+		return "OllamaChatResponse{" +
+				"done_reason='" + done_reason + '\'' +
+				", prompt_eval_duration=" + prompt_eval_duration +
+				", load_duration=" + load_duration +
+				", total_duration=" + total_duration +
+				", prompt_eval_count=" + prompt_eval_count +
+				", eval_count=" + eval_count +
+				", eval_duration=" + eval_duration +
+				", created_at='" + created_at + '\'' +
+				", model='" + model + '\'' +
+				", message=" + message +
+				", done=" + done +
+				'}';
+	}
 }
