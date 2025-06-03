@@ -1,0 +1,6 @@
+adres:gdzie
+wiek:ile
+dziecko:kto
+przyjaciel:kto
+urodziny:kiedy
+

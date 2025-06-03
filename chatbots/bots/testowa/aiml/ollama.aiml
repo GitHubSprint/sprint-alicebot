@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--   -->
+<aiml>
+
+    <category>
+        <pattern>OLLAMA</pattern>
+        <template>
+            <think>
+                <set name="user">Dzień dobry, chciałbym zamówić pizzę</set>
+            </think>
+            <ollama model="dagrasso" system="system" user="user"/>
+            <think>
+                <set name="topic">OLLAMA</set>
+            </think>
+        </template>
+    </category>
+
+    <topic name="OLLAMA">
+        <category>
+            <pattern>_</pattern>
+            <template>
+                <think>
+                    <set name="user"><star /></set>
+                </think>
+                <ollama model="dagrasso" user="user"/>
+            </template>
+        </category>
+    </topic>
+
+</aiml>

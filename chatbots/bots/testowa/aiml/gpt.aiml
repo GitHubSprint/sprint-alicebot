@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<aiml>
+
+    <category>
+        <pattern>GPT</pattern>
+        <template>
+            <think>
+                <set name="system">Teraz jest 15-09-2023 godzina 12:57.</set>
+                <set name="assistant">Dzień Dobry, jestem Zenon, wirtualny asystent.</set>
+                <set name="user">Dzień dobry</set>
+                <set name="model">gpt-4o</set>
+                <set name="addparams">max_tokens=1000,temperature=0.5</set>
+            </think>
+            <gpt model="model" system="system" assistant="assistant" user="user" addparams="addparams"/>
+            <think>
+                <set name="topic">GPT</set>
+            </think>
+        </template>
+    </category>
+
+    <topic name="GPT">
+        <category>
+            <pattern>*</pattern>
+            <template>
+                <think>
+                    <set name="user"><star /></set>
+                </think>
+                <gpt model="model" user="user"/>
+            </template>
+        </category>
+
+        <category>
+            <pattern>testuje kontekst</pattern>
+            <template>  
+                <think>
+                    <set name="user"><input /></set>
+                </think>                           
+                <save-context type="gpt" name="test" user="user"/> 
+            </template>
+        </category>
+
+        <category>
+            <pattern>jaki jest kontekst</pattern>
+            <template>
+                <think>
+                    <set name="user"><input /></set>
+                </think>
+                <get-context type="gpt" name="test" user="user"/> 
+            </template>
+        </category>
+    </topic>
+
+</aiml>

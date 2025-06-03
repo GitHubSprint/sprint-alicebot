@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--   -->
+<aiml>
+
+
+	<category>
+		<pattern>START ^ <set>sprintbot</set> ^</pattern>
+		<template>
+			<status>OK</status><email-template>test</email-template><attachments>CV_sprint_bot_2022.pdf</attachments>
+			Jestem wirtualnym asystentem głosowym i tekstowym. Sprawdź mnie, będę idealnym pracownikiem Twojej firmy.
+			W załączeniu moje CV.
+			Więcej informacji otrzymasz na stronie https://www.sprintbot.ai/
+			<forward-email>
+				<body>To jest test!</body>
+				<to>skostrze@wp.pl</to>
+				<cc>slawomir.kostrzewa@sprint.pl</cc>
+				<bcc>skostrze@wp.pl</bcc>
+				<subject>FWD: </subject>
+			</forward-email>
+		</template>
+	</category>
+
+
+	<category>
+		<pattern>^ <set>WULGARYZM</set> ^</pattern>
+		<template>
+			VULG|Wulgaryzmy nie pomogą w załatwieniu sprawy. <attachments>1.wav</attachments>
+		</template>
+	</category>
+
+
+
+
+	<!--category>
+		<pattern>SEND MAIL *</pattern>
+		<template>
+			<think>
+				<set name="body"><star /></set>
+			</think>
+			Jakaś odpowiedź oraz wysłanie maila.
+			<email><body><get name="body" /></body><from>noreply@sprintbot.ai</from><to>skoslaw@gmail.com</to><subject>Temat</subject><email-template>test</email-template> <attachments>1.wav</attachments><attachments>CV_sprint_bot_2022.pdf</attachments><html>true</html></email>
+		</template>
+	</category-->
+
+	<category>
+		<pattern>SEND MAIL *</pattern>
+		<template>
+			<think>
+				<set name="body"><star /></set>
+			</think>
+			Jakaś odpowiedź oraz wysłanie maila.
+			<email>
+				<body><get name="body" /></body>
+				<from>noreply@sprintbot.ai</from>
+				<to>skoslaw@gmail.com</to>
+				<subject>Temat</subject>
+
+				<cc>skostrze@wp.pl</cc>
+				<bcc>skostrze@wp.pl</bcc>
+				<email-template>test</email-template>
+				<attachments>1.wav</attachments>
+				<attachments>CV_sprint_bot_2022.pdf</attachments>
+				<html>true</html>
+			</email>
+		</template>
+	</category>
+
+
+
+	<category>
+		<pattern>EMAIL *</pattern>
+		<template>
+			<think>
+				<set name="body"><star /></set>
+			</think>
+			<!--predictf model="vectra-email-body-model" nbest="3" threshold="0" score="50" parameter="body"/ -->
+
+			Odpowiedź mailowa! <email-template>test</email-template> <attachments>image001.png</attachments><attachments>test.docx</attachments>
+		</template>
+	</category>
+
+	<category>
+		<pattern>EMAIL TEMPLATE *</pattern>
+		<template>
+			<think>
+				<set name="body"><star /></set>
+			</think>
+			<!--predictf model="vectra-email-body-model" nbest="3" threshold="0" score="50" parameter="body"/ -->
+
+			Odpowiedź mailowa! <email-template>test</email-template>
+		</template>
+	</category>
+	<category>
+		<pattern>EMAIL</pattern>
+		<template>
+			<think>
+				<set name="body"><star /></set>
+			</think>
+			<!--predictf model="vectra-email-body-model" nbest="3" threshold="0" score="50" parameter="body"/ -->
+
+			Odpowiedź mailowa!<email-template/> <attachments/>
+		</template>
+	</category>
+	<category>
+		<pattern>EMAIL Agent ^</pattern>
+		<template>
+			<stattus>agent</stattus> Sprawa zostanie przekazana do agenta.
+		</template>
+	</category>
+</aiml>

@@ -45,15 +45,10 @@ import org.slf4j.LoggerFactory;
 public class Main {
 	private static final Logger log = LoggerFactory.getLogger(Main.class);
     public static void main (String[] args) {
+        System.out.println(System.getProperty("os.name"));
         
-        
-        MagicStrings.root_path ="D:\\Sprint\\SRC\\sprint-bot-server\\chatbots";
-        
-        if(System.getProperty("os.name").equals("Linux"))
-                    MagicStrings.root_path = "/opt/resources";
-        
-        if(System.getProperty("os.name").equals("Linux"))
-                    MagicStrings.root_path = "/home/slaw/d/Sprint/SRC/resources";
+        MagicStrings.root_path ="chatbots";
+
 
         log.info("Working Directory = {}", MagicStrings.root_path);
         AIMLProcessor.extension =  new PCAIMLProcessorExtension();
@@ -78,10 +73,8 @@ public class Main {
                 else MagicBooleans.trace_mode = false;
             }
         }
-        
-        
-        
-        log.info("trace mode = "+MagicBooleans.trace_mode);
+
+        log.info("trace mode = {}", MagicBooleans.trace_mode);
         Graphmaster.enableShortCuts = true;
         //Timer timer = new Timer();
         Bot bot = new Bot(botName, MagicStrings.root_path, action); //
@@ -111,33 +104,34 @@ public class Main {
     private static String json = null;
     public static void testChat (Bot bot, boolean traceMode) {
         Chat chatSession = new Chat(bot);
-//        bot.preProcessor.normalizeFile("c:/ab/bots/super/aiml/thats.txt", "c:/ab/bots/super/aiml/normalthats.txt");
+
         bot.brain.nodeStats();
         MagicBooleans.trace_mode = traceMode;
         String textLine="";
         while (true) {
             System.out.print("Human: ");
             textLine = IOUtils.readInputTextLine();
-            if (textLine == null || textLine.length() < 1)  textLine = MagicStrings.null_input;
-            if (textLine.equals("q")) System.exit(0);
-            else if (textLine.equals("wq")) {
-                bot.writeQuit();
-                System.exit(0);
-            }
-            else if (textLine.equals("ab")) testAB(bot);
-            else {
+            if (textLine == null || textLine.isEmpty())  textLine = MagicStrings.null_input;
+            switch (textLine) {
+                case "q" -> System.exit(0);
+                case "wq" -> {
+                    bot.writeQuit();
+                    System.exit(0);
+                }
+                case "ab" -> testAB(bot);
+                default -> {
 
-                log.debug("STATE="+textLine+":THAT="+chatSession.thatHistory.get(0).get(0)+":TOPIC="+chatSession.predicates.get("topic"));
-                String response = chatSession.multisentenceRespond(textLine, json, "ostatnia odpowiedź");
-                json = response.substring(4);
+                    log.debug("STATE={}:THAT={}:TOPIC={}", textLine, chatSession.thatHistory.get(0).get(0), chatSession.predicates.get("topic"));
+                    String response = chatSession.multisentenceRespond(textLine, json, "ostatnia odpowiedź");
+                    json = response.substring(4);
 
 
-                while (response.contains("&lt;")) response = response.replace("&lt;","<");
-                while (response.contains("&gt;")) response = response.replace("&gt;",">");
-                log.info("Robot: "+response);
-                //MemStats.memStats();
-                chatSession.requestHistory.printHistory();
-
+                    while (response.contains("&lt;")) response = response.replace("&lt;", "<");
+                    while (response.contains("&gt;")) response = response.replace("&gt;", ">");
+                    log.info("Robot: " + response);
+                    //MemStats.memStats();
+                    chatSession.requestHistory.printHistory();
+                }
             }
 
         }

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--   -->
+<aiml>
+
+    <category>
+        <pattern>GEMINI</pattern>
+        <template>
+            <think>
+                <set name="context">Jesteś Sprintek, trochę zabawny bot konwersacyjny firmy Sprint. udzielasz krótkich, treściwych odpowiedzi.</set>
+                <set name="user">Kim jesteś?</set>
+            </think>
+            <gemini context="context" user="user" bot="bot"/>
+            <think>
+                <set name="topic">GEMINI</set>
+            </think>
+
+        </template>
+    </category>
+
+    <topic name="GEMINI">
+        <category>
+            <pattern>_</pattern>
+            <template>
+                <think>
+                    <set name="user"><star /></set>
+                </think>
+                <gemini user="user"/>
+            </template>
+        </category>
+    </topic>
+
+</aiml>
