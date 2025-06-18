@@ -185,6 +185,12 @@ public class Chat {
      * @param request      client's multiple-sentence input
      * @return
      */
+
+    private static String removePunctuation(String text) {
+        return text.replaceAll("[\\p{Punct}]", "")
+                .replaceAll("[\\s]+", " ") // Usuwa nadmiarowe spacje
+                .trim();
+    }
     public String multisentenceRespond(String request) {
         StringBuilder response= new StringBuilder();
         matchTrace="";
@@ -193,16 +199,22 @@ public class Chat {
             String configLocale = Objects.equals(bot.properties.get("max_input_length"), MagicStrings.unknown_property_value) ?
                     null : bot.properties.get("max_input_length");
 
-            log.info("max_input_length: {}", configLocale);
+            Boolean disableSentenceSplitting = !Objects.equals(bot.properties.get("disable_sentence_splitting"), MagicStrings.unknown_property_value)
+                    && Boolean.parseBoolean(bot.properties.get("disable_sentence_splitting"));
+
+            log.info("multisentenceRespond max_input_length: {} disable_sentence_splitting: {}", configLocale, disableSentenceSplitting);
+
+            if(disableSentenceSplitting) {
+                request = removePunctuation(request);
+            }
 
             int maskInputLength = 0;
             if (configLocale != null) {
                  maskInputLength = Integer.parseInt(configLocale);
-                 log.info("max_input_length: {}", maskInputLength);
             }
             if (maskInputLength > 0 && request.length() > maskInputLength) {
                 request = request.substring(0, maskInputLength);
-                log.warn("Request length {} exceeds max_input_length {}. Truncating request. New request: {}",
+                log.warn("multisentenceRespond Request length {} exceeds max_input_length {}. Truncating request. New request: {}",
                         request.length(), maskInputLength, request);
             }
 

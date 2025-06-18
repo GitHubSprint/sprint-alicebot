@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<aiml>
+<!-- File: ml.aiml -->
+<!-- Author: Slawomir Kostrzewa -->
+<!-- Last modified: June 06, 2024 -->
+<!--  -->
+<!-- This AIML file is part of the SUPER 0.0.1 chat bot knowledge base. -->
+<!--  -->
+<!-- The SUPER brain is Copyright &copy; 2019 by Sprint S.A.. -->
+<!--  -->
+<!-- For more information see http://www.sprint.pl -->
+
+    <category>
+        <pattern>ML *</pattern>
+        <template>
+            <think>
+                <set name="topic">WERYFIKACJA</set>
+            </think>
+            <srai><star /></srai>
+        </template>
+    </category>
+
+<category>
+    <pattern>ML</pattern>
+    <template>
+        Witaj sprawdźmy się, użyj stwierdzenia potwierdzającego lub zaprzeczającego, aby mnie sprawdzić.
+        <think>
+            <set name="topic">WERYFIKACJA</set>
+            <set name="licznik">1</set>
+        </think>
+        <report-save report_name="fraza" licznik_fraz="licznik" fraza_cala="topic" fraza="topic" rozpoznanie="topic" label="topic" wiarygodnosc="licznik" fakt="topic"/>
+        <report-save report_name="ocena" licznik_fraz="licznik" licznik_ocen="licznik" sposob_oceny="topic" ocena="topic"/>
+        <report-save report_name="info" bot_name="topic" info="topic" klucz="topic" wartosc="topic"/>
+    </template>
+</category>
+
+<category>
+    <pattern>MLA</pattern>
+    <template>
+        Witaj sprawdźmy się, użyj stwierdzenia potwierdzającego lub zaprzeczającego, aby mnie sprawdzić.
+        <think>
+            <set name="topic">WERYFIKACJA_A</set>
+        </think>
+    </template>
+</category>
+
+<category>
+    <pattern>UM</pattern>
+    <template>
+        Podaj tekst do testu.
+        <think>
+            <set name="topic">UM</set>
+        </think>
+    </template>
+</category>
+<category>
+    <pattern>UMA</pattern>
+    <template>
+        Podaj tekst do testu (advanced).
+        <think>
+            <set name="topic">UMA</set>
+        </think>
+    </template>
+</category>
+
+<topic name="UMA">
+    <category>
+        <pattern>*</pattern>
+        <template>
+            <think>
+                <set name="umtest"><star /></set>
+            </think>
+            <mla model="um-gdynia" nbest="2" threshold="0" score="50" parameter="umtest"/>
+        </template>        
+    </category>                   
+</topic>
+
+<topic name="UM">
+    <category>
+        <pattern>*</pattern>
+        <template>
+            <think>
+                <set name="umtest"><star /></set>
+            </think>
+            <ml model="um-gdynia" nbest="3" threshold="0" score="1" parameter="umtest"/>
+        </template>
+    </category>
+</topic>
+
+<topic name="WERYFIKACJA">    
+    <category>
+        <pattern>*</pattern>
+        <template>
+            <think>
+                <set name="odpowiedz"><star /></set>
+                <set name="topic">POTWIERDZENIE</set>                                
+            </think>
+            <srai><ml model="tak-nie-model" nbest="2" threshold="0" score="70" parameter="odpowiedz"/></srai>
+        </template>        
+    </category>                   
+</topic>
+
+<topic name="WERYFIKACJA_A">    
+    <category>
+        <pattern>*</pattern>
+        <template>
+            <think>
+                <set name="odpowiedz"><star /></set>
+                <set name="topic">POTWIERDZENIE_A</set>                                
+            </think>
+            <srai><mla model="tak-nie-model" nbest="2" threshold="0" score="80" parameter="odpowiedz"/></srai>
+        </template>        
+    </category>                   
+</topic>
+
+
+<topic name="POTWIERDZENIE">
+    <category>
+        <pattern>*</pattern>
+        <template>
+            KO|Tym razem nie rozumiem. Spróbujmy jeszcze raz. Potwierdzasz czy zaprzeczasz?
+            <think>
+                <set name="topic">WERYFIKACJA</set>
+            </think>
+        </template>
+    </category>
+    
+    <category>
+        <pattern>nie *</pattern>
+        <template>
+            OK|Chyba usłyszałam zaprzeczenie! Spróbujmy jeszcze raz. Potwierdzasz czy zaprzeczasz?
+            <think>
+                <set name="topic">WERYFIKACJA</set>
+            </think>
+        </template>
+    </category>
+    
+    <category>
+        <pattern>tak *</pattern>
+        <template>
+            OK|Chyba usłyszałam potwierdzenie! Spróbujmy jeszcze raz. Potwierdzasz czy zaprzeczasz?
+            <think>
+                <set name="topic">WERYFIKACJA</set>
+            </think>
+        </template>
+    </category>
+    
+    <category>
+        <pattern>tak_nie *</pattern>
+        <template>
+            OK|Widzę że jeszcze nie masz pewności! Spróbujmy jeszcze raz. Potwierdzasz czy zaprzeczasz?
+            <think>
+                <set name="topic">WERYFIKACJA</set>
+            </think>
+        </template>
+    </category>
+</topic>
+
+<topic name="POTWIERDZENIE_A">
+    <category>
+        <pattern>*</pattern>
+        <template>
+            KO|Tym razem nie rozumiem. Spróbujmy jeszcze raz. Potwierdzasz czy zaprzeczasz?
+            <think>
+                <set name="topic">WERYFIKACJA_A</set>
+            </think>
+        </template>
+    </category>
+    
+    <category>
+        <pattern>nie *</pattern>
+        <template>
+            OK|Chyba usłyszałam zaprzeczenie! Spróbujmy jeszcze raz. Potwierdzasz czy zaprzeczasz?
+            <think>
+                <set name="topic">WERYFIKACJA_A</set>
+            </think>
+        </template>
+    </category>
+    
+    <category>
+        <pattern>tak *</pattern>
+        <template>
+            OK|Chyba usłyszałam potwierdzenie! Spróbujmy jeszcze raz. Potwierdzasz czy zaprzeczasz?
+            <think>
+                <set name="topic">WERYFIKACJA_A</set>
+            </think>
+        </template>
+    </category>
+    
+    <category>
+        <pattern>ale *</pattern>
+        <template>
+            OK|Widzę że jeszcze nie masz pewności! Spróbujmy jeszcze raz. Potwierdzasz czy zaprzeczasz?
+            <think>
+                <set name="topic">WERYFIKACJA_A</set>
+            </think>
+        </template>
+    </category>
+</topic>
+
+
+<category>
+    <pattern>ERR *</pattern>
+    <template>
+        ERR|<star />
+        <think>
+            <set name="topic">WERYFIKACJA_A</set>
+        </think>
+    </template>
+</category>
+
+
+<category>
+	<pattern>HEJ</pattern>
+	<template>
+            <think>                                           
+                <set name="topic">START</set>
+            </think>
+            <random>
+                    <li>START|Dzień dobry. W czym mogę pomóc?</li>
+                    <li>START|Witam. W czym mogę pomóc?</li>
+                    <li>START|Również witam serdecznie. W czym mogę pomóc?</li>
+                    <li>START|Witam. Jak mogę dzisiaj Tobie pomóc?</li>
+                    <li>START|Dzień dobry. Jak mogę dzisiaj Tobie pomóc?</li>
+            </random>
+	</template>
+</category>
+</aiml>

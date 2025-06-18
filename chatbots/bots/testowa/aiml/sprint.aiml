@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--   -->
+<aiml>
+
+    <category>
+        <pattern>godzina test</pattern>
+        <template>
+            <date format="HH:mm" />
+        </template>
+    </category>
+
+    <category>
+        <pattern>AUT</pattern>
+        <template>
+            <set name="identyfikator">12345</set>
+            <plugin file="sprint-chatbot-ext-lib-1.0.0.jar" class="pl.sprint.chatbot.ext.lib.vectra.Main" method="aut_silna" parameter="identyfikator"/>
+        </template>
+    </category>
+
+    <category>
+        <pattern>plugin</pattern>
+        <template>
+            <set name="komunikat">brak</set>
+            <set name="identyfikator">12345</set>
+            <plugin file="vectra-bot-services.jar" class="pl.sprint.vectra.vectra.bot.services.Main" method="getAwarieContent" parameter="komunikat"/>
+
+            <plugin file="sprint-chatbot-ext-lib-1.0.0.jar" class="pl.sprint.chatbot.ext.lib.vectra.Main" method="nums" parameter="identyfikator"/>
+
+            <plugin file="sprint-chatbot-ext-lib-1.0.0.jar" class="pl.sprint.chatbot.ext.lib.vectra.Main" method="nums" parameter="identyfikator"/>
+        </template>
+    </category>
+
+
+    <category>
+        <pattern>SMS</pattern>
+        <template>
+            Wysyłam SMS
+            <sms>
+                <from>123456789</from>
+                <to>123456789</to>
+                <body>Testowy SMS</body>
+            </sms>
+        </template>
+    </category>
+
+
+    <category>
+        <pattern>*</pattern>
+        <template>
+            <think>
+                <set name="record">17###komunikat</set>
+                <set name="komunikat"><getrecord parameter="record"/></set>
+                <set name="topic">WERYFIKACJA</set>
+                <set name="licznik">1</set>
+            </think>
+            Witaj w bocie testowym SprintBot.
+            Dziś jest <date jformat="dd-MM-yyyy" locale="pl" />
+            <get name="komunikat" />
+
+            <set name="record">17###komunikat###Twój autobus jednak przyjedzie o piętnastej</set>
+            <updaterecord parameter="record"/>
+
+
+            <report-save report_name="fraza" licznik_fraz="licznik" fraza_cala="record" fraza="topic" rozpoznanie="topic" label="topic" wiarygodnosc="licznik" fakt="topic"/>
+            <report-save report_name="ocena" licznik_fraz="licznik" licznik_ocen="licznik" sposob_oceny="topic" ocena="topic"/>
+            <report-save report_name="info" bot_name="topic" info="topic" klucz="topic" wartosc="record"/>
+
+        </template>
+    </category>
+
+    <category>
+        <pattern>ON%TIMEOUT</pattern>
+        <template>
+            Timeout
+        </template>
+    </category>
+
+    <category>
+        <pattern>KROPKA *</pattern>
+        <template>
+            gwiazdka <star />
+        </template>
+    </category>
+
+    <category>
+        <pattern>witam</pattern >
+        <template>
+            Siema!
+        </template>
+    </category>
+
+    <category>
+        <pattern>LINE</pattern >
+        <template>
+            line 1
+            line 2
+            line 3\t line 3
+        </template>
+    </category>
+
+
+<category>
+    <pattern>ST TEST1</pattern >
+    <template>
+        TEST|Tekst 2 bez statusu<status>TEST1</status>        
+    </template>
+</category>
+<category>
+    <pattern>FILE TEST1</pattern >
+    <template>
+        TEST|To jest test ${plik.wav} pliku.
+    </template>
+</category>
+
+<category>
+    <pattern>ST TEST2</pattern >
+    <template>
+        TEST|Tekst 2 bez statusu        
+    </template>
+</category>
+
+<category>
+    <pattern>ST TEST3</pattern >
+    <template>
+        TEST|Tekst 2 bez statusu TEST1|test       
+    </template>
+</category>
+
+
+<category>
+    <pattern>START</pattern >
+    <template>
+        Spawdzam odpowiedzi: <answers>Umowa,Test</answers> test po answers 1 <answers>Inna</answers> test po answers 2        
+    </template>
+</category>
+  
+
+  
+    
+<category>
+    <pattern>DATA</pattern >
+    <template>Dziś jest <date jformat="dd-MM-yyyy" locale="pl" /></template>
+</category>
+
+
+<category>
+    <pattern>VOICE</pattern>
+    <template>
+        To jest text dla <voice>głosu</voice><text>komunkacji <b>textowej</b></text>!
+        
+        TEST <b>textowej</b> 
+        
+    </template>
+</category>
+<category>
+    <pattern>VOICE1</pattern>
+    <template>
+        AGENT|To jest text dla <voice>głosu</voice><text>komunkacji textowej</text>!
+    </template>
+</category>
+
+
+<category>
+    <pattern>GETALL *</pattern>
+    <template>
+        <getall><name><star/></name></getall>        
+    </template>
+</category>
+<category>
+    <pattern>GETALL</pattern>
+    <template>
+        <getall />        
+    </template>
+</category>
+
+<category>
+    <pattern>SETALL</pattern>
+    <template>
+        <think>
+            <setall variables="test1###test2" values="1###2" delimiter="###"/>
+            <setall variables="test3###test4" delimiter="###">3###4</setall>                                            
+        </think>              
+        <getall />  
+    </template>        
+</category> 
+
+<category>
+    <pattern>REGEX *</pattern>
+    <template>
+        <think>
+            <set name="regex"><star /></set>                                            
+        </think>
+        TEST
+        ATR: <regex pattern="[0-9]" parameter="regex"/>
+        TST: <regex pattern="[0-9]"><star/></regex>
+    </template>        
+</category> 
+
+
+<category>
+    <pattern>ZIP *</pattern>
+    <template>
+        <think>
+            <set name="zip"><star /></set>                                            
+        </think>
+        ATR: <zip parameter="zip"/>
+        TAG: <zip><parameter><star /></parameter></zip>
+        TST: <zip><star /></zip>
+        TAG: <zip><parameter><star /></parameter></zip>
+        TST: <zip country="PL"><star /></zip>
+        
+        <zip>
+            <country>PL</country>
+            <star />
+        </zip>
+    </template>        
+</category>
+
+
+<category>
+    <pattern>MATH *</pattern>
+    <template>
+        <think>
+            <set name="operation"><star /></set>                                            
+        </think>
+        TEST
+        ATR: <math format="#.##" operation="operation"/>
+        TST: <math format="#"><star/></math>
+    </template>        
+</category> 
+<category>
+    <pattern>BIRTHPESEL *</pattern>
+    <template>
+        <think>
+            <set name="pesel"><star /></set>                                            
+        </think>
+        TEST
+        ATR: <birthpesel format="dd-MM-yyyy" parameter="pesel"/>
+        TST: <birthpesel><star/></birthpesel>
+    </template>        
+</category> 
+
+<category>
+    <pattern>PESEL *</pattern>
+    <template>
+        <think>
+            <set name="pesel"><star /></set>                                            
+        </think>
+        ATR: <pesel parameter="pesel"/>
+        TAG: <pesel><parameter><star /></parameter></pesel>
+        TST: <pesel><star /></pesel>
+    </template>        
+</category>
+
+  
+<category>
+    <pattern>NIP *</pattern>
+    <template>
+        <think>
+            <set name="nip"><star /></set>                                            
+        </think>  
+        TEST      
+        ATR: <nip parameter="nip"/>
+        TAG: <nip><parameter><star /></parameter></nip>
+        TST: <nip><star /></nip>
+    </template>        
+</category>
+
+  
+<category>
+    <pattern>NUMS *</pattern>
+    <template>
+        <think>
+            <set name="nums"><star /></set>                                            
+        </think>
+        TEST
+        ATR: <nums parameter="nums"/>
+        TAG: <nums><parameter><star /></parameter></nums>
+        TST: <nums><star /></nums>
+    </template>        
+</category> 
+
+
+<category>
+    <pattern>SEXPESEL *</pattern>
+    <template>
+        <think>
+            <set name="pesel"><star /></set>                                            
+        </think>
+        TEST        
+        ATR: <sexpesel parameter="pesel"/>
+        TAG: <sexpesel><parameter><star /></parameter></sexpesel>
+        TST: <sexpesel><star /></sexpesel>
+    </template>        
+</category> 
+
+
+<category>
+    <pattern>PHONE *</pattern>
+    <template>
+        <think>
+            <set name="phone"><star /></set>                                            
+        </think> 
+        TEST       
+        ATR: <phone parameter="phone"/>
+        TAG: <phone><parameter><star /></parameter></phone>
+        TST: <phone><star /></phone>
+    </template>        
+</category> 
+
+<!-- sample usage "date jutro" -->
+<category>
+    <pattern>DATA *</pattern>
+    <template>
+        <think>
+            <set name="text"><star /></set>                                            
+        </think>        
+        TEST
+        ATR: <txt2date parameter="text" format="E" ispast="false" locale="pl"/>
+        TAG: <txt2date format="dd-MM-yyyy" ispast="false"><parameter><star /></parameter></txt2date>
+        TST: <txt2date format="dd-MM-yyyy" ispast="false"><star /></txt2date>
+    </template>        
+</category>
+
+
+    <category>
+        <pattern>DATEADD * *</pattern>
+        <template>
+            <think>
+                <set name="text"><star index ="1"/></set><set name="days"><star index ="2"/></set>
+            </think>
+            TEST
+            ATR: <dateadd parameter="text" days="days" format="dd-MM-yyyy"  locale="pl"/>
+            TAG: <dateadd format="dd-MM-yyyy" locale="pl"><parameter><star index ="1"/></parameter><days><star index ="2"/></days></dateadd>
+        </template>
+    </category>
+
+    <category>
+    <pattern>COMPARE * *</pattern>
+    <template>
+        <think>
+            <set name="test"><star index ="1"/></set>     
+            <set name="name"><star index ="2"/></set>                                       
+        </think>
+        <compare parameter="test" word="name"/>
+    </template>        
+</category>
+
+ 
+   
+<category>
+    <pattern>LESS * *</pattern>
+    <template>
+        <think>
+            <set name="num1"><star index ="1"/></set>
+            <set name="num2"><star index ="2"/></set>
+        </think>
+        TEST
+        ATR: <lessthan parameter="num1" comparator="num2"/>
+        TAG: <lessthan><parameter><star index ="1"/></parameter><comparator><star index ="2"/></comparator></lessthan>
+    </template>        
+</category> 
+
+<category>
+    <pattern>GREATER * * * *</pattern>
+    <template>
+        <think>
+            <set name="num1"><star index ="1"/><star index ="2"/></set>     
+            <set name="num2"><star index ="3"/><star index ="4"/></set>                                       
+        </think>
+        TEST
+        ATR: <greaterthan parameter="num1" comparator="num2"/>
+        TAG: <greaterthan><parameter><get name="num1" /></parameter><comparator><get name="num2" /></comparator></greaterthan>        
+    </template>        
+</category> 
+
+<category>
+    <pattern>INCREMENT *</pattern>
+    <template>
+        <think><set name="cnt"> <star/></set></think>
+        TEST
+        ATR: <increment parameter="cnt" />         
+        TAG: <increment><parameter><star /></parameter></increment>
+        TST: <increment><star /></increment>
+    </template>        
+</category> 
+
+<!-- example 1234 złote 50 groszy, sto zł, tysiąc 50 dolarów -->
+<category>
+    <pattern>CURR *</pattern>
+    <template>
+        <think><set name="input"> <star/></set></think>
+        TEST
+        ATR: <currency parameter="input"/>                 
+        TAG: <currency><parameter><star /></parameter></currency>
+        TST: <currency><star /></currency>        
+    </template>        
+</category> 
+
+
+<category>
+    <pattern>DEC *</pattern>
+    <template>
+        <think><set name="cnt"> <star/></set></think>
+        TEST
+        ATR: <decrement parameter="cnt" />         
+        TAG: <decrement><parameter><star /></parameter></decrement>
+        TST: <decrement><star /></decrement>
+    </template>        
+</category>
+
+<category>
+    <pattern>TXT2NUM *</pattern>
+    <template>
+        <think><set name="text"><star /></set></think>                
+        TEST
+        ATR: <txt2num language="pl" parameter="text" />
+        TAG. <txt2num language="pl"><parameter><star /></parameter></txt2num>
+        TAG. <txt2num language="pl"><star /></txt2num>
+        TST. <txt2num><star /></txt2num>
+    </template>        
+</category>
+
+
+<category>
+    <pattern>CZAS *</pattern>
+    <template>
+        <think><set name="text"><star /></set></think>                
+        TEST
+        ATR: <txt2time parameter="text" />
+        TAG. <txt2time><parameter><star /></parameter></txt2time>
+        TST. <txt2time><star /></txt2time>        
+    </template>        
+</category>
+  
+<category>
+    <pattern>num2txt *</pattern>
+    <template>
+        <think><set name="num"><star /></set></think>                
+        TEST
+        ATR: <num2txt language="pl" parameter="num" />
+        TAG: <num2txt language="pl"><parameter><star /></parameter></num2txt>
+        TAG: <num2txt language="pl"><star /></num2txt>
+        TST: <num2txt><star /></num2txt>
+    </template>        
+</category>  
+
+
+<category>
+    <pattern>COMPARE * *</pattern>
+    <template>
+        <think>
+            <set name="sentence1"><star index ="1"/></set>     
+            <set name="sentence2"><star index ="2"/></set>                                       
+        </think>
+        <compare parameter="sentence1" word="sentence2" minaccuracy="80"/>
+    </template>        
+</category> 
+
+
+<category>
+    <pattern>LUBIE *</pattern>
+        <template>
+            <think>
+                <set name="food"><star /></set>
+            </think>
+            
+            <compare-condition name="food" minaccuracy="80">
+                    <li value="placki">
+                        Lubisz placki?
+                    </li>                     
+                    <li value="śliwki">
+                        Lubisz śliwki?
+                    </li>
+                    <li value="owoce">
+                        Lubisz owoce?
+                    </li>
+                    <li>
+                        Nie wiem co lubisz...
+                    </li>                         
+                </compare-condition>            
+        </template>
+</category>
+
+</aiml>

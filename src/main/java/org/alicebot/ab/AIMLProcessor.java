@@ -20,14 +20,11 @@ package org.alicebot.ab;
 */
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1092,7 +1089,10 @@ public class AIMLProcessor {
             pesel = ps.chatSession.predicates.get(parameter);  
                                                        
         if(pesel.equals(MagicStrings.unknown_property_value))
-            pesel = parameter; 
+            pesel = parameter;
+
+        if(pesel == null)
+            return MagicStrings.unknown_property_value;
         
         PeselValidator validator = new PeselValidator(pesel);
         
@@ -1118,13 +1118,12 @@ public class AIMLProcessor {
         if(nip.equals(MagicStrings.unknown_property_value))
             nip = parameter; 
         
-               
-        String result = Validator.nip(nip); 
-                        
-        log.info("nip "
-                + " parameter: " + parameter                 
-                + " nip: " + nip
-                + " result: " + result);
+        if(nip == null)
+            return MagicStrings.unknown_property_value;
+
+        String result = Validator.nip(nip);
+
+        log.info("nip  parameter: {} nip: {} result: {}", parameter, nip, result);
         
         return checkEmpty(result);
     }

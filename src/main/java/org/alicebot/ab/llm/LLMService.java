@@ -159,7 +159,7 @@ public class LLMService {
 
         logger.info("chatOllama response: {}", response);
 
-        if(response != null) {
+        if(response != null && response.getMessage() != null) {
             return response.getMessage().getContent() + report;
         }
         return MagicStrings.error_bot_response();
