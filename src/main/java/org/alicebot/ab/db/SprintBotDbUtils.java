@@ -117,6 +117,49 @@ public class SprintBotDbUtils {
         return "OK";
     }
 
+    public static String updateRecordStatus(String parameter) {
+        log.info("updateRecordStatus parameter: {}", parameter);
+        if(parameter == null)
+            return null;
+
+        if(url == null) {
+            log.warn("updateRecordStatus invalid dbUrl: {}", url);
+            return null;
+        }
+        String[] parameters = parameter.split("###");
+        if(parameter.length() < 2){
+            log.warn("updateRecordStatus invalid parameter: {}", parameter);
+            return null;
+        }
+
+        int status;
+
+        if(parameters[1].equalsIgnoreCase("WAIT")) {
+            status = 1;
+        }  else if(parameters[1].equalsIgnoreCase("CLOSE")) {
+            status = 2;
+        } else {
+            log.warn("updateRecordStatus invalid status: {}", parameters[1]);
+            return null;
+        }
+
+        try (Connection connection = DriverManager.getConnection(url, username, password)) {
+
+            String updateSql = "UPDATE " + schema + ".bot_dialer_contact_record SET status = ? WHERE id = ?";
+            try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
+                updateStmt.setInt(1, status);
+                updateStmt.setInt(2, Integer.parseInt(parameters[0]));
+                int rowsUpdated = updateStmt.executeUpdate();
+                log.info("updateRecordStatus updated rows: {} ", rowsUpdated);
+            }
+        } catch (SQLException e) {
+            log.error("updateRecordStatus err", e);
+            return null;
+        }
+
+        return "OK";
+    }
+
 
     public static String getRecord(String parameter) {
         log.info("getRecord parameter: {}", parameter);
@@ -151,13 +194,45 @@ public class SprintBotDbUtils {
                 log.info("getRecord ext_data: {} ",extData);
 
                 if(extData != null) {
-                    TypeReference<HashMap<String, String>> typeRef = new TypeReference<HashMap<String, String>>() {};
+                    TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
                     Map<String,String> map = mapper.readValue(extData, typeRef);
                     result = map.get(parameters[1]);
                 }
             }
         } catch (SQLException | JsonProcessingException e) {
             log.error("getRecord err", e);
+        }
+
+        return result;
+    }
+
+
+    public static String getRecordStatus(String parameter) {
+        log.info("getRecordStatus parameter: {}", parameter);
+        if(parameter == null)
+            return null;
+
+        if(url == null) {
+            log.warn("getRecordStatus invalid dbUrl: {}", url);
+            return null;
+        }
+
+        String result = null;
+
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             Statement statement = connection.createStatement())
+        {
+            String sql = "SELECT status FROM " + schema + ".bot_dialer_contact_record where id=" + parameter;
+            ResultSet resultSet = statement.executeQuery(sql);
+
+            // Przetwarzanie wyników
+            while (resultSet.next()) {
+                Integer status = resultSet.getInt("status");
+                log.info("getRecordStatus status: {} ", status);
+                result = status.toString();
+            }
+        } catch (SQLException e) {
+            log.error("getRecordStatus err", e);
         }
 
         return result;

@@ -871,6 +871,27 @@ public class AIMLProcessor {
 
         return checkEmpty(result);
     }
+
+    private static String getRecordStatus(Node node, ParseState ps) {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+
+        String result = SprintBotDbUtils.getRecordStatus(input);
+
+        log.info("getRecordStatus  parameter: {} input: {} result: {}", parameter, input, result);
+
+        return checkEmpty(result);
+    }
     private static String getData(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
         String input;
@@ -904,6 +925,24 @@ public class AIMLProcessor {
 
         String result = SprintBotDbUtils.updateRecord(input);
         log.info("updateRecord  parameter: {} input: {} result: {}", parameter, input, result);
+        return result == null ? "ERR" : result;
+    }
+
+    private static String updateRecordStatus(Node node, ParseState ps) {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input;
+        if(parameter == null)
+            input = evalTagContent(node, ps, null);
+        else
+            input = ps.chatSession.predicates.get(parameter);
+
+        if(input.equals(MagicStrings.unknown_property_value))
+            input = parameter;
+
+        String result = SprintBotDbUtils.updateRecordStatus(input);
+        log.info("updateRecordStatus  parameter: {} input: {} result: {}", parameter, input, result);
         return result == null ? "ERR" : result;
     }
     private static String setData(Node node, ParseState ps) {
@@ -2761,6 +2800,10 @@ public class AIMLProcessor {
                 return getRecord(node, ps);
            else if (nodeName.equals("updaterecord"))
                 return updateRecord(node, ps);
+           else if (nodeName.equals("getrecordstatus"))
+                return getRecordStatus(node, ps);
+           else if (nodeName.equals("updaterecordstatus"))
+                return updateRecordStatus(node, ps);
            else if (nodeName.equals("getdata"))
                 return getData(node, ps);
            else if (nodeName.equals("setdata"))
