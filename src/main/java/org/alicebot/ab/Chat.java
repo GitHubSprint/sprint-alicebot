@@ -182,13 +182,13 @@ public class Chat {
     /**
      * return a compound response to a multiple-sentence request. "Multiple" means one or more.
      *
-     * @param request      client's multiple-sentence input
+     * @param text      client's multiple-sentence input
      * @return
      */
-
     private static String removePunctuation(String text) {
-        return text.replaceAll("[\\p{Punct}]", "")
-                .replaceAll("[\\s]+", " ") // Usuwa nadmiarowe spacje
+        return text
+                .replaceAll("[?!.]", "")
+                .replaceAll("[\\s]+", " ")
                 .trim();
     }
     public String multisentenceRespond(String request) {
