@@ -117,6 +117,13 @@ public class SprintBotDbUtils {
         return "OK";
     }
 
+    /**
+     * Updates the status of a contact record and its associated phone numbers.
+     *
+     * @param parameter A string containing the record ID, new status, and phone details.
+     *                  (id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2)
+     * @return "OK" if the update was successful, or an error message if it failed.
+     */
     public static String updateRecordStatus(String parameter) {
         log.info("updateRecordStatus parameter: {}", parameter);
         if(parameter == null)
@@ -126,35 +133,59 @@ public class SprintBotDbUtils {
             log.warn("updateRecordStatus invalid dbUrl: {}", url);
             return null;
         }
+
         String[] parameters = parameter.split("###");
-        if(parameter.length() < 2){
+        if(parameter.length() < 8){
             log.warn("updateRecordStatus invalid parameter: {}", parameter);
             return null;
         }
 
-        int status;
+        int id = Integer.parseInt(parameters[0]);
+        int status = Integer.parseInt(parameters[1]);
+        String phone1 = parameters[2];
+        int cntPhone1 = Integer.parseInt(parameters[3]);
+        int statusPhone1 = Integer.parseInt(parameters[4]);
+        String phone2 = parameters[5];
+        int cntPhone2 = Integer.parseInt(parameters[6]);
+        int statusPhone2 = Integer.parseInt(parameters[7]);
 
-        if(parameters[1].equalsIgnoreCase("WAIT")) {
-            status = 1;
-        }  else if(parameters[1].equalsIgnoreCase("CLOSE")) {
-            status = 2;
-        } else {
-            log.warn("updateRecordStatus invalid status: {}", parameters[1]);
-            return null;
-        }
+        log.info("updateRecordStatus id: {}, status: {}, phone1: {}, cntPhone1: {}, statusPhone1: {}, phone2: {}, cntPhone2: {}, statusPhone2: {}",
+                id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2);
+
+        String updateRecord = "UPDATE " + schema + ".bot_dialer_contact_record SET status = ? WHERE id = ?";
+
+        String updatePhone = "UPDATE " + schema + ".bot_dialer_contact_phone p " +
+            "SET cnt_phone1 = ?, status_phone1 = ?,  cnt_phone2 = ?, status_phone1 = ? " +
+            "FROM " + schema + ".bot_dialer_contact_record r " +
+            "WHERE p.id = r.contact_phone_id AND r.id = ?";
+
 
         try (Connection connection = DriverManager.getConnection(url, username, password)) {
+            connection.setAutoCommit(false);
 
-            String updateSql = "UPDATE " + schema + ".bot_dialer_contact_record SET status = ? WHERE id = ?";
-            try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
-                updateStmt.setInt(1, status);
-                updateStmt.setInt(2, Integer.parseInt(parameters[0]));
-                int rowsUpdated = updateStmt.executeUpdate();
-                log.info("updateRecordStatus updated rows: {} ", rowsUpdated);
+            try (PreparedStatement psRecord = connection.prepareStatement(updateRecord);
+                 PreparedStatement psPhone = connection.prepareStatement(updatePhone))
+            {
+                psRecord.setInt(1, status);
+                psRecord.setInt(2, id);
+                int psRecordRows = psRecord.executeUpdate();
+
+                psPhone.setInt(1, cntPhone1);
+                psPhone.setInt(2, statusPhone1);
+                psPhone.setInt(3, cntPhone2);
+                psPhone.setInt(4, statusPhone2);
+                psPhone.setInt(5, id);
+                int psPhoneRows = psPhone.executeUpdate();
+                log.info("updateRecordStatus updated record rows: {} and phone rows: {}", psRecordRows, psPhoneRows);
+                connection.commit();
+            } catch (SQLException e) {
+                log.error("updateRecordStatus error during update", e);
+                connection.rollback();
+                return "ERR " + e.getMessage();
             }
         } catch (SQLException e) {
             log.error("updateRecordStatus err", e);
-            return null;
+            return "ERR " + e.getMessage();
         }
 
         return "OK";
@@ -184,11 +215,9 @@ public class SprintBotDbUtils {
         try (Connection connection = DriverManager.getConnection(url, username, password);
              Statement statement = connection.createStatement()) {
 
-            // Wykonanie zapytania SELECT
             String sql = "SELECT ext_data FROM " + schema + ".bot_dialer_contact_record where id=" + parameters[0];
             ResultSet resultSet = statement.executeQuery(sql);
 
-            // Przetwarzanie wyników
             while (resultSet.next()) {
                 String extData = resultSet.getString("ext_data");
                 log.info("getRecord ext_data: {} ",extData);
@@ -207,6 +236,13 @@ public class SprintBotDbUtils {
     }
 
 
+    /**
+     * Retrieves the status of a contact record by its ID.
+     *
+     * @param parameter The ID of the contact record.
+     * @return A formatted string containing the record's details or null if not found
+     *          (id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2).
+     */
     public static String getRecordStatus(String parameter) {
         log.info("getRecordStatus parameter: {}", parameter);
         if(parameter == null)
@@ -222,14 +258,25 @@ public class SprintBotDbUtils {
         try (Connection connection = DriverManager.getConnection(url, username, password);
              Statement statement = connection.createStatement())
         {
-            String sql = "SELECT status FROM " + schema + ".bot_dialer_contact_record where id=" + parameter;
+            String sql = "SELECT r.id, r.status, p.phone1, p.cnt_phone1, p.status_phone1, p.phone2, p.cnt_phone2, p.status_phone2 " +
+                    "FROM " + schema + ".bot_dialer_contact_record r, " + schema + ".bot_dialer_contact_phone p " +
+                    "WHERE p.id = r.contact_phone_id and r.id =" + parameter;
+
             ResultSet resultSet = statement.executeQuery(sql);
 
-            // Przetwarzanie wyników
             while (resultSet.next()) {
+                Integer id = resultSet.getInt("id");
                 Integer status = resultSet.getInt("status");
-                log.info("getRecordStatus status: {} ", status);
-                result = status.toString();
+                String phone1 = resultSet.getString("phone1");
+                Integer cntPhone1 = resultSet.getInt("cnt_phone1");
+                Integer statusPhone1 = resultSet.getInt("status_phone1");
+                String phone2 = resultSet.getString("phone2");
+                Integer cntPhone2 = resultSet.getInt("cnt_phone2");
+                Integer statusPhone2 = resultSet.getInt("status_phone2");
+                log.info("getRecordStatus id: {}, status: {}, phone1: {}, cntPhone1: {}, statusPhone1: {}, phone2: {}, cntPhone2: {}, statusPhone2: {}",
+                        id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2);
+                result = String.format("%d###%d###%s###%d###%d###%s###%d###%d",
+                        id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2);
             }
         } catch (SQLException e) {
             log.error("getRecordStatus err", e);
