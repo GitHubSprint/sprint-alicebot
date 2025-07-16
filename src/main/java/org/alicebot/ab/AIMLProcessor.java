@@ -1925,7 +1925,7 @@ public class AIMLProcessor {
      * @return
      * @throws IOException 
      */
-    private static String plugin(Node node, ParseState ps) throws IOException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException {
+    private static String plugin(Node node, ParseState ps) throws IOException {
         
         String file = getAttributeOrTagValue(node, ps, "file");  
         String classLoad = getAttributeOrTagValue(node, ps, "class");
