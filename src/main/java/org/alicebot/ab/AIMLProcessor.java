@@ -1932,13 +1932,17 @@ public class AIMLProcessor {
         
         String method = getAttributeOrTagValue(node, ps, "method");  
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        
+
+        String value = ps.chatSession.predicates.get(parameter);
+        log.info("plugin file: {} classLoad: {} method: {} parameter: {} value: {}", file, classLoad, method, parameter, value);
+
         String path = new File(".").getCanonicalPath().replace("\\", "/");
-        log.info("method: " + method + " parameter: " + parameter + " value: " + ps.chatSession.predicates.get(parameter));
-        String out = SprintUtils.callPlugin(path + "/lib/" + file, classLoad, method, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
+
+        String out = SprintUtils.callPlugin(path + "/lib/" + file, classLoad, method, value, ps.chatSession.sessionId);
            
-        if(parameter !=null && out != null && out.startsWith(parameter)) {
-            out = out.substring(parameter.length());
+        if((parameter !=null && out != null)) {
+            if(out.startsWith(parameter))
+                out = out.substring(parameter.length());
         }
         
         return out;
