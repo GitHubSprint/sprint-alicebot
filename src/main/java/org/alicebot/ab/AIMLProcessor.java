@@ -1937,7 +1937,7 @@ public class AIMLProcessor {
         log.info("method: " + method + " parameter: " + parameter + " value: " + ps.chatSession.predicates.get(parameter));
         String out = SprintUtils.callPlugin(path + "/lib/" + file, classLoad, method, ps.chatSession.predicates.get(parameter), ps.chatSession.sessionId);
            
-        if(parameter !=null && out.startsWith(parameter)) {
+        if(parameter !=null && out != null && out.startsWith(parameter)) {
             out = out.substring(parameter.length());
         }
         
