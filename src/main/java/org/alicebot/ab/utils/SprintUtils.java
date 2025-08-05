@@ -205,7 +205,7 @@ public class SprintUtils {
             Object instance = beanClass.newInstance();
             out = beanClass.execute(instance, methodName, parameter, sessionId);
 
-            beanClass.clear(instance);
+            beanClass.clear(instance, sessionId);
 
         } catch (InvocationTargetException ex) {
             Throwable cause = ex.getCause();

@@ -30,10 +30,10 @@ public class SharedClassLoader {
     }
 
 
-    public void clear(Object instance) {
+    public void clear(Object instance, String sessionId) {
         try {
-            Method clearMethod = instance.getClass().getMethod("clear");
-            clearMethod.invoke(instance);
+            Method clearMethod = instance.getClass().getMethod("clear", String.class);
+            clearMethod.invoke(instance, sessionId);
         } catch (Exception e) {
             // Ignore if the method does not exist
         }
