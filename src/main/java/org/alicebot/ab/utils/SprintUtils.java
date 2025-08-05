@@ -22,20 +22,15 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.text.Normalizer;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Custom methods for polish language and jar plugin call. 
  * @author skost
  */
 public class SprintUtils {
-    private static final Map<String, Class<?>> classCache = new HashMap<>();
-    private static final Map<String, URLClassLoader> loaderCache = new HashMap<>();
+    private static final Map<File, SharedClassLoader> sharedClassLoaderMap = new ConcurrentHashMap<>();
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
-
-    public static void main(String[] args) {
-        System.out.println(Locale.forLanguageTag("pl"));
-
-    }
 
 
     public static void updateGeminiToken(Map<String, String> tokens) {
@@ -176,15 +171,14 @@ public class SprintUtils {
 
 
     public static void resetClassCache() {
-        classCache.clear();
-        loaderCache.forEach((k, loader) -> {
+        sharedClassLoaderMap.forEach((k, loader) -> {
             try {
                 loader.close();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 log.error("Error closing URLClassLoader", e);
             }
         });
-        loaderCache.clear();
+        sharedClassLoaderMap.clear();
     }
     
     /**
@@ -201,23 +195,17 @@ public class SprintUtils {
         String out;
 
         try {
-            Class<?> beanClass = classCache.get(classLoad);
-            URLClassLoader urlClassLoader = loaderCache.get(file);
 
-            if (beanClass == null || urlClassLoader == null) {
+            SharedClassLoader beanClass = sharedClassLoaderMap.get(f);
+            if (beanClass == null) {
                 log.info("{} : callPlugin load new plugin class: {} file: {}", sessionId, classLoad, file);
-                urlClassLoader = new URLClassLoader(new URL[]{f.toURI().toURL()}, SprintUtils.class.getClassLoader());
-
-                beanClass = urlClassLoader.loadClass(classLoad);
-                classCache.put(classLoad, beanClass);
-                loaderCache.put(file, urlClassLoader);
+                beanClass = new SharedClassLoader(f, classLoad);
+                sharedClassLoaderMap.put(f, beanClass);
             }
+            Object instance = beanClass.newInstance();
+            out = beanClass.execute(instance, methodName, parameter, sessionId);
 
-            Constructor<?> constructor = beanClass.getConstructor();
-            Object beanObj = constructor.newInstance();
-
-            Method method = beanClass.getMethod("processCustomResultPocessor", String.class, String.class, String.class);
-            out = (String) method.invoke(beanObj, sessionId, parameter, methodName);
+            beanClass.clear(instance);
 
         } catch (InvocationTargetException ex) {
             Throwable cause = ex.getCause();
