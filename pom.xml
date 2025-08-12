@@ -7,7 +7,7 @@
 	<name>sprint-alicebot</name>
 	<description>
 		Program AB is the reference implementation of the AIML 2.0 draft specification.
-		AIML is a widely adopted standard for creating chat bots and mobile virtual assistants like ALICE, Mitsuku, English Tutor, The Professor, S.U.P.E.R. and many more.
+		AIML is a widely adopted standard for creating chatbots and mobile virtual assistants like ALICE, Mitsuku, English Tutor, The Professor, S.U.P.E.R. and many more.
 	</description>
 	<properties>
 		<slf4j.version>2.0.13</slf4j.version>
