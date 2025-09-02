@@ -2,6 +2,40 @@
 <!--   -->
 <aiml>
 
+
+    <category>
+        <pattern>say</pattern>
+        <template>
+            <think>
+                <set name="subject">Temat</set>
+                <set name="iconUrl">ikona</set>
+                <set name="label">etykieta</set>
+                <set name="type">typ</set>
+                <set name="class">klasa</set>
+                <set name="value">wartość</set>
+            </think>
+
+            <reaction type="thumbs" />
+
+            <say>
+                <subject>subject</subject>
+                <iconUrl>iconUrl</iconUrl>
+                <label>label</label>
+                <type>type</type>
+                <class>class</class>
+                <value>value</value>
+            </say>
+            <say>
+                <subject>Inny temat</subject>
+                <iconUrl>iconUrl</iconUrl>
+                <label>label</label>
+                <type>type</type>
+                <class>class</class>
+                <value>value</value>
+            </say>
+        </template>
+    </category>
+
     <category>
         <pattern>godzina test</pattern>
         <template>
@@ -128,7 +162,7 @@
 
 
 <category>
-    <pattern>START</pattern >
+    <pattern>ANSWERS</pattern >
     <template>
         Spawdzam odpowiedzi: <answers>Umowa,Test</answers> test po answers 1 <answers>Inna</answers> test po answers 2        
     </template>

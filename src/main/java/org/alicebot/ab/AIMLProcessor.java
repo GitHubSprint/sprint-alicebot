@@ -20,7 +20,6 @@ package org.alicebot.ab;
 */
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -28,11 +27,19 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.llm.GenAIHelper;
 import org.alicebot.ab.llm.LLMConfiguration;
 import org.alicebot.ab.llm.LLMService;
 import org.alicebot.ab.db.Report;
+import org.alicebot.ab.model.SayResponse;
+import org.alicebot.ab.model.reaction.Reaction;
+import org.alicebot.ab.model.say.Say;
+import org.alicebot.ab.model.say.SayButton;
+import org.alicebot.ab.model.survey.Survey;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
@@ -50,11 +57,12 @@ import pl.sprint.sprintvalidator.utils.PeselValidator;
  * The core AIML parser and interpreter.
  * Implements the AIML 2.0 specification as described in
  * AIML 2.0 Working Draft document
- * https://docs.google.com/document/d/1wNT25hJRyupcG51aO89UcQEiG-HkXRXusukADpFnDs4/pub
+ * <a href="https://docs.google.com/document/d/1wNT25hJRyupcG51aO89UcQEiG-HkXRXusukADpFnDs4/pub" />
  */
 public class AIMLProcessor {
 	
-    private static final Logger log = LoggerFactory.getLogger(AIMLProcessor.class);        
+    private static final Logger log = LoggerFactory.getLogger(AIMLProcessor.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     /**
      * when parsing an AIML file, process a category element.
@@ -259,8 +267,7 @@ public class AIMLProcessor {
         NodeList childList = node.getChildNodes();
         for (int i = 0; i < childList.getLength(); i++) {
             Node child = childList.item(i);
-            if (ignoreAttributes == null || !ignoreAttributes.contains(child.getNodeName()))
-            {
+            if (ignoreAttributes == null || !ignoreAttributes.contains(child.getNodeName())) {
                 String temp = recursEval(child, ps);                
                 result.append(temp);
             }
@@ -1366,6 +1373,47 @@ public class AIMLProcessor {
         return checkEmpty(result);
     }
 
+    private static String say(Node node, ParseState ps) throws JsonProcessingException {
+        String type = getPredicateOrValue(getAttributeOrTagValue(node, ps, "type"), ps);
+        String className = getPredicateOrValue(getAttributeOrTagValue(node, ps, "class"), ps);
+        String iconUrl = getPredicateOrValue(getAttributeOrTagValue(node, ps, "iconUrl"), ps);
+        String subject = getPredicateOrValue(getAttributeOrTagValue(node, ps, "subject"), ps);
+        String label = getPredicateOrValue(getAttributeOrTagValue(node, ps, "label"), ps);
+        String value = getPredicateOrValue(getAttributeOrTagValue(node, ps, "value"), ps);
+
+        log.info("say  type: {} class: {} iconUrl: {} subject: {} label: {} value: {}",
+                type, className, iconUrl, subject, label, value);
+
+        SayButton button = new SayButton(subject, iconUrl, label, type, className, value);
+        String returnValue = mapper
+                .writeValueAsString(new SayResponse(new Say(new ArrayList<>(Collections.singleton(button)))));
+
+        log.info("say returnValue: {}", returnValue);
+        return returnValue;
+    }
+    private static String reaction(Node node, ParseState ps) throws JsonProcessingException {
+        String type = getPredicateOrValue(getAttributeOrTagValue(node, ps, "type"), ps);
+        log.info("reaction  type: {}", type);
+
+        String returnValue = mapper
+                .writeValueAsString(new SayResponse(new Reaction(type)));
+        log.info("reaction returnValue: {}", returnValue);
+        return returnValue;
+    }
+
+    private static String survey(Node node, ParseState ps) throws JsonProcessingException {
+        String subject = getPredicateOrValue(getAttributeOrTagValue(node, ps, "subject"), ps);
+        String description = getPredicateOrValue(getAttributeOrTagValue(node, ps, "description"), ps);
+        log.info("survey  subject: {} description: {}", subject, description);
+
+
+        //TODO dodać obsługę pytań, pytania jako osobny tag question
+        String returnValue = mapper
+                .writeValueAsString(new SayResponse(new Survey()));
+        log.info("survey returnValue: {}", returnValue);
+        return returnValue;
+    }
+
     private static String reportSave(Node node, ParseState ps) {
         String reportName = getAttributeOrTagValue(node, ps, "report_name");
 
@@ -1390,20 +1438,20 @@ public class AIMLProcessor {
         String wartosc = getAttributeOrTagValue(node, ps, "wartosc");
 
         Report report = new Report(
-                getPredicate(frazaCala, node, ps),
-                getPredicate(fraza,node, ps),
-                getPredicate(rozpoznanie,node, ps),
-                getPredicate(label,node, ps),
-                getPredicate(wiarygodnosc,node, ps),
-                getPredicate(fakt,node, ps),
-                getPredicate(licznikFraz,node, ps),
-                getPredicate(licznikOcen,node, ps),
-                getPredicate(sposobOceny,node, ps),
-                getPredicate(ocena,node, ps),
-                getPredicate(botName,node, ps),
-                getPredicate(info,node, ps),
-                getPredicate(klucz,     node, ps),
-                getPredicate(wartosc,node, ps));
+                getPredicate(frazaCala, ps),
+                getPredicate(fraza, ps),
+                getPredicate(rozpoznanie, ps),
+                getPredicate(label, ps),
+                getPredicate(wiarygodnosc, ps),
+                getPredicate(fakt, ps),
+                getPredicate(licznikFraz, ps),
+                getPredicate(licznikOcen, ps),
+                getPredicate(sposobOceny, ps),
+                getPredicate(ocena, ps),
+                getPredicate(botName, ps),
+                getPredicate(info, ps),
+                getPredicate(klucz, ps),
+                getPredicate(wartosc, ps));
 
         CompletableFuture<Void> future = SprintBotDbUtils.saveReportAsync(reportName, ps.chatSession.symbol, report, ps.chatSession.sessionId);
 
@@ -1416,13 +1464,25 @@ public class AIMLProcessor {
         return "";
     }
 
-    private static String getPredicate(String value, Node node, ParseState ps) {
+    private static String getPredicate(String value, ParseState ps) {
+        log.info("getPredicate  value: {}", value);
         if(value == null)
             return null;
         else {
             String resp = ps.chatSession.predicates.get(value);
             if(resp.equals(MagicStrings.unknown_property_value))
                 return null;
+            return resp;
+        }
+    }
+    private static String getPredicateOrValue(String value, ParseState ps) {
+        log.info("getPredicateOrValue  value: {}", value);
+        if(value == null)
+            return null;
+        else {
+            String resp = ps.chatSession.predicates.get(value);
+            if(resp.equals(MagicStrings.unknown_property_value))
+                return value;
             return resp;
         }
     }
@@ -1460,8 +1520,8 @@ public class AIMLProcessor {
         
         return checkEmpty(result);
     }
-    private static String txt2datetime(Node node, ParseState ps)
-    {        
+
+    private static String txt2datetime(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter"); 
         String format = getAttributeOrTagValue(node, ps, "format");
         String locale = getAttributeOrTagValue(node, ps, "locale");
@@ -2686,8 +2746,7 @@ public class AIMLProcessor {
 
 
     private static String recursEval(Node node, ParseState ps) {
-        try 
-        {
+        try {
             String nodeName = node.getNodeName();
             if (nodeName.equals("#text")) 
                 return node.getNodeValue();
@@ -2812,6 +2871,12 @@ public class AIMLProcessor {
                 return getData(node, ps);
            else if (nodeName.equals("setdata"))
                 return setData(node, ps);
+           else if (nodeName.equals("say"))
+                return say(node, ps);
+           else if (nodeName.equals("reaction"))
+                return reaction(node, ps);
+           else if (nodeName.equals("survey"))
+                return survey(node, ps);
            
            
            
@@ -2819,8 +2884,6 @@ public class AIMLProcessor {
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))
                 return interval(node, ps);
-            //else if (nodeName.equals("gossip"))       // removed from AIML 2.0
-            //    return gossip(node, ps);
             else if (nodeName.equals("think"))
                 return think(node, ps);
             else if (nodeName.equals("system"))
@@ -2868,6 +2931,8 @@ public class AIMLProcessor {
             return "ERR " + ex.getMessage();
         }
     }
+
+
 
     /**
      * evaluate an AIML template expression
