@@ -36,7 +36,7 @@ import org.alicebot.ab.llm.LLMConfiguration;
 import org.alicebot.ab.llm.LLMService;
 import org.alicebot.ab.db.Report;
 import org.alicebot.ab.model.SayResponse;
-import org.alicebot.ab.model.reaction.Reaction;
+import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
 import org.alicebot.ab.model.survey.Survey;
@@ -45,6 +45,10 @@ import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
 import org.json.JSONObject;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.NamedNodeMap;
@@ -1391,12 +1395,24 @@ public class AIMLProcessor {
         log.info("say returnValue: {}", returnValue);
         return returnValue;
     }
-    private static String reaction(Node node, ParseState ps) throws JsonProcessingException {
+    private static String feedback(Node node, ParseState ps) throws JsonProcessingException {
         String type = getPredicateOrValue(getAttributeOrTagValue(node, ps, "type"), ps);
-        log.info("reaction  type: {}", type);
+        String labels = getPredicateOrValue(getAttributeOrTagValue(node, ps, "labels"), ps);
+        log.info("reaction  type: {} labels: {}", type, labels);
+
+        List<String> labelList = new ArrayList<>();
+
+        if(labels != null) {
+            Document doc = Jsoup.parse(labels);
+            Elements items = doc.select("item");
+
+            for (Element value : items) {
+                labelList.add(value.text());
+            }
+        }
 
         String returnValue = mapper
-                .writeValueAsString(new SayResponse(new Reaction(type)));
+                .writeValueAsString(new SayResponse(new Feedback(type, labelList)));
         log.info("reaction returnValue: {}", returnValue);
         return returnValue;
     }
@@ -2873,8 +2889,8 @@ public class AIMLProcessor {
                 return setData(node, ps);
            else if (nodeName.equals("say"))
                 return say(node, ps);
-           else if (nodeName.equals("reaction"))
-                return reaction(node, ps);
+           else if (nodeName.equals("feedback"))
+                return feedback(node, ps);
            else if (nodeName.equals("survey"))
                 return survey(node, ps);
            

@@ -1,0 +1,155 @@
+{
+    "buttons": [
+        {
+            "type": "separator-btn-sq" // otwarcie kontenera dla kolejnych przycisków, określa ich layout jako 2 kolumny i przyciski od lewej do prawej, ostani nieparzysty zajmuje cały wiersz
+        },
+        {
+            "class": "std",
+            "iconUrl": "http://localhost:8080/book.svg",
+            "subject": "Oferta edukacyjna",
+            "label": "<p style=\"color: #ff0000;\">Informacje o dostępnych kierunkach.</p>",
+            "value": "Informacje o dostępnych kierunkach."
+        },
+        {
+            "type": "separator-btn-sq"
+        },
+        {
+            "class": "std",
+            "iconUrl": "http://localhost:8080/student-hat.svg",
+            "subject": "Rekrutacja",
+            "label": "Proces ubiegania się o przyjęcie na studia."
+        },
+        {
+            "type": "separator-btn" // otwarcie kontenra dla przycisków jeden pod drugim - wseczna kompatybilność do values
+        },
+        {
+            "class": "std",
+            "label": "Lekarski.",
+            "value": "Lekarski."
+        },
+        {
+            "class": "std",
+            "label": "Neurobiologia.",
+            "value": "Neurobiologia."
+        },
+        {
+            "type": "separator-feedback" // otwarcie kontenera dla przycisków feedback - zagęsczone do środka w jednym rzędzie
+        },
+        {
+            "class": "std",
+            "iconUrl": "http://localhost:8080/star.svg",
+            "label": "Fatalna odpowiedź",
+            "value": "Fatalna odpowiedź."
+        },
+        {
+            "class": "std",
+            "iconUrl": "http://localhost:8080/star.svg",
+            "label": "Kiepska odpowiedź",
+            "value": "Kiepska odpowiedź."
+        },
+        {
+            "class": "std",
+            "iconUrl": "http://localhost:8080/star.svg",
+            "label": "Średnia odpowiedź",
+            "value": "Średnia odpowiedź."
+        }
+    ],
+    "feedback": {
+        "type": "thumbdown|thumbs|faces",
+        "labels": [
+            "Zła odpowiedź",
+            "Dobra odpowiedź"
+        ]
+    },
+    "survey": {
+        "subject": "Ocena procesu rekrutacji",
+        "description": "Prosimy o ocenę procesu rekrutacji na studia.",
+        "acceptSurveyLabel":"TAK",
+        "skipSurveyLabel":"Pomiń",        
+        "nextLabel": "Idź dalej",
+        "prevLabel": "Poprzednie pytanie",
+        "sendLabel": "Wyślij",
+        "returnLabel": "Wróć do rozmowy",
+        "questions": [
+            {
+                "id": "q1",
+                "class": "std",
+                "question": "Jak oceniasz pomoc SUM bota?",
+                "type": "stars5|faces5|thumbs2", // określa listę i typ kontrolek, musi być zgodne z liczbą values
+                "labels": [ // tooltip - 1:1 z values
+                    "Fatalna odpowiedź",
+                    "Kiepska odpowiedź",
+                    "Średnia odpowiedź",
+                    "Dobra odpowiedź",
+                    "Bardzo dobra odpowiedź"
+                ],
+                "values": [ // musi się zgadzać z typem wybranym w type
+                    "Fatalna odpowiedź",
+                    "Kiepska odpowiedź",
+                    "Średnia odpowiedź",
+                    "Dobra odpowiedź",
+                    "Bardzo dobra odpowiedź"
+                ]
+            },
+            {
+                "id": "q2",
+                "class": "std",
+                "question": "Z jakich powodów korzystasz z chatbota?",
+                "type": "multiple",
+                "labels": [ // wyświetlane
+                    "Uzyskanie informacji",
+                    "Pomoc w rekrutacji",
+                    "Inne"
+                ],
+                "values": [ // zwracane - 1:1 z labels
+                    "Uzyskanie informacji",
+                    "Pomoc w rekrutacji",
+                    "Inne - odpowiedź"
+                ]
+            },
+            {
+                "id": "q3",
+                "class": "std",
+                "question": "Czy odpowiedzi SUMbota były pomocne??",
+                "type": "single",
+                 "labels": [ // wyświetlane
+                    "Tak",
+                    "Nie",
+                    "Nie wiem"
+
+                ],
+                "values": [  // zwracane - 1:1 z labels
+                    "Tak",
+                    "Nie",
+                    "Nie wiem - opowiedź"
+                ]
+            },
+            {
+                "id": "q4",
+                "class": "std",
+                "question": "Jak oceniasz pomoc SUMbota?",
+                "placeholder": "Opisz swoje doświadczenia",
+                "max": 500, // max liczba znaków
+                "type": "note"
+            },
+            {
+                "id": "q5",
+                "class": "std",
+                "question": "Ile razy korzystałeś z pomocy sumbota?",
+                "placeholder": "Wpisz liczbę",
+                "min": 0, // domyślnie 0
+                "max": 100, // domyślnie dowolna
+                "type": "number|decimal"
+            },
+            {
+                "id": "q6",
+                "class": "std",
+                "question": "Kiedy korzystałeś z pomocy sumbota?",
+                "placeholder": "Wpisz datę",
+                "min": 0, //liczba dni, 0 == dzisiaj, ujemne w przeszłości, dodatnie w przyszłości
+                "max": 10, // jw
+                "type": "date" // tylko data, wysyałana w formacie yyyy-MM-dd
+            }
+        ]
+    }
+}

@@ -2,25 +2,25 @@ package org.alicebot.ab.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import org.alicebot.ab.model.reaction.Reaction;
+import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.survey.Survey;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SayResponse {
-    private Reaction reaction;
+    private Feedback feedback;
     private Say say;
     private Survey survey;
 
-    public SayResponse(Reaction reaction, Say say, Survey survey) {
-        this.reaction = reaction;
+    public SayResponse(Feedback feedback, Say say, Survey survey) {
+        this.feedback = feedback;
         this.say = say;
         this.survey = survey;
     }
 
-    public SayResponse(Reaction reaction) {
-        this.reaction = reaction;
+    public SayResponse(Feedback feedback) {
+        this.feedback = feedback;
     }
 
     public SayResponse(Say say) {
@@ -31,8 +31,8 @@ public class SayResponse {
         this.survey = survey;
     }
 
-    public Reaction getReaction() {
-        return reaction;
+    public Feedback getReaction() {
+        return feedback;
     }
 
     public Say getSay() {

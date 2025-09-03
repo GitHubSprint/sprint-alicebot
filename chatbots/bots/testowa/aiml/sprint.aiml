@@ -15,7 +15,7 @@
                 <set name="value">wartość</set>
             </think>
 
-            <reaction type="thumbs" />
+            <feedback type="thumbs" />
 
             <say>
                 <subject>subject</subject>
