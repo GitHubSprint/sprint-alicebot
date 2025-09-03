@@ -1405,7 +1405,6 @@ public class AIMLProcessor {
         if(labels != null) {
             Document doc = Jsoup.parse(labels);
             Elements items = doc.select("item");
-
             for (Element value : items) {
                 labelList.add(value.text());
             }
@@ -1424,10 +1423,10 @@ public class AIMLProcessor {
 
 
         //TODO dodać obsługę pytań, pytania jako osobny tag question
-        String returnValue = mapper
-                .writeValueAsString(new SayResponse(new Survey()));
-        log.info("survey returnValue: {}", returnValue);
-        return returnValue;
+//        String returnValue = mapper
+//                .writeValueAsString(new SayResponse(new Survey()));
+//        log.info("survey returnValue: {}", returnValue);
+        return null;
     }
 
     private static String reportSave(Node node, ParseState ps) {

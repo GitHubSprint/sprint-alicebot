@@ -6,32 +6,22 @@
     <category>
         <pattern>say</pattern>
         <template>
-            <think>
-                <set name="subject">Temat</set>
-                <set name="iconUrl">ikona</set>
-                <set name="label">etykieta</set>
-                <set name="type">typ</set>
-                <set name="class">klasa</set>
-                <set name="value">wartość</set>
-            </think>
-
-            <feedback type="thumbs" />
+            <feedback type="thumbs" >
+                <labels>
+                    <item>test1</item>
+                    <item>test2</item>
+                </labels>
+            </feedback>
 
             <say>
-                <subject>subject</subject>
-                <iconUrl>iconUrl</iconUrl>
-                <label>label</label>
-                <type>type</type>
-                <class>class</class>
-                <value>value</value>
+                <type>separator-btn-sq</type>
             </say>
             <say>
-                <subject>Inny temat</subject>
-                <iconUrl>iconUrl</iconUrl>
-                <label>label</label>
-                <type>type</type>
-                <class>class</class>
-                <value>value</value>
+                <class>std</class>
+                <iconUrl>http://localhost:8080/book.svg</iconUrl>
+                <subject>Oferta edukacyjna</subject>
+                <label><p style="color: #ff0000;">Informacje o dostępnych kierunkach.</p></label>
+                <value>Informacje o dostępnych kierunkach.</value>
             </say>
         </template>
     </category>

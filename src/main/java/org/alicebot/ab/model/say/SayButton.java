@@ -1,58 +1,25 @@
 package org.alicebot.ab.model.say;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SayButton {
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record SayButton(
+        @JsonProperty("subject")
+        String subject,
 
-	@JsonProperty("subject")
-	private String subject;
+        @JsonProperty("iconUrl")
+        String iconUrl,
 
-	@JsonProperty("iconUrl")
-	private String iconUrl;
+        @JsonProperty("label")
+        String label,
 
-	@JsonProperty("label")
-	private String label;
+        @JsonProperty("type")
+        String type,
 
-	@JsonProperty("type")
-	private String type;
+        @JsonProperty("class")
+        String className,
 
-	@JsonProperty("class")
-	private String className;
-
-	@JsonProperty("value")
-	private String value;
-
-    public SayButton(String subject, String iconUrl, String label, String type, String className, String value) {
-        this.subject = subject;
-        this.iconUrl = iconUrl;
-        this.label = label;
-        this.type = type;
-        this.className = className;
-        this.value = value;
-    }
-
-    public String getSubject() {
-        return subject;
-    }
-
-    public String getIconUrl() {
-        return iconUrl;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public String getClassName() {
-        return className;
-    }
-
-    public String getValue() {
-        return value;
-    }
-}
+        @JsonProperty("value")
+        String value) {}
