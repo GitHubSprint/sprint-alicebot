@@ -90,7 +90,7 @@ public class SprintUtils {
 
         FastText fastText = mlModels.get(model);
         if(fastText != null) {
-            log.info("updateMlModel. Model " + model + " removed from system.");
+            log.info("updateMlModel. Model {} removed from system.", model);
             mlModels.remove(model);
         }
 
@@ -127,7 +127,7 @@ public class SprintUtils {
      * @return
      */
     public static String ml(String model, String nBest, String threshold, String score, String parameter, String sessionId) {
-        StringBuilder out = new StringBuilder("ERR");
+        StringBuilder out = new StringBuilder();
 
         try {
             int best = Integer.parseInt(nBest);
@@ -179,11 +179,11 @@ public class SprintUtils {
             }
 
         } catch (Exception e) {
-
-            out = new StringBuilder("ERR " + e.getMessage());
             log.error("predictSupervisedModel ERROR", e);
+            return "ERR " + e.getMessage();
         }
 
+        log.info("ml Response sessionId: {} parameter: {} RESPONSE: {}", sessionId, parameter, out);
         return out.toString();
     }
 

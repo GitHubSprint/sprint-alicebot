@@ -79,8 +79,9 @@ public class Main {
         //Timer timer = new Timer();
         Bot bot = new Bot(botName, MagicStrings.root_path, action); //
         //bot.preProcessor.normalizeFile("c:/ab/log1.txt", "c:/ab/data/lognormal.txt");
-        
-        log.info("Categories.size = "+bot.brain.getCategories().size());
+
+
+        log.info("Categories.size = {}", bot.brain.getCategories().size());
         
         if (bot.brain.getCategories().size() < 100) bot.brain.printgraph();
         

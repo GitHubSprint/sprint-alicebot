@@ -523,10 +523,10 @@ public class AIMLProcessor {
         log.info("{} ML parameter: {} input: {}", ps.chatSession.sessionId, parameter, input);
         log.info("{} ML model: {} nBest: {} threshold:  {} score:{}", ps.chatSession.sessionId, model, nBest, threshold, score);
 
-        String out = checkEmpty(SprintUtils.ml(model, nBest, threshold, score, input, ps.chatSession.sessionId));
-
-
-        return out.replace("__label__", "");
+        String out = checkEmpty(SprintUtils.ml(model, nBest, threshold, score, input, ps.chatSession.sessionId))
+                .replace("__label__", "");
+        log.info("{} ML output: {}", ps.chatSession.sessionId, out);
+        return out;
     }
     
     

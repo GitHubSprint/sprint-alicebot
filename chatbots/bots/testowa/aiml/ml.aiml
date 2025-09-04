@@ -11,7 +11,7 @@
 <!-- For more information see http://www.sprint.pl -->
 
     <category>
-        <pattern>ML *</pattern>
+        <pattern>ML</pattern>
         <template>
             <think>
                 <set name="topic">WERYFIKACJA</set>
