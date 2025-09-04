@@ -127,7 +127,7 @@ public class SprintUtils {
      * @return
      */
     public static String ml(String model, String nBest, String threshold, String score, String parameter, String sessionId) {
-        String out = "ERR";
+        StringBuilder out = new StringBuilder("ERR");
 
         try {
             int best = Integer.parseInt(nBest);
@@ -147,26 +147,44 @@ public class SprintUtils {
             List<ScoreLabelPair> result = fastText.predict(Arrays.asList(parameter.split(" ")), best, fThreshold);
 
             log.info("ml Response sessionId: {} result.size: {}", sessionId, result.size());
-            for(ScoreLabelPair pair : result) {
-                int iScore = (int) (pair.getScore() * 100);
 
-                log.info("Response sessionId: {} parameter: {} RESPONSE score: {} iScore: {} label: {} MinScore: {}", sessionId, parameter, pair.getScore(), iScore, pair.getLabel(), iMinScore);
+            if(result.size() > 1)
+                result.sort((a, b) -> Float.compare(b.getScore(), a.getScore()));
 
-                if(iScore >= iMinScore) {
-                    out = pair.getLabel() + " " + iScore;
-                    break;
+            if(best > 1) {
+                for(int i = 0; i < best; i++) {
+                    int iScore = 0;
+                    if (i < result.size()) {
+                        ScoreLabelPair pair = result.get(i);
+                        iScore = (int) (pair.getScore() * 100);
+
+                        log.info("Response sessionId: {} parameter: {} RESPONSE[{}] score: {} iScore: {} label: {} MinScore: {}", sessionId, parameter, i, pair.getScore(), iScore, pair.getLabel(), iMinScore);
+                        out.append(i > 0 ? " " : "").append(pair.getLabel()).append(" ").append(iScore);
+                    } else
+                        out.append(i > 0 ? " " : "").append("__label__oos ").append(iScore);
                 }
-                else
-                    out= "__label__oos " + iScore;
+
+            } else {
+                for (ScoreLabelPair pair : result) {
+                    int iScore = (int) (pair.getScore() * 100);
+
+                    log.info("Response sessionId: {} parameter: {} RESPONSE score: {} iScore: {} label: {} MinScore: {}", sessionId, parameter, pair.getScore(), iScore, pair.getLabel(), iMinScore);
+
+                    if (iScore >= iMinScore) {
+                        out = new StringBuilder(pair.getLabel() + " " + iScore);
+                        break;
+                    } else
+                        out = new StringBuilder("__label__oos " + iScore);
+                }
             }
 
         } catch (Exception e) {
 
-            out = "ERR " + e.getMessage();
+            out = new StringBuilder("ERR " + e.getMessage());
             log.error("predictSupervisedModel ERROR", e);
         }
 
-        return out;
+        return out.toString();
     }
 
 
