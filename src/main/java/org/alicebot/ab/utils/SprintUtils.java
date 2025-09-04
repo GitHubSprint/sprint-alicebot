@@ -120,11 +120,11 @@ public class SprintUtils {
      * Predict fastText label tranined suprvised model
      * @param model name of model (all models should be installed to ./models/
      * @param nBest number of responses
-     * @param threshold
+     * @param threshold threshold (0-1 float value, e.g. 0.5 = 50% prediction)
      * @param score score percent (e.g. 50 = 50% prediction)
-     * @param parameter
+     * @param parameter text to classify
      * @param sessionId Bot SessionId
-     * @return
+     * @return response labels separated by space with score
      */
     public static String ml(String model, String nBest, String threshold, String score, String parameter, String sessionId) {
         StringBuilder out = new StringBuilder();
