@@ -39,7 +39,6 @@ import org.alicebot.ab.model.SayResponse;
 import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
-import org.alicebot.ab.model.survey.Survey;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
@@ -222,7 +221,7 @@ public class AIMLProcessor {
     }
 
     /** capitalizeString:
-     * from http://stackoverflow.com/questions/1892765/capitalize-first-char-of-each-word-in-a-string-java
+     * from <a href="http://stackoverflow.com/questions/1892765/capitalize-first-char-of-each-word-in-a-string-java">...</a>
      *
      * @param string   the string to capitalize
      * @return  the capitalized string
@@ -319,7 +318,7 @@ public class AIMLProcessor {
                 attributes.append(" ").append(XMLAttributes.item(i).getNodeName()).append("=\"").append(XMLAttributes.item(i).getNodeValue()).append("\"");
             }
         }
-        if (result.equals(""))
+        if (result.isEmpty())
             return "<"+nodeName+attributes+"/>";
         else return "<"+nodeName+attributes+">"+result+"</"+nodeName+">";
     }
@@ -382,10 +381,10 @@ public class AIMLProcessor {
             result = null;         // no attribute or tag named attributeName
             for (int i = 0; i < childList.getLength(); i++)   {
                 Node child = childList.item(i);
-                //log.info("getAttributeOrTagValue child = "+child.getNodeName());
+                log.debug("getAttributeOrTagValue child = {}", child.getNodeName());
                 if (child.getNodeName().equals(attributeName)) {
                     result = evalTagContent(child, ps, null);
-                    //log.info("getAttributeOrTagValue result from child = "+result);
+                    log.debug("getAttributeOrTagValue result from child = {}", result);
                 }
             }
         }
@@ -395,28 +394,6 @@ public class AIMLProcessor {
         //log.info("getAttributeOrTagValue "+attributeName+" = "+result);
         return result;
     }
-
-    /**
-     * access external web service for response
-     * implements <sraix></sraix>
-     * and its attribute variations.
-     *
-     * @param node   current XML parse node
-     * @param ps     AIML parse state
-     * @return       response from remote service or string indicating failure.
-     */
-//    private static String sraix(Node node, ParseState ps) {
-//        HashSet<String> attributeNames = Utilities.stringSet("botid", "host");
-//        String host = getAttributeOrTagValue(node, ps, "host");
-//        String botid = getAttributeOrTagValue(node, ps, "botid");
-//        String hint = getAttributeOrTagValue(node, ps, "hint");
-//        String limit = getAttributeOrTagValue(node, ps, "limit");
-//        String defaultResponse = getAttributeOrTagValue(node, ps, "default");
-//        String result = evalTagContent(node, ps, attributeNames);
-//
-//        return Sraix.sraix(ps.chatSession, result, defaultResponse, hint, host, botid, null, limit);
-//
-//    }
 
     /**
      * map an element of one string set to an element of another
@@ -498,7 +475,6 @@ public class AIMLProcessor {
      * implements <ml model="tak-nie-model" nbest="2" threshold="0" score="50" parameter="hello"/>
      * @param node current XML parse node
      * @param ps AIML parse state
-     * @return
      */
     private static String ml(Node node, ParseState ps) {
 
@@ -532,23 +508,18 @@ public class AIMLProcessor {
     
     /**
      * Regex
-     * @param node
-     * @param ps
-     * @return
      */
     private static String regex(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String pattern = getAttributeOrTagValue(node, ps, "pattern");
         Integer group = null;
          
-        if(pattern == null)
-        {
+        if(pattern == null) {
             log.warn("invalid patter");
             return MagicStrings.unknown_property_value;
         }
         
-        try 
-        { 
+        try {
             group = Integer.parseInt(getAttributeOrTagValue(node, ps, "group")); 
         } catch (Exception e) {
             log.warn("regex parseInt Exception setting to default 0.");
@@ -566,23 +537,25 @@ public class AIMLProcessor {
         
         
         Pattern compiledPattern = Pattern.compile(pattern);
-        Matcher matcher = compiledPattern.matcher(input);
-        
+        Matcher matcher = null;
+        if (input != null) {
+            matcher = compiledPattern.matcher(input);
+        } else {
+            log.warn("invalid input");
+            return MagicStrings.unknown_property_value;
+        }
+
         String result = Boolean.toString(matcher.matches());
         
-        if(group != null)
-        {
+        if(group != null) {
             if(matcher.matches())
                 result =  matcher.group(group); 
             else
                 result = MagicStrings.unknown_property_value; 
         }
-        
-        log.info("regex pattern: " + pattern 
-                + " parameter: " + parameter 
-                + "  group: " + group 
-                + "  input: " + input
-                + " output: " + result);
+
+        log.info("regex pattern: {} parameter: {}  group: {}  input: {} output: {}",
+                pattern, parameter, group, input, result);
         
         return checkEmpty(result);
     }
@@ -590,8 +563,6 @@ public class AIMLProcessor {
     
     /**
      * Levenshtein distance words compare 
-     * @param node
-     * @param ps
      * @return distance in %
      */
     private static String compare(Node node, ParseState ps) {
@@ -617,8 +588,7 @@ public class AIMLProcessor {
                 log.warn("invalid minAccuracy ({}) setting to default 90.", minAccuracy);
        } catch (Exception e) {
             log.error("compare parseInt Exception setting to default 90.");
-            min = 90; 
-        }                
+        }
         
         int comp = (int)(Validator.compareWords(param, ps.chatSession.predicates.get(word)) * 100);
                 
@@ -626,23 +596,14 @@ public class AIMLProcessor {
         
         if(comp < min)
             out = "KO";
-                        
-        log.info("compare word name: " + word 
-                + " parameter name: " + parameter                 
-                + "  parameter: " + ps.chatSession.predicates.get(parameter)
-                + "  compare value: " + comp
-                + "  word: " + ps.chatSession.predicates.get(word)
-                + "  minAccuracy: " + minAccuracy
-                + "  min: " + min
-                + " out: " + param);
+
+        log.info("compare word name: {} parameter name: {}  parameter: {}  compare value: {}  word: {}  minAccuracy: {}  min: {} out: {}",
+                word, parameter, ps.chatSession.predicates.get(parameter), comp, ps.chatSession.predicates.get(word), minAccuracy, min, param);
         
         return out;
     }
     /**
      * Compare two digits
-     * @param node
-     * @param ps
-     * @return
      */
     private static String lessthan(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
@@ -686,9 +647,6 @@ public class AIMLProcessor {
     }
     /**
      * Compare two digits
-     * @param node
-     * @param ps
-     * @return
      */
     private static String greaterthan(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
@@ -736,8 +694,6 @@ public class AIMLProcessor {
     
     /**
      * Validate PESEL
-     * @param node
-     * @param ps
      * @return PESEL or "unknown"
      */
     
@@ -800,12 +756,9 @@ public class AIMLProcessor {
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;  
                                         
-        String result = Validator.WordsToNumbers(language, input); 
-        
-        log.info("txt2num "
-                + " parameter: " + parameter                 
-                + " input: " + input
-                + " result: " + result);                
+        String result = Validator.WordsToNumbers(language, input);
+
+        log.info("txt2num  parameter: {} input: {} result: {}", parameter, input, result);
                                         
         return checkEmpty(result);
     }
@@ -1009,20 +962,18 @@ public class AIMLProcessor {
 
         Locale loc = Locale.forLanguageTag(locale);
         SimpleDateFormat dateFormat = new SimpleDateFormat(format, loc);
-        int iDays = Integer.parseInt(_days);
+        int iDays = 0;
+        if (_days != null) {
+            iDays = Integer.parseInt(_days);
+        }
 
         Calendar cal = Calendar.getInstance();
         cal.setTime(dateFormat.parse(input));
         cal.add(Calendar.DATE, iDays);
         String result = dateFormat.format(cal.getTime());
 
-        log.info("dateadd "
-                + " parameter: " + parameter
-                + " input: " + input
-                + " days: " + days
-                + " format: " + format
-                + " locale: " + locale
-                + " result: " + result);
+        log.info("dateadd  parameter: {} input: {} days: {} format: {} locale: {} result: {}",
+                parameter, input, days, format, locale, result);
 
         return checkEmpty(result);
     }
@@ -1095,8 +1046,6 @@ public class AIMLProcessor {
     
     /**
      * Returns sex form PESEL
-     * @param node
-     * @param ps
      * @return M = Men, K = Woman, "unknown" = invalid input
      */    
     private static String sexpesel(Node node, ParseState ps) {
@@ -1111,20 +1060,14 @@ public class AIMLProcessor {
         if(pesel.equals(MagicStrings.unknown_property_value))
             pesel = parameter; 
                         
-        String result = Validator.getSexByPesel(pesel);                
-                        
-        log.info("sexpesel "
-                + " parameter: " + parameter                 
-                + " pesel: " + pesel
-                + " result: " + result);
+        String result = Validator.getSexByPesel(pesel);
+
+        log.info("sexpesel  parameter: {} pesel: {} result: {}", parameter, pesel, result);
         
         return checkEmpty(result);
     }
     /**
      * Return birthdate from pesel
-     * @param node
-     * @param ps
-     * @return
      */
     private static String birtPesel(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
@@ -1192,12 +1135,9 @@ public class AIMLProcessor {
         if(nums.equals(MagicStrings.unknown_property_value))
             nums = parameter; 
         
-        String result = Validator.nums(nums); 
-        
-        log.info("nums "
-                + " parameter: " + parameter                 
-                + " nums: " + nums
-                + " result: " + result);                
+        String result = Validator.nums(nums);
+
+        log.info("nums  parameter: {} nums: {} result: {}", parameter, nums, result);
                                         
         return checkEmpty(result);
     }
@@ -1223,17 +1163,11 @@ public class AIMLProcessor {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < split.length; i++) {
             sb.append(split[i]);
-            if (i != split.length - 1) {
-                sb.append("");
-            }
-        }       
+        }
         
         String result = sb.toString();
-        
-        log.info("implode "
-                + " parameter: " + parameter                 
-                + " temp: " + temp
-                + " result: " + result);                
+
+        log.info("implode  parameter: {} temp: {} result: {}", parameter, temp, result);
                                         
         return checkEmpty(result);
     }
@@ -1258,14 +1192,11 @@ public class AIMLProcessor {
             result = String.valueOf(i);
 
         } catch (Exception e) {
-            log.warn("increment error invalid parameter: " + parameter);
+            log.warn("increment error invalid parameter: {}", parameter);
             return result;
         }
 
-        log.info("increment "
-                + " parameter: " + parameter
-                + " num: " + num
-                + " output: " + result);
+        log.info("increment  parameter: {} num: {} output: {}", parameter, num, result);
 
         return result;
     }
@@ -1283,29 +1214,28 @@ public class AIMLProcessor {
 
         String result = MagicStrings.unknown_property_value;
 
+        if(num == null) {
+            log.warn("decrement error invalid parameter: {}", parameter);
+            return result;
+        }
+
         try {
             int i = Integer.parseInt(num);
             i--;
             result = String.valueOf(i);
 
         } catch (Exception e) {
-            log.warn("decrement error invalid parameter: " + parameter);
+            log.error("decrement error invalid parameter: {}", parameter, e);
             return result;
         }
 
-        log.info("decrement "
-                + " parameter: " + parameter                 
-                + " num: " + num
-                + " result: " + result);
+        log.info("decrement  parameter: {} num: {} result: {}", parameter, num, result);
 
         return result;
     }
     
     /**
      * Check is valid time number 9 digits
-     * @param node
-     * @param ps
-     * @return
      */
     
     private static String phone(Node node, ParseState ps) {
@@ -1346,12 +1276,9 @@ public class AIMLProcessor {
         if(time.equals(MagicStrings.unknown_property_value))
             time = parameter; 
         
-        String result = Validator.convertTime(time);                 
+        String result = Validator.convertTime(time);
 
-        log.info("txt2time "
-                + " parameter: " + parameter                 
-                + " time: " + time
-                + " result: " + result);
+        log.info("txt2time  parameter: {} time: {} result: {}", parameter, time, result);
         
         return checkEmpty(result);
     }
@@ -1997,8 +1924,8 @@ public class AIMLProcessor {
      * Implements jar plugin integration 
      * @param node current XML parse node
      * @param ps AIML parse state
-     * @return
-     * @throws IOException 
+     * @return plugin output
+     * @throws IOException IO exception
      */
     private static String plugin(Node node, ParseState ps) throws IOException {
         
@@ -2268,7 +2195,7 @@ public class AIMLProcessor {
                 log.info("That index={},{}", index, jndex);
             } catch (Exception ex) { log.error("that Error", ex);; }
         String that = MagicStrings.unknown_history_item;
-        History hist = ps.chatSession.thatHistory.get(index);
+        var hist = ps.chatSession.thatHistory.get(index);
         if (hist != null) that = (String)hist.get(jndex);
         return that.trim();
     }
@@ -2324,8 +2251,7 @@ public class AIMLProcessor {
         HashSet<String> attributeNames = Utilities.stringSet("timeout");
         //String stimeout = getAttributeOrTagValue(node, ps, "timeout");
         String evaluatedContents = evalTagContent(node, ps, attributeNames);
-		String result = IOUtils.system(evaluatedContents, MagicStrings.system_failed);
-		return result;
+        return IOUtils.system(evaluatedContents, MagicStrings.system_failed);
     }
     /**
      * implements {@code <think>} tag
@@ -2425,7 +2351,7 @@ public class AIMLProcessor {
      */
     private static String sentence(Node node, ParseState ps) {
         String result = evalTagContent(node, ps, null);
-        if (result.length() > 1) return result.substring(0, 1).toUpperCase()+result.substring(1, result.length());
+        if (result.length() > 1) return result.substring(0, 1).toUpperCase()+result.substring(1);
         else return "";
     }
     /**
@@ -2575,7 +2501,6 @@ public class AIMLProcessor {
             if (loopResult.trim().equals(MagicStrings.too_much_recursion())) return MagicStrings.too_much_recursion();
             if (loopResult.contains("<loop/>")) {
                 loopResult = loopResult.replace("<loop/>","");
-                loop = true;
             }
             else loop = false;
             result.append(loopResult);
@@ -2600,9 +2525,8 @@ public class AIMLProcessor {
         try {
             min = Integer.parseInt(minAccuracy); 
         } catch (Exception e) {
-            log.error("compare parseInt Exception setting to default 90.");
-            min = 90; 
-        }    
+            log.error("loopCompareCondition parseInt Exception setting to default 90.");
+        }
         
         StringBuilder result= new StringBuilder();
         int loopCnt = 0;
@@ -2611,7 +2535,6 @@ public class AIMLProcessor {
             if (loopResult.trim().equals(MagicStrings.too_much_recursion())) return MagicStrings.too_much_recursion();
             if (loopResult.contains("<loop/>")) {
                 loopResult = loopResult.replace("<loop/>","");
-                loop = true;
             }
             else loop = false;
             result.append(loopResult);
@@ -2643,37 +2566,33 @@ public class AIMLProcessor {
         for (int i = 0; i < childList.getLength(); i++)
             if (childList.item(i).getNodeName().equals("li")) liList.add(childList.item(i));
         // if there are no <li> nodes, this is a one-shot condition.
-        if (liList.size() == 0 && (value = getAttributeOrTagValue(node, ps, "value")) != null   &&
+        if (liList.isEmpty() && (value = getAttributeOrTagValue(node, ps, "value")) != null   &&
                    predicate != null  &&
                    ps.chatSession.predicates.get(predicate).equals(value))  {
                    return evalTagContent(node, ps, attributeNames);
         }
-        else if (liList.size() == 0 && (value = getAttributeOrTagValue(node, ps, "value")) != null   &&
+        else if (liList.isEmpty() && (value = getAttributeOrTagValue(node, ps, "value")) != null   &&
                 varName != null  &&
                 ps.vars.get(varName).equals(value))  {
             return evalTagContent(node, ps, attributeNames);
         }
         // otherwise this is a <condition> with <li> items:
-        else for (int i = 0; i < liList.size() && result.equals(""); i++) {
-            Node n = liList.get(i);
-            String liPredicate = predicate;
-            String liVarName = varName;
-            if (liPredicate == null) liPredicate = getAttributeOrTagValue(n, ps, "name");
-            if (liVarName == null) liVarName = getAttributeOrTagValue(n, ps, "var");
-            value = getAttributeOrTagValue(n, ps, "value");
-            //log.info("condition name="+liPredicate+" value="+value);
-            if (value != null) {
-                // if the predicate equals the value, return the <li> item.
-                if (liPredicate != null && value != null && (ps.chatSession.predicates.get(liPredicate).equals(value) ||
-                        (ps.chatSession.predicates.containsKey(liPredicate) && value.equals("*"))))
-                    return evalTagContent(n, ps, attributeNames);
-                else if (liVarName != null && value != null && (ps.vars.get(liVarName).equals(value) ||
-                        (ps.vars.containsKey(liPredicate) && value.equals("*"))))
+        else for (Node n : liList) {
+                String liPredicate = predicate;
+                String liVarName = varName;
+                if (liPredicate == null) liPredicate = getAttributeOrTagValue(n, ps, "name");
+                if (liVarName == null) liVarName = getAttributeOrTagValue(n, ps, "var");
+                value = getAttributeOrTagValue(n, ps, "value");
+                //log.info("condition name="+liPredicate+" value="+value);
+                if (value != null) {
+                    // if the predicate equals the value, return the <li> item.
+                    if (liPredicate != null && (ps.chatSession.predicates.get(liPredicate).equals(value) || ps.chatSession.predicates.containsKey(liPredicate) && value.equals("*")))
+                        return evalTagContent(n, ps, attributeNames);
+                    else if (liVarName != null && (ps.vars.get(liVarName).equals(value) || ps.vars.containsKey(liPredicate) && value.equals("*")))
+                        return evalTagContent(n, ps, attributeNames);
+                } else  // this is a terminal <li> with no predicate or value, i.e. the default condition.
                     return evalTagContent(n, ps, attributeNames);
             }
-            else  // this is a terminal <li> with no predicate or value, i.e. the default condition.
-                return evalTagContent(n, ps, attributeNames);
-        }
         return "";
 
     }
@@ -2710,31 +2629,29 @@ public class AIMLProcessor {
             return evalTagContent(node, ps, attributeNames);
         }
         // otherwise this is a <condition> with <li> items:
-        else for (int i = 0; i < liList.size() && result.equals(""); i++) {
-            Node n = liList.get(i);
-            String liPredicate = predicate;
-            String liVarName = varName;
-            if (liPredicate == null) liPredicate = getAttributeOrTagValue(n, ps, "name");
-            if (liVarName == null) liVarName = getAttributeOrTagValue(n, ps, "var");
-            value = getAttributeOrTagValue(n, ps, "value");
-            
-            if (value != null) {
-                // if the predicate equals the value, return the <li> item.
-                int compPredicate = (int)(Validator.compareWords(ps.chatSession.predicates.get(liPredicate), value) * 100);
-                int compVarname = (int)(Validator.compareWords(ps.vars.get(liVarName), value) * 100);
-                
-                log.info("condition name="+liPredicate+" value="+value + " compPredicate: " + compPredicate + " compVarname: " + compVarname);
-                
-                if (liPredicate != null && (compPredicate >= minAccuracy ||
-                        (ps.chatSession.predicates.containsKey(liPredicate) && value.equals("*"))))
-                    return evalTagContent(n, ps, attributeNames);
-                else if (liVarName != null && (compVarname >= minAccuracy ||
-                        (ps.vars.containsKey(liPredicate) && value.equals("*"))))
+        else for (Node n : liList) {
+                String liPredicate = predicate;
+                String liVarName = varName;
+                if (liPredicate == null) liPredicate = getAttributeOrTagValue(n, ps, "name");
+                if (liVarName == null) liVarName = getAttributeOrTagValue(n, ps, "var");
+                value = getAttributeOrTagValue(n, ps, "value");
+
+                if (value != null) {
+                    // if the predicate equals the value, return the <li> item.
+                    int compPredicate = (int) (Validator.compareWords(ps.chatSession.predicates.get(liPredicate), value) * 100);
+                    int compVarname = (int) (Validator.compareWords(ps.vars.get(liVarName), value) * 100);
+
+                    log.info("condition name={} value={} compPredicate: {} compVarname: {}", liPredicate, value, compPredicate, compVarname);
+
+                    if (liPredicate != null && (compPredicate >= minAccuracy ||
+                            (ps.chatSession.predicates.containsKey(liPredicate) && value.equals("*"))))
+                        return evalTagContent(n, ps, attributeNames);
+                    else if (liVarName != null && (compVarname >= minAccuracy ||
+                            (ps.vars.containsKey(liPredicate) && value.equals("*"))))
+                        return evalTagContent(n, ps, attributeNames);
+                } else  // this is a terminal <li> with no predicate or value, i.e. the default condition.
                     return evalTagContent(n, ps, attributeNames);
             }
-            else  // this is a terminal <li> with no predicate or value, i.e. the default condition.
-                return evalTagContent(n, ps, attributeNames);
-        }
         return "";
 
     }
@@ -2963,7 +2880,7 @@ public class AIMLProcessor {
             Node root = DomUtils.parseString(template);
             response = recursEval(root, ps);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("evalTemplate Exception", e);
         }
         return response;
     }
@@ -2980,7 +2897,7 @@ public class AIMLProcessor {
             return true;
         } catch (Exception e) {
             //e.printStackTrace();
-            log.info("Invalid Template "+template);
+            log.info("Invalid Template {}", template);
             return false;
         }
 
