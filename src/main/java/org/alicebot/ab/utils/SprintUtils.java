@@ -151,31 +151,25 @@ public class SprintUtils {
             if(result.size() > 1)
                 result.sort((a, b) -> Float.compare(b.getScore(), a.getScore()));
 
-            if(best > 1) {
-                for(int i = 0; i < best; i++) {
-                    int iScore = 0;
-                    if (i < result.size()) {
-                        ScoreLabelPair pair = result.get(i);
-                        iScore = (int) (pair.getScore() * 100);
-
-                        log.info("Response sessionId: {} parameter: {} RESPONSE[{}] score: {} iScore: {} label: {} MinScore: {}", sessionId, parameter, i, pair.getScore(), iScore, pair.getLabel(), iMinScore);
-                        out.append(i > 0 ? " " : "").append(pair.getLabel()).append(" ").append(iScore);
-                    } else
-                        out.append(i > 0 ? " " : "").append("__label__oos ").append(iScore);
-                }
-
-            } else {
-                for (ScoreLabelPair pair : result) {
-                    int iScore = (int) (pair.getScore() * 100);
-
-                    log.info("Response sessionId: {} parameter: {} RESPONSE score: {} iScore: {} label: {} MinScore: {}", sessionId, parameter, pair.getScore(), iScore, pair.getLabel(), iMinScore);
-
-                    if (iScore >= iMinScore) {
-                        out = new StringBuilder(pair.getLabel() + " " + iScore);
-                        break;
-                    } else
-                        out = new StringBuilder("__label__oos " + iScore);
-                }
+            for(int i = 0; i < best; i++) {
+                int iScore = 0;
+                if (i < result.size()) {
+                    ScoreLabelPair pair = result.get(i);
+                    iScore = (int) (pair.getScore() * 100);
+                    log.info("Response sessionId: {} parameter: {} RESPONSE[{}] score: {} iScore: {} label: {} MinScore: {}", sessionId, parameter, i, pair.getScore(), iScore, pair.getLabel(), iMinScore);
+                    if (iScore < iMinScore) {
+                        out.append(i > 0 ? " " : "")
+                                .append("__label__oos ")
+                                .append(iScore);
+                    } else {
+                        out.append(i > 0 ? " " : "")
+                                .append(pair.getLabel())
+                                .append(" ").append(iScore);
+                    }
+                } else
+                    out.append(i > 0 ? " " : "")
+                            .append("__label__oos ")
+                            .append(iScore);
             }
 
         } catch (Exception e) {

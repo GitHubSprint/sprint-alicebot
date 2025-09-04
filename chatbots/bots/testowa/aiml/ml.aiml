@@ -70,7 +70,7 @@
             <think>
                 <set name="umtest"><star /></set>
             </think>
-            <mla model="um-gdynia" nbest="2" threshold="0" score="50" parameter="umtest"/>
+            <mla model="um-gdynia" nbest="1" threshold="0" score="50" parameter="umtest"/>
         </template>        
     </category>                   
 </topic>
@@ -95,7 +95,7 @@
                 <set name="odpowiedz"><star /></set>
                 <set name="topic">POTWIERDZENIE</set>                                
             </think>
-            <srai><ml model="tak-nie-model" nbest="2" threshold="0" score="70" parameter="odpowiedz"/></srai>
+            <srai><ml model="tak-nie-model" nbest="1" threshold="0" score="70" parameter="odpowiedz"/></srai>
         </template>        
     </category>                   
 </topic>
@@ -108,7 +108,7 @@
                 <set name="odpowiedz"><star /></set>
                 <set name="topic">POTWIERDZENIE_A</set>                                
             </think>
-            <srai><mla model="tak-nie-model" nbest="2" threshold="0" score="80" parameter="odpowiedz"/></srai>
+            <srai><mla model="tak-nie-model" nbest="1" threshold="0" score="80" parameter="odpowiedz"/></srai>
         </template>        
     </category>                   
 </topic>
