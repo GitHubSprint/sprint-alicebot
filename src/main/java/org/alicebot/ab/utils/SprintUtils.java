@@ -130,9 +130,22 @@ public class SprintUtils {
         StringBuilder out = new StringBuilder();
 
         try {
-            int best = Integer.parseInt(nBest);
-            float fThreshold = Float.parseFloat(threshold);
-            int iMinScore = Integer.parseInt(score);
+
+            int iMinScore = 0;
+            if(score != null)
+                iMinScore = Integer.parseInt(score);
+
+            int best = 1;
+            if(nBest != null)
+                best = Integer.parseInt(nBest);
+
+            float fThreshold = 0;
+            if(threshold != null)
+                fThreshold = Float.parseFloat(threshold);
+
+            if(fThreshold == 0f) {
+                fThreshold = iMinScore/100f;
+            }
 
 
             log.info("ml Request: sessionId: {} Model: {} Nbest: {} Threshold: {} MinScore: {} parameter: {}", sessionId, model, best, fThreshold, iMinScore, parameter);
@@ -148,28 +161,20 @@ public class SprintUtils {
 
             log.info("ml Response sessionId: {} result.size: {}", sessionId, result.size());
 
-            if(result.size() > 1)
-                result.sort((a, b) -> Float.compare(b.getScore(), a.getScore()));
-
             for(int i = 0; i < best; i++) {
                 int iScore = 0;
                 if (i < result.size()) {
                     ScoreLabelPair pair = result.get(i);
                     iScore = (int) (pair.getScore() * 100);
-                    log.info("Response sessionId: {} parameter: {} RESPONSE[{}] score: {} iScore: {} label: {} MinScore: {}", sessionId, parameter, i, pair.getScore(), iScore, pair.getLabel(), iMinScore);
-                    if (iScore < iMinScore) {
-                        out.append(i > 0 ? " " : "")
-                                .append("__label__oos ")
-                                .append(iScore);
-                    } else {
-                        out.append(i > 0 ? " " : "")
-                                .append(pair.getLabel())
-                                .append(" ").append(iScore);
-                    }
-                } else
+                    log.info("Response sessionId: {} parameter: {} RESPONSE[{}] score: {} iScore: {} label: {} threshold: {}", sessionId, parameter, i, pair.getScore(), iScore, pair.getLabel(), fThreshold);
+                    out.append(i > 0 ? " " : "")
+                            .append(pair.getLabel())
+                            .append(" ").append(iScore);
+                } else {
                     out.append(i > 0 ? " " : "")
                             .append("__label__oos ")
                             .append(iScore);
+                }
             }
 
         } catch (Exception e) {

@@ -95,7 +95,7 @@
                 <set name="odpowiedz"><star /></set>
                 <set name="topic">POTWIERDZENIE</set>                                
             </think>
-            <srai><ml model="tak-nie-model" nbest="1" threshold="0" score="70" parameter="odpowiedz"/></srai>
+            <srai><ml model="tak-nie-model" nbest="3" threshold="0.3" parameter="odpowiedz"/></srai>
         </template>        
     </category>                   
 </topic>
