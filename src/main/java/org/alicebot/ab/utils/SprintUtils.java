@@ -147,7 +147,6 @@ public class SprintUtils {
                 fThreshold = iMinScore/100f;
             }
 
-
             log.info("ml Request: sessionId: {} Model: {} Nbest: {} Threshold: {} MinScore: {} parameter: {}", sessionId, model, best, fThreshold, iMinScore, parameter);
 
             FastText fastText = mlModels.get(model);
