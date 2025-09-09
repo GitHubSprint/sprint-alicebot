@@ -1331,7 +1331,7 @@ public class AIMLProcessor {
 
         if(labels != null) {
             Document doc = Jsoup.parse(labels);
-            Elements items = doc.select("item");
+            Elements items = doc.select("li");
             for (Element value : items) {
                 labelList.add(value.text());
             }
