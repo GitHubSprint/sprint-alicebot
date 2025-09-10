@@ -1,25 +1,26 @@
-package org.alicebot.ab.model.say;
+package org.alicebot.ab.model.survey;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record SayButton(
-        @JsonProperty("caption")
-        String caption,
-
-        @JsonProperty("icon")
-        String icon,
-
-        @JsonProperty("label")
-        String label,
+public record Prompt(
+        @JsonProperty("class")
+        String className,
 
         @JsonProperty("type")
         String type,
 
-        @JsonProperty("class")
-        String className,
+        @JsonProperty("caption")
+        String caption,
 
-        @JsonProperty("value")
-        String value) {}
+        @JsonProperty("label")
+        String label,
+
+        @JsonProperty("btn-no")
+        String btnNo,
+
+        @JsonProperty("btn-yes")
+        String btnYes) {}

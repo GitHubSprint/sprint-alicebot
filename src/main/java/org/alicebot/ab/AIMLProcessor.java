@@ -39,6 +39,7 @@ import org.alicebot.ab.model.SayResponse;
 import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
+import org.alicebot.ab.model.survey.*;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
@@ -1304,15 +1305,119 @@ public class AIMLProcessor {
         return checkEmpty(result);
     }
 
+    private static String surveyPrompt(Node node, ParseState ps) throws JsonProcessingException {
+        String className = getPredicateOrValue(getAttributeOrTagValue(node, ps, "class"), ps);
+        String type = getPredicateOrValue(getAttributeOrTagValue(node, ps, "type"), ps);
+        String caption = getPredicateOrValue(getAttributeOrTagValue(node, ps, "caption"), ps);
+        String label = getPredicateOrValue(getAttributeOrTagValue(node, ps, "label"), ps);
+        String btnNo = getPredicateOrValue(getAttributeOrTagValue(node, ps, "btn-no"), ps);
+        String btnYes = getPredicateOrValue(getAttributeOrTagValue(node, ps, "btn-yes"), ps);
+        log.info("surveyPrompt  class: {} type: {} caption: {} label: {} btn-no: {} btn-yes: {}",
+                className, type, caption, label, btnNo, btnYes);
+
+        Prompt prompt = new Prompt(className, type, caption, label, btnNo, btnYes);
+
+        String returnValue = mapper
+                .writeValueAsString(new SayResponse(new Survey(prompt)));
+
+        log.info("surveyPrompt returnValue: {}", returnValue);
+        return returnValue;
+    }
+
+    private static String surveyQuestion(Node node, ParseState ps) throws JsonProcessingException {
+        String className = getPredicateOrValue(getAttributeOrTagValue(node, ps, "class"), ps);
+        String type = getPredicateOrValue(getAttributeOrTagValue(node, ps, "type"), ps);
+        String caption = getPredicateOrValue(getAttributeOrTagValue(node, ps, "caption"), ps);
+        String label = getPredicateOrValue(getAttributeOrTagValue(node, ps, "label"), ps);
+        String counter = getPredicateOrValue(getAttributeOrTagValue(node, ps, "counter"), ps);
+        String items = getPredicateOrValue(getAttributeOrTagValue(node, ps, "items"), ps);
+        String btnBack = getPredicateOrValue(getAttributeOrTagValue(node, ps, "btn-back"), ps);
+        String btnNext = getPredicateOrValue(getAttributeOrTagValue(node, ps, "btn-next"), ps);
+        String btnCancel = getPredicateOrValue(getAttributeOrTagValue(node, ps, "btn-cancel"), ps);
+
+        log.info("surveyQuestion  class: {} type: {} caption: {} label: {} counter: {} items: {} btn-back: {} btn-next: {} btn-cancel: {}",
+                className, type, caption, label, counter, items, btnBack, btnNext, btnCancel);
+
+        List<Item> itemList = new ArrayList<>();
+
+        if (items != null) {
+            Document doc = Jsoup.parse(items);
+            Elements elements = doc.select("li");
+
+            for (Element element : elements) {
+                String icon = element.select("icon").text().isEmpty() ? null : element.select("icon").text();
+                String color = element.select("color").text().isEmpty() ? null : element.select("color").text();
+                String text = element.select("text").text().isEmpty() ? null : element.select("text").text();
+                String value = element.select("value").text().isEmpty() ? null : element.select("value").text();
+                String minValue = element.select("min-value").text().isEmpty() ? null : element.select("min-value").text();
+                String maxValue = element.select("max-value").text().isEmpty() ? null : element.select("max-value").text();
+
+                Item item = new Item(icon, color, text, value, minValue, maxValue);
+                itemList.add(item);
+            }
+        }
+
+        Question question = new Question(className,
+                type,
+                caption,
+                label,
+                counter,
+                itemList,
+                btnBack,
+                btnNext,
+                btnCancel);
+
+        String returnValue = mapper
+                .writeValueAsString(new SayResponse(new Survey(question)));
+
+        log.info("surveyQuestion returnValue: {}", returnValue);
+        return returnValue;
+    }
+
+    private static String surveySummary(Node node, ParseState ps) throws JsonProcessingException {
+        String className = getPredicateOrValue(getAttributeOrTagValue(node, ps, "class"), ps);
+        String type = getPredicateOrValue(getAttributeOrTagValue(node, ps, "type"), ps);
+        String caption = getPredicateOrValue(getAttributeOrTagValue(node, ps, "caption"), ps);
+        String label = getPredicateOrValue(getAttributeOrTagValue(node, ps, "label"), ps);
+        String btnEnd = getPredicateOrValue(getAttributeOrTagValue(node, ps, "btn-end"), ps);
+        log.info("surveySummary  class: {} type: {} caption: {} label: {} btn-end: {}",
+                className, type, caption, label, btnEnd);
+
+        Summary summary = new Summary(className, type, caption, label, btnEnd);
+
+        String returnValue = mapper
+                .writeValueAsString(new SayResponse(new Survey(summary)));
+
+        log.info("surveySummary returnValue: {}", returnValue);
+        return returnValue;
+    }
+
+    private static String surveyBody(Node node, ParseState ps) throws JsonProcessingException {
+        String className = getPredicateOrValue(getAttributeOrTagValue(node, ps, "class"), ps);
+        String type = getPredicateOrValue(getAttributeOrTagValue(node, ps, "type"), ps);
+        String caption = getPredicateOrValue(getAttributeOrTagValue(node, ps, "caption"), ps);
+        String label = getPredicateOrValue(getAttributeOrTagValue(node, ps, "label"), ps);
+        log.info("surveyBody  class: {} type: {} caption: {} label: {}",
+                className, type, caption, label);
+
+        Body body = new Body(className, type, caption, label);
+
+        String returnValue = mapper
+                .writeValueAsString(new SayResponse(new Survey(body)));
+
+        log.info("surveyBody returnValue: {}", returnValue);
+        return returnValue;
+    }
+
     private static String say(Node node, ParseState ps) throws JsonProcessingException {
         String type = getPredicateOrValue(getAttributeOrTagValue(node, ps, "type"), ps);
         String className = getPredicateOrValue(getAttributeOrTagValue(node, ps, "class"), ps);
-        String iconUrl = getPredicateOrValue(getAttributeOrTagValue(node, ps, "iconUrl"), ps);
-        String subject = getPredicateOrValue(getAttributeOrTagValue(node, ps, "subject"), ps);
+        String iconUrl = getPredicateOrValue(getAttributeOrTagValue(node, ps, "icon"), ps);
+        String subject = getPredicateOrValue(getAttributeOrTagValue(node, ps, "caption"), ps);
         String label = getPredicateOrValue(getAttributeOrTagValue(node, ps, "label"), ps);
         String value = getPredicateOrValue(getAttributeOrTagValue(node, ps, "value"), ps);
 
-        log.info("say  type: {} class: {} iconUrl: {} subject: {} label: {} value: {}",
+        log.info("say  type: {} class: {} icon: {} caption: {} label: {} value: {}",
                 type, className, iconUrl, subject, label, value);
 
         SayButton button = new SayButton(subject, iconUrl, label, type, className, value);
@@ -1343,18 +1448,7 @@ public class AIMLProcessor {
         return returnValue;
     }
 
-    private static String survey(Node node, ParseState ps) throws JsonProcessingException {
-        String subject = getPredicateOrValue(getAttributeOrTagValue(node, ps, "subject"), ps);
-        String description = getPredicateOrValue(getAttributeOrTagValue(node, ps, "description"), ps);
-        log.info("survey  subject: {} description: {}", subject, description);
 
-
-        //TODO dodać obsługę pytań, pytania jako osobny tag question
-//        String returnValue = mapper
-//                .writeValueAsString(new SayResponse(new Survey()));
-//        log.info("survey returnValue: {}", returnValue);
-        return null;
-    }
 
     private static String reportSave(Node node, ParseState ps) {
         String reportName = getAttributeOrTagValue(node, ps, "report_name");
@@ -2807,11 +2901,17 @@ public class AIMLProcessor {
                 return say(node, ps);
            else if (nodeName.equals("feedback"))
                 return feedback(node, ps);
-           else if (nodeName.equals("survey"))
-                return survey(node, ps);
-           
-           
-           
+
+           //Survey
+           else if (nodeName.equals("survey-prompt"))
+                return surveyPrompt(node, ps);
+           else if (nodeName.equals("survey-body"))
+                return surveyBody(node, ps);
+           else if (nodeName.equals("survey-question"))
+                return surveyQuestion(node, ps);
+           else if (nodeName.equals("survey-summary"))
+                return surveySummary(node, ps);
+           //Survey end
            
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))

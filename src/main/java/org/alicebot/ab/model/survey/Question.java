@@ -8,20 +8,30 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Question(
-        @JsonProperty("question")
-        String question,
-
-        @JsonProperty("id")
-        String id,
-
-        @JsonProperty("placeholder")
-        String placeholder,
+        @JsonProperty("class")
+        String className,
 
         @JsonProperty("type")
         String type,
 
-        @JsonProperty("class")
-        String className,
+        @JsonProperty("caption")
+        String caption,
 
-        @JsonProperty("answers")
-        List<String> answers) {}
+        @JsonProperty("label")
+        String label,
+
+        @JsonProperty("counter")
+        String counter,
+
+        @JsonProperty("items")
+        List<Item> items,
+
+        @JsonProperty("btn-back")
+        String btnBack,
+
+        @JsonProperty("btn-next")
+        String btnNext,
+
+        @JsonProperty("btn-cancel")
+        String btnCancel
+) {}

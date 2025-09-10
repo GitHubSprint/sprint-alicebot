@@ -18,11 +18,60 @@
             </say>
             <say>
                 <class>std</class>
-                <iconUrl>http://localhost:8080/book.svg</iconUrl>
-                <subject>Oferta edukacyjna</subject>
+                <icon>http://localhost:8080/book.svg</icon>
+                <caption>Oferta edukacyjna</caption>
                 <label><p style="color: #ff0000;">Informacje o dostępnych kierunkach.</p></label>
                 <value>Informacje o dostępnych kierunkach.</value>
             </say>
+        </template>
+    </category>
+
+
+    <category>
+        <pattern>survey</pattern>
+        <template>
+            <survey-prompt>
+                <class>std</class>
+                <type>with-separator</type>
+                <caption>Twoja opinia jest dla nas ważna</caption>
+                <label>Wypełnisz krótką ankietę I pomożesz nam się rozwijać?</label>
+                <btn-no>Pomiń</btn-no>
+                <btn-yes>Tak</btn-yes>
+            </survey-prompt>
+
+
+            <survey-body>
+                <class>std</class>
+                <type>inline</type>
+                <caption>Dziękuję</caption>
+                <label>Zadam Ci teraz 3 pytania, odpowiedz szczerze:</label>
+            </survey-body>
+
+            <survey-question>
+                <class>std</class>
+                <type>radio</type>
+                <caption>Dziękuję</caption>
+                <label>Wybierz reakcję najbardziej odpowiednią:</label>
+                <counter>Pytanie 1 z 3</counter>
+                <items>
+                    <li><icon>sad.svg</icon><color>red</color><text>Było słabo</text><value>Q10</value></li>
+                    <li><icon>neutral.svg</icon><color>yellow</color><text>OK, może być</text><value>Q12</value></li>
+                    <li><icon>smile.svg</icon><color>green</color><text>Naprawdę super!</text><value>Q14</value><min-value>1</min-value><max-value>10</max-value></li>
+                </items>
+                <btn-back>Poprzednie</btn-back>
+                <btn-next>Dalej</btn-next>
+                <btn-cancel>Wróć do rozmowy</btn-cancel>
+            </survey-question>
+
+
+            <survey-summary>
+                <class>std</class>
+                <type>inline</type>
+                <caption>I to już wszystko</caption>
+                <label>Dziękuję za Twój czas!</label>
+                <btn-end>Wróć do rozmowy</btn-end>
+            </survey-summary>
+
         </template>
     </category>
 
