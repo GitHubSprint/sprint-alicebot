@@ -15,8 +15,8 @@ public class Survey {
     @JsonProperty("body")
     private Body body;
 
-    @JsonProperty("question")
-    private Question question;
+    @JsonProperty("questions")
+    private List<Question> questions;
 
     @JsonProperty("summary")
     private Summary summary;
@@ -29,11 +29,24 @@ public class Survey {
         this.body = body;
     }
 
-    public Survey(Question question) {
-        this.question = question;
+    public Survey(List<Question> questions) {
+        this.questions = questions;
     }
 
     public Survey(Summary summary) {
         this.summary = summary;
+    }
+
+    public Survey() {
+    }
+
+    @Override
+    public String toString() {
+        return "Survey{" +
+                "prompt=" + prompt +
+                ", body=" + body +
+                ", questions=" + questions +
+                ", summary=" + summary +
+                '}';
     }
 }

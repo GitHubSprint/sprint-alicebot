@@ -1368,7 +1368,7 @@ public class AIMLProcessor {
                 btnCancel);
 
         String returnValue = mapper
-                .writeValueAsString(new SayResponse(new Survey(question)));
+                .writeValueAsString(new SayResponse(new Survey(new ArrayList<>(Collections.singleton(question)))));
 
         log.info("surveyQuestion returnValue: {}", returnValue);
         return returnValue;

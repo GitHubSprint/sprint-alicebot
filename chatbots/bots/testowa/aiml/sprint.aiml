@@ -8,8 +8,8 @@
         <template>
             <feedback type="thumbs" >
                 <labels>
-                    <item>test1</item>
-                    <item>test2</item>
+                    <li>test1</li>
+                    <li>test2</li>
                 </labels>
             </feedback>
 
