@@ -3,6 +3,7 @@ package org.alicebot.ab.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.alicebot.ab.model.Param;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +12,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -33,6 +35,69 @@ public class SprintBotDbUtils {
         timezone = newTimezone;
         log.info("updateConfiguration url: {} driverClassName: {} username: {} schema: {} timezone: {}", url, newDriverClassName, username, schema, timezone);
     }
+
+
+    public static String getDbSelect(String reportName, List<Param> params) {
+        log.info("getDbSelect reportName: {} params: {}", reportName, params);
+        if(reportName == null)
+            return null;
+
+        if(url == null) {
+            log.warn("getDbSelect invalid dbUrl: {}", url);
+            return null;
+        }
+
+        String result = null;
+        String sql = "SELECT sql FROM " + schema + ".sys_bot_selects where name='" + reportName +"'";
+
+        try (Connection connection = DriverManager.getConnection(url, username, password);
+             Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql))
+        {
+
+            while (resultSet.next()) {
+                String query = resultSet.getString("sql");
+                log.info("getDbSelect sqlString: {} ", query);
+
+                if(query != null) {
+                    for(Param param : params) {
+                        query = query
+                                .replaceAll("\\{" + param.name().toUpperCase() + "}", param.value());
+                    }
+                    result = getDbSelectData(query, connection);
+                }
+            }
+        } catch (SQLException e) {
+            log.error("getRecord err", e);
+        }
+
+        return result;
+    }
+
+    private static String getDbSelectData(String sql, Connection connection) throws SQLException {
+        StringBuilder resultBuilder = new StringBuilder();
+
+        try (Statement statement = connection.createStatement();
+             ResultSet resultSet = statement.executeQuery(sql)) {
+
+            ResultSetMetaData metaData = resultSet.getMetaData();
+            int columnCount = metaData.getColumnCount();
+
+            while (resultSet.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    if (!resultBuilder.isEmpty()) {
+                        resultBuilder.append("###");
+                    }
+                    String columnValue = resultSet.getString(i);
+                    if (columnValue != null) {
+                        resultBuilder.append(columnValue);
+                    }
+                }
+            }
+        }
+        return resultBuilder.toString();
+    }
+
 
 
     public static CompletableFuture<Void> saveReportAsync(String name, String symbol, Report report, String sessionId) {

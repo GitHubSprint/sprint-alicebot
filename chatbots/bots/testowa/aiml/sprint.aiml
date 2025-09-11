@@ -4,6 +4,24 @@
 
 
     <category>
+        <pattern>db</pattern>
+        <template>
+            <think>
+                <set name="currentLabel">test</set>
+                <set name="maxPodpowiadek">5</set>
+            </think>
+            test db
+            <db-select>
+                <report>test</report>
+                <params>
+                    <li><name>PRODUCTVERSION</name><value>2</value></li>
+                    <li><name>MAXREC</name><value>5</value></li>
+                </params>
+            </db-select>
+        </template>
+    </category>
+
+    <category>
         <pattern>say</pattern>
         <template>
             <feedback type="thumbs" >

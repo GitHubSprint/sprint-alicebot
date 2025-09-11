@@ -36,6 +36,7 @@ import org.alicebot.ab.Graphmaster;
 import org.alicebot.ab.MagicBooleans;
 import org.alicebot.ab.MagicStrings;
 import org.alicebot.ab.PCAIMLProcessorExtension;
+import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
 import org.alicebot.ab.utils.ThreadTest;
@@ -84,12 +85,23 @@ public class Main {
         log.info("Categories.size = {}", bot.brain.getCategories().size());
         
         if (bot.brain.getCategories().size() < 100) bot.brain.printgraph();
-        
-        if (action.equals("chat")) testChat(bot, MagicBooleans.trace_mode);
-        else if (action.equals("test")) testSuite(bot, MagicStrings.root_path+"/data/find.txt");
-        else if (action.equals("ab")) testAB(bot);
-        else if (action.equals("aiml2csv") || action.equals("csv2aiml")) convert(bot, action);
-        else if (action.equals("abwq")) AB.abwq(bot);
+
+        SprintBotDbUtils.updateConfiguration(
+            "jdbc:postgresql://192.168.200.201:5432/sprint",
+    "org.postgresql.Driver",
+                "sprint",
+                "Sprint0666!@#",
+                "public",
+                "Europe/Warsaw"
+        );
+
+        switch (action) {
+            case "chat" -> testChat(bot, MagicBooleans.trace_mode);
+            case "test" -> testSuite(bot, MagicStrings.root_path + "/data/find.txt");
+            case "ab" -> testAB(bot);
+            case "aiml2csv", "csv2aiml" -> convert(bot, action);
+            case "abwq" -> AB.abwq(bot);
+        }
     }
     public static void convert(Bot bot, String action) {
         //if (action.equals("aiml2csv")) bot.writeAIMLIFFiles();

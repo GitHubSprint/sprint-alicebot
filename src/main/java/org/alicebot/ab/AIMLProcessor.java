@@ -35,6 +35,7 @@ import org.alicebot.ab.llm.GenAIHelper;
 import org.alicebot.ab.llm.LLMConfiguration;
 import org.alicebot.ab.llm.LLMService;
 import org.alicebot.ab.db.Report;
+import org.alicebot.ab.model.Param;
 import org.alicebot.ab.model.SayResponse;
 import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
@@ -1446,6 +1447,28 @@ public class AIMLProcessor {
                 .writeValueAsString(new SayResponse(new Feedback(type, labelList)));
         log.info("reaction returnValue: {}", returnValue);
         return returnValue;
+    }
+
+    private static String dbSelect(Node node, ParseState ps) throws JsonProcessingException {
+        String report = getPredicateOrValue(getAttributeOrTagValue(node, ps, "report"), ps);
+        String params = getPredicateOrValue(getAttributeOrTagValue(node, ps, "params"), ps);
+        log.info("dbSelect  report: {} labels: {}", report, params);
+
+        List<Param> paramList = new ArrayList<>();
+
+        if (params != null) {
+            Document doc = Jsoup.parse(params);
+            Elements elements = doc.select("li");
+
+            for (Element element : elements) {
+                String name = element.select("name").text().isEmpty() ? null : element.select("name").text();
+                String value = element.select("value").text().isEmpty() ? null : element.select("value").text();
+                Param param = new Param(name, value);
+                paramList.add(param);
+            }
+        }
+
+        return SprintBotDbUtils.getDbSelect(report, paramList);
     }
 
 
@@ -2901,6 +2924,8 @@ public class AIMLProcessor {
                 return say(node, ps);
            else if (nodeName.equals("feedback"))
                 return feedback(node, ps);
+           else if (nodeName.equals("db-select"))
+                return dbSelect(node, ps);
 
            //Survey
            else if (nodeName.equals("survey-prompt"))
