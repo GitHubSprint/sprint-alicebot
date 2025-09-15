@@ -1393,6 +1393,10 @@ public class AIMLProcessor {
         return returnValue;
     }
 
+    private static String session(Node node, ParseState ps) {
+        return ps.chatSession.sessionId;
+    }
+
     private static String surveyBody(Node node, ParseState ps) throws JsonProcessingException {
         String className = getPredicateOrValue(getAttributeOrTagValue(node, ps, "class"), ps);
         String type = getPredicateOrValue(getAttributeOrTagValue(node, ps, "type"), ps);
@@ -2937,6 +2941,10 @@ public class AIMLProcessor {
            else if (nodeName.equals("survey-summary"))
                 return surveySummary(node, ps);
            //Survey end
+
+
+            else if (nodeName.equals("session"))
+                return session(node, ps);
            
             //sprint modyfikcation stop
             else if (nodeName.equals("interval"))

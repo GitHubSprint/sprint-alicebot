@@ -10,7 +10,7 @@
                 <set name="currentLabel">test</set>
                 <set name="maxPodpowiadek">5</set>
             </think>
-            test db
+            test db <session />
             <db-select>
                 <report>test</report>
                 <params>
