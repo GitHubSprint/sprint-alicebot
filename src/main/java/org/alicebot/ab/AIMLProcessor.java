@@ -1456,9 +1456,10 @@ public class AIMLProcessor {
     private static String dbSelect(Node node, ParseState ps) throws JsonProcessingException {
         String report = getPredicateOrValue(getAttributeOrTagValue(node, ps, "report"), ps);
         String params = getPredicateOrValue(getAttributeOrTagValue(node, ps, "params"), ps);
-        log.info("dbSelect  report: {} labels: {}", report, params);
+        log.info("{} dbSelect  report: {} labels: {}", ps.chatSession.sessionId, report, params);
 
         List<Param> paramList = new ArrayList<>();
+        paramList.add(new Param("SESSION_ID", ps.chatSession.sessionId));
 
         if (params != null) {
             Document doc = Jsoup.parse(params);
