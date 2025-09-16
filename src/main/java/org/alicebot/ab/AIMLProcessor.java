@@ -1458,7 +1458,7 @@ public class AIMLProcessor {
         String params = getPredicateOrValue(getAttributeOrTagValue(node, ps, "params"), ps);
         log.info("{} dbSelect  report: {} labels: {}", ps.chatSession.sessionId, report, params);
 
-        List<Param> paramList = new ArrayList<>();
+        Set<Param> paramList = new HashSet<>();
         paramList.add(new Param("SESSION_ID", ps.chatSession.sessionId));
 
         if (params != null) {

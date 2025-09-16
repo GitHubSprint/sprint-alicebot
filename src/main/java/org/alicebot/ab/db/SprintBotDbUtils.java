@@ -14,6 +14,7 @@ import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 public class SprintBotDbUtils {
@@ -37,7 +38,7 @@ public class SprintBotDbUtils {
     }
 
 
-    public static String getDbSelect(String reportName, List<Param> params) {
+    public static String getDbSelect(String reportName, Set<Param> params) {
         log.info("getDbSelect reportName: {} params: {}", reportName, params);
         if(reportName == null)
             return null;
