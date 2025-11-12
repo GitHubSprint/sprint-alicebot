@@ -39,9 +39,13 @@ public class SprintBotDbUtils {
     // TypeReference jako stała - nie trzeba tworzyć za każdym razem
     private static final TypeReference<HashMap<String, String>> MAP_TYPE_REF = new TypeReference<>() {};
 
-    public static void updateConfiguration(String url, String driverClassName,
-                                           String username, String password,
-                                           String newSchema, String newTimezone) {
+    public static void updateConfiguration(String url,
+                                           String driverClassName,
+                                           String username,
+                                           String password,
+                                           String newSchema,
+                                           String newTimezone)
+    {
         schema = newSchema;
         timezone = newTimezone;
 
@@ -56,10 +60,10 @@ public class SprintBotDbUtils {
         config.setDriverClassName(driverClassName);
 
         // Optymalizacje connection pool
-        config.setMaximumPoolSize(20);
+        config.setMaximumPoolSize(15);
         config.setMinimumIdle(5);
         config.setConnectionTimeout(30000);
-        config.setIdleTimeout(600000);
+        config.setIdleTimeout(120000);
         config.setMaxLifetime(1800000);
         config.setAutoCommit(true);
         config.addDataSourceProperty("cachePrepStmts", "true");
@@ -131,7 +135,6 @@ public class SprintBotDbUtils {
     }
 
     private static String getDbSelectData(String sql, Connection connection) throws SQLException {
-        // Użyj StringBuilder z początkową pojemnością
         StringBuilder result = new StringBuilder(1024);
 
         try (Statement stmt = connection.createStatement();
