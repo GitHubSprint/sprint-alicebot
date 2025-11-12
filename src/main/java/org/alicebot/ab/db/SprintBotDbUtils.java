@@ -23,7 +23,6 @@ import java.util.concurrent.Executors;
 public class SprintBotDbUtils {
     private static final Logger log = LoggerFactory.getLogger(SprintBotDbUtils.class);
 
-    // Connection pool zamiast tworzenia nowych połączeń
     private static HikariDataSource dataSource;
     private static String schema;
     private static String timezone;
@@ -86,8 +85,7 @@ public class SprintBotDbUtils {
         }
 
         // Sprawdź cache
-        String cachedSql = sqlCache.get(reportName);
-        String queryTemplate = cachedSql;
+        String queryTemplate = sqlCache.get(reportName);
 
         // Jeśli nie ma w cache, pobierz z bazy
         if (queryTemplate == null) {
