@@ -3,110 +3,168 @@ package org.alicebot.ab.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import org.alicebot.ab.model.Param;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.sql.*;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class SprintBotDbUtils {
     private static final Logger log = LoggerFactory.getLogger(SprintBotDbUtils.class);
 
-    private static String url = null;
-    private static String username;
-    private static String password;
+    // Connection pool zamiast tworzenia nowych połączeń
+    private static HikariDataSource dataSource;
     private static String schema;
     private static String timezone;
-    private final static ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
 
+    // Cache dla często używanych zapytań SQL
+    private static final Map<String, String> sqlCache = new ConcurrentHashMap<>();
 
-    public static void updateConfiguration(String newUrl, String newDriverClassName, String newUsername, String newPassword, String newSchema, String newTimezone) {
-        url = newUrl;
-        username = newUsername;
-        password = newPassword;
+    // Dedykowany thread pool dla operacji async
+    private static final Executor dbExecutor = Executors.newFixedThreadPool(
+            Runtime.getRuntime().availableProcessors() * 2
+    );
+
+    // TypeReference jako stała - nie trzeba tworzyć za każdym razem
+    private static final TypeReference<HashMap<String, String>> MAP_TYPE_REF = new TypeReference<>() {};
+
+    public static void updateConfiguration(String url, String driverClassName,
+                                           String username, String password,
+                                           String newSchema, String newTimezone) {
         schema = newSchema;
         timezone = newTimezone;
-        log.info("updateConfiguration url: {} driverClassName: {} username: {} schema: {} timezone: {}", url, newDriverClassName, username, schema, timezone);
-    }
 
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
+        }
+
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(url);
+        config.setUsername(username);
+        config.setPassword(password);
+        config.setDriverClassName(driverClassName);
+
+        // Optymalizacje connection pool
+        config.setMaximumPoolSize(20);
+        config.setMinimumIdle(5);
+        config.setConnectionTimeout(30000);
+        config.setIdleTimeout(600000);
+        config.setMaxLifetime(1800000);
+        config.setAutoCommit(true);
+        config.addDataSourceProperty("cachePrepStmts", "true");
+        config.addDataSourceProperty("prepStmtCacheSize", "250");
+        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+
+        dataSource = new HikariDataSource(config);
+
+        // Wyczyść cache przy zmianie konfiguracji
+        sqlCache.clear();
+
+        log.info("updateConfiguration url: {} username: {} schema: {} timezone: {}",
+                url, username, schema, timezone);
+    }
 
     public static String getDbSelect(String reportName, Set<Param> params) {
         log.info("getDbSelect reportName: {} params: {}", reportName, params);
-        if(reportName == null)
-            return null;
 
-        if(url == null) {
-            log.warn("getDbSelect invalid dbUrl: {}", url);
+        if (reportName == null || dataSource == null) {
+            log.warn("getDbSelect invalid input - reportName: {}, dataSource: {}",
+                    reportName, dataSource != null);
             return null;
         }
 
-        String result = null;
-        String sql = "SELECT sql FROM " + schema + ".sys_bot_selects where name='" + reportName +"'";
+        // Sprawdź cache
+        String cachedSql = sqlCache.get(reportName);
+        String queryTemplate = cachedSql;
 
-        try (Connection connection = DriverManager.getConnection(url, username, password);
-             Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery(sql))
-        {
+        // Jeśli nie ma w cache, pobierz z bazy
+        if (queryTemplate == null) {
+            String sql = "SELECT sql FROM " + schema + ".sys_bot_selects WHERE name = ?";
 
-            while (resultSet.next()) {
-                String query = resultSet.getString("sql");
-                log.info("getDbSelect sqlString: {} ", query);
+            try (Connection conn = dataSource.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql)) {
 
-                if(query != null) {
-                    for(Param param : params) {
-                        query = query
-                                .replaceAll("\\{" + param.name().toUpperCase() + "}", param.value());
+                ps.setString(1, reportName);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        queryTemplate = rs.getString("sql");
+                        if (queryTemplate != null) {
+                            sqlCache.put(reportName, queryTemplate);
+                        }
                     }
-                    result = getDbSelectData(query, connection);
                 }
+            } catch (SQLException e) {
+                log.error("getDbSelect error", e);
+                return null;
             }
-        } catch (SQLException e) {
-            log.error("getRecord err", e);
         }
 
-        return result;
+        if (queryTemplate == null) {
+            return null;
+        }
+
+        // Zastąp parametry
+        String query = queryTemplate;
+        for (Param param : params) {
+            query = query.replace("{" + param.name().toUpperCase() + "}", param.value());
+        }
+
+        log.info("getDbSelect query: {}", query);
+
+        try (Connection conn = dataSource.getConnection()) {
+            return getDbSelectData(query, conn);
+        } catch (SQLException e) {
+            log.error("getDbSelect error executing query", e);
+            return null;
+        }
     }
 
     private static String getDbSelectData(String sql, Connection connection) throws SQLException {
-        StringBuilder resultBuilder = new StringBuilder();
+        // Użyj StringBuilder z początkową pojemnością
+        StringBuilder result = new StringBuilder(1024);
 
-        try (Statement statement = connection.createStatement();
-             ResultSet resultSet = statement.executeQuery(sql)) {
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
 
-            ResultSetMetaData metaData = resultSet.getMetaData();
+            ResultSetMetaData metaData = rs.getMetaData();
             int columnCount = metaData.getColumnCount();
 
-            while (resultSet.next()) {
+            while (rs.next()) {
                 for (int i = 1; i <= columnCount; i++) {
-                    if (!resultBuilder.isEmpty()) {
-                        resultBuilder.append("###");
+                    if (!result.isEmpty()) {
+                        result.append("###");
                     }
-                    String columnValue = resultSet.getString(i);
-                    if (columnValue != null) {
-                        resultBuilder.append(columnValue);
+                    String value = rs.getString(i);
+                    if (value != null) {
+                        result.append(value);
                     }
                 }
             }
         }
-        return resultBuilder.toString();
+
+        return result.toString();
     }
 
-
-
-    public static CompletableFuture<Void> saveReportAsync(String name, String symbol, Report report, String sessionId) {
+    public static CompletableFuture<Void> saveReportAsync(String name, String symbol,
+                                                          Report report, String sessionId) {
         return CompletableFuture.runAsync(() -> {
-            log.info("saveReport sessionId: {} name: {} symbol: {} report: {}", sessionId, name, symbol, report);
+            log.info("saveReport sessionId: {} name: {} symbol: {}", sessionId, name, symbol);
 
-            if (url == null) {
-                log.warn("{} saveReport invalid dbUrl: {}", sessionId, url);
+            if (dataSource == null) {
+                log.warn("{} saveReport invalid dataSource", sessionId);
                 return;
             }
 
@@ -118,351 +176,424 @@ public class SprintBotDbUtils {
                     botOcena(symbol, report, sessionId);
                     break;
                 case "info":
-                    botInfo(name, symbol, report, sessionId);
+                    botInfo(symbol, report, sessionId);
                     break;
                 default:
-                    log.warn("{} saveReport invalid reportName: {} ", sessionId, name);
+                    log.warn("{} saveReport invalid reportName: {}", sessionId, name);
                     break;
             }
-        });
+        }, dbExecutor);
     }
-
 
     public static String updateRecord(String parameter) {
         log.info("updateRecord parameter: {}", parameter);
-        if(parameter == null)
-            return null;
 
-        if(url == null) {
-            log.warn("updateRecord invalid dbUrl: {}", url);
+        if (parameter == null || dataSource == null) {
+            log.warn("updateRecord invalid input");
             return null;
         }
-        String[] parameters = parameter.split("###");
-        if(parameter.length() < 3){
+
+        String[] params = parameter.split("###");
+        if (params.length < 3) {
             log.warn("updateRecord invalid parameter: {}", parameter);
             return null;
         }
 
+        int recordId;
+        try {
+            recordId = Integer.parseInt(params[0]);
+        } catch (NumberFormatException e) {
+            log.warn("updateRecord invalid id: {}", params[0]);
+            return null;
+        }
+
         Map<String, String> data = new HashMap<>();
-        data.put(parameters[1], parameters[2]);
+        data.put(params[1], params[2]);
 
-        try (Connection connection = DriverManager.getConnection(url, username, password)) {
+        String selectSql = "SELECT ext_data FROM " + schema + ".bot_dialer_contact_record WHERE id = ?";
+        String updateSql = "UPDATE " + schema + ".bot_dialer_contact_record SET ext_data = ? WHERE id = ?";
 
-            String selectSql = "SELECT ext_data FROM " + schema + ".bot_dialer_contact_record where id=" + parameters[0];
+        try (Connection conn = dataSource.getConnection()) {
+            // SELECT
             String extData = null;
-
-            try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
-                try (ResultSet resultSet = selectStmt.executeQuery()) {
-                    if (resultSet.next()) {
-                        extData = resultSet.getString("ext_data");
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                ps.setInt(1, recordId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        extData = rs.getString("ext_data");
                     }
                 }
             }
 
-            TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
-
-            Map<String, String> currentData = extData != null ?
-                    mapper.readValue(extData, typeRef) :
-                    new HashMap<>();
-
+            // Merge data
+            Map<String, String> currentData = extData != null
+                    ? mapper.readValue(extData, MAP_TYPE_REF)
+                    : new HashMap<>();
             currentData.putAll(data);
 
-            String updateSql = "UPDATE " + schema + ".bot_dialer_contact_record SET ext_data = ? WHERE id = ?";
-            try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
-                updateStmt.setString(1, mapper.writeValueAsString(currentData));
-                updateStmt.setInt(2, Integer.parseInt(parameters[0]));
-                int rowsUpdated = updateStmt.executeUpdate();
-                log.info("updateRecord updated rows: {} ", rowsUpdated);
+            // UPDATE
+            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                ps.setString(1, mapper.writeValueAsString(currentData));
+                ps.setInt(2, recordId);
+                int rows = ps.executeUpdate();
+                log.info("updateRecord updated rows: {}", rows);
             }
 
+            return "OK";
+
         } catch (SQLException | JsonProcessingException e) {
-            log.error("updateRecord err", e);
+            log.error("updateRecord error", e);
             return null;
         }
-
-        return "OK";
     }
 
-    /**
-     * Updates the status of a contact record and its associated phone numbers.
-     *
-     * @param parameter A string containing the record ID, new status, and phone details.
-     *                  (id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2)
-     * @return "OK" if the update was successful, or an error message if it failed.
-     */
     public static String updateRecordStatus(String parameter) {
         log.info("updateRecordStatus parameter: {}", parameter);
-        if(parameter == null)
-            return null;
 
-        if(url == null) {
-            log.warn("updateRecordStatus invalid dbUrl: {}", url);
+        if (parameter == null || dataSource == null) {
+            log.warn("updateRecordStatus invalid input");
             return null;
         }
 
-        String[] parameters = parameter.split("###");
-        if(parameter.length() < 8){
+        String[] params = parameter.split("###");
+        if (params.length < 8) {
             log.warn("updateRecordStatus invalid parameter: {}", parameter);
             return null;
         }
 
-        int id = Integer.parseInt(parameters[0]);
-        int status = Integer.parseInt(parameters[1]);
-        String phone1 = parameters[2];
-        int cntPhone1 = Integer.parseInt(parameters[3]);
-        int statusPhone1 = Integer.parseInt(parameters[4]);
-        String phone2 = parameters[5];
-        int cntPhone2 = Integer.parseInt(parameters[6]);
-        int statusPhone2 = Integer.parseInt(parameters[7]);
+        try {
+            int id = Integer.parseInt(params[0]);
+            int status = Integer.parseInt(params[1]);
+            String phone1 = params[2];
+            int cntPhone1 = Integer.parseInt(params[3]);
+            int statusPhone1 = Integer.parseInt(params[4]);
+            String phone2 = params[5];
+            int cntPhone2 = Integer.parseInt(params[6]);
+            int statusPhone2 = Integer.parseInt(params[7]);
 
-        log.info("updateRecordStatus id: {}, status: {}, phone1: {}, cntPhone1: {}, statusPhone1: {}, phone2: {}, cntPhone2: {}, statusPhone2: {}",
-                id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2);
+            String updateRecord = "UPDATE " + schema + ".bot_dialer_contact_record SET status = ? WHERE id = ?";
 
-        String updateRecord = "UPDATE " + schema + ".bot_dialer_contact_record SET status = ? WHERE id = ?";
+            // FIXED: Bug w oryginalnym SQL - status_phone1 występował dwa razy
+            String updatePhone = "UPDATE " + schema + ".bot_dialer_contact_phone p " +
+                    "SET cnt_phone1 = ?, status_phone1 = ?, cnt_phone2 = ?, status_phone2 = ? " +
+                    "FROM " + schema + ".bot_dialer_contact_record r " +
+                    "WHERE p.id = r.contact_phone_id AND r.id = ?";
 
-        String updatePhone = "UPDATE " + schema + ".bot_dialer_contact_phone p " +
-            "SET cnt_phone1 = ?, status_phone1 = ?,  cnt_phone2 = ?, status_phone1 = ? " +
-            "FROM " + schema + ".bot_dialer_contact_record r " +
-            "WHERE p.id = r.contact_phone_id AND r.id = ?";
+            try (Connection conn = dataSource.getConnection()) {
+                conn.setAutoCommit(false);
 
+                try {
+                    // Update record
+                    try (PreparedStatement ps = conn.prepareStatement(updateRecord)) {
+                        ps.setInt(1, status);
+                        ps.setInt(2, id);
+                        ps.executeUpdate();
+                    }
 
-        try (Connection connection = DriverManager.getConnection(url, username, password)) {
-            connection.setAutoCommit(false);
+                    // Update phone
+                    try (PreparedStatement ps = conn.prepareStatement(updatePhone)) {
+                        ps.setInt(1, cntPhone1);
+                        ps.setInt(2, statusPhone1);
+                        ps.setInt(3, cntPhone2);
+                        ps.setInt(4, statusPhone2);
+                        ps.setInt(5, id);
+                        ps.executeUpdate();
+                    }
 
-            try (PreparedStatement psRecord = connection.prepareStatement(updateRecord);
-                 PreparedStatement psPhone = connection.prepareStatement(updatePhone))
-            {
-                psRecord.setInt(1, status);
-                psRecord.setInt(2, id);
-                int psRecordRows = psRecord.executeUpdate();
+                    conn.commit();
+                    log.info("updateRecordStatus completed for id: {}", id);
+                    return "OK";
 
-                psPhone.setInt(1, cntPhone1);
-                psPhone.setInt(2, statusPhone1);
-                psPhone.setInt(3, cntPhone2);
-                psPhone.setInt(4, statusPhone2);
-                psPhone.setInt(5, id);
-                int psPhoneRows = psPhone.executeUpdate();
-                log.info("updateRecordStatus updated record rows: {} and phone rows: {}", psRecordRows, psPhoneRows);
-                connection.commit();
-            } catch (SQLException e) {
-                log.error("updateRecordStatus error during update", e);
-                connection.rollback();
-                return "ERR " + e.getMessage();
+                } catch (SQLException e) {
+                    conn.rollback();
+                    log.error("updateRecordStatus error", e);
+                    return "ERR " + e.getMessage();
+                }
             }
-        } catch (SQLException e) {
-            log.error("updateRecordStatus err", e);
+
+        } catch (NumberFormatException | SQLException e) {
+            log.error("updateRecordStatus error", e);
             return "ERR " + e.getMessage();
         }
-
-        return "OK";
     }
-
 
     public static String getRecord(String parameter) {
         log.info("getRecord parameter: {}", parameter);
-        if(parameter == null)
-            return null;
 
-        if(url == null) {
-            log.warn("getRecord invalid dbUrl: {}", url);
+        if (parameter == null || dataSource == null) {
+            log.warn("getRecord invalid input");
             return null;
         }
 
-        String result = null;
-
-
-        //17###komunikat
-        String[] parameters = parameter.split("###");
-        if(parameter.length() < 2){
+        String[] params = parameter.split("###");
+        if (params.length < 2) {
             log.warn("getRecord invalid parameter: {}", parameter);
             return null;
         }
 
-        try (Connection connection = DriverManager.getConnection(url, username, password);
-             Statement statement = connection.createStatement()) {
-
-            String sql = "SELECT ext_data FROM " + schema + ".bot_dialer_contact_record where id=" + parameters[0];
-            ResultSet resultSet = statement.executeQuery(sql);
-
-            while (resultSet.next()) {
-                String extData = resultSet.getString("ext_data");
-                log.info("getRecord ext_data: {} ",extData);
-
-                if(extData != null) {
-                    TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
-                    Map<String,String> map = mapper.readValue(extData, typeRef);
-                    result = map.get(parameters[1]);
-                }
-            }
-        } catch (SQLException | JsonProcessingException e) {
-            log.error("getRecord err", e);
-        }
-
-        return result;
-    }
-
-
-    /**
-     * Retrieves the status of a contact record by its ID.
-     *
-     * @param parameter The ID of the contact record.
-     * @return A formatted string containing the record's details or null if not found
-     *          (id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2).
-     */
-    public static String getRecordStatus(String parameter) {
-        log.info("getRecordStatus parameter: {}", parameter);
-        if(parameter == null)
-            return null;
-
-        if(url == null) {
-            log.warn("getRecordStatus invalid dbUrl: {}", url);
+        int recordId;
+        try {
+            recordId = Integer.parseInt(params[0]);
+        } catch (NumberFormatException e) {
+            log.warn("getRecord invalid id: {}", params[0]);
             return null;
         }
 
-        String result = null;
+        String sql = "SELECT ext_data FROM " + schema + ".bot_dialer_contact_record WHERE id = ?";
 
-        try (Connection connection = DriverManager.getConnection(url, username, password);
-             Statement statement = connection.createStatement())
-        {
-            String sql = "SELECT r.id, r.status, p.phone1, p.cnt_phone1, p.status_phone1, p.phone2, p.cnt_phone2, p.status_phone2 " +
-                    "FROM " + schema + ".bot_dialer_contact_record r, " + schema + ".bot_dialer_contact_phone p " +
-                    "WHERE p.id = r.contact_phone_id and r.id =" + parameter;
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            ResultSet resultSet = statement.executeQuery(sql);
+            ps.setInt(1, recordId);
 
-            while (resultSet.next()) {
-                Integer id = resultSet.getInt("id");
-                Integer status = resultSet.getInt("status");
-                String phone1 = resultSet.getString("phone1");
-                Integer cntPhone1 = resultSet.getInt("cnt_phone1");
-                Integer statusPhone1 = resultSet.getInt("status_phone1");
-                String phone2 = resultSet.getString("phone2");
-                Integer cntPhone2 = resultSet.getInt("cnt_phone2");
-                Integer statusPhone2 = resultSet.getInt("status_phone2");
-                log.info("getRecordStatus id: {}, status: {}, phone1: {}, cntPhone1: {}, statusPhone1: {}, phone2: {}, cntPhone2: {}, statusPhone2: {}",
-                        id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2);
-                result = String.format("%d###%d###%s###%d###%d###%s###%d###%d",
-                        id, status, phone1, cntPhone1, statusPhone1, phone2, cntPhone2, statusPhone2);
-            }
-        } catch (SQLException e) {
-            log.error("getRecordStatus err", e);
-        }
-
-        return result;
-    }
-
-    public static String getData(String parameter, String sessionId) {
-        log.info("{} getdata parameter: {}", sessionId, parameter);
-        if(parameter == null)
-            return null;
-
-        if(url == null) {
-            log.warn("{} getdata invalid dbUrl: {}", sessionId, url);
-            return null;
-        }
-
-        String result = null;
-
-        try (Connection connection = DriverManager.getConnection(url, username, password)) {
-            String sql = "SELECT extdata FROM " + schema + ".bot_session WHERE session_id= ?";
-            try (PreparedStatement selectStmt = connection.prepareStatement(sql)) {
-                selectStmt.setString(1, sessionId);
-                try (ResultSet resultSet = selectStmt.executeQuery()) {
-                    if (resultSet.next()) {
-                        String extData = resultSet.getString("extdata");
-                        if(extData != null) {
-                            TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
-                            Map<String,String> map = mapper.readValue(extData, typeRef);
-                            result = map.get(parameter);
-                        }
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String extData = rs.getString("ext_data");
+                    if (extData != null) {
+                        Map<String, String> map = mapper.readValue(extData, MAP_TYPE_REF);
+                        return map.get(params[1]);
                     }
                 }
             }
+
         } catch (SQLException | JsonProcessingException e) {
-            log.error("{} getdata err", sessionId, e);
+            log.error("getRecord error", e);
         }
-        return result;
+
+        return null;
     }
 
-    private static void botInfo(String name, String symbol, Report report, String sessionId) {
-        log.info("botInfo report: {}", report);
+    public static String getRecordStatus(String parameter) {
+        log.info("getRecordStatus parameter: {}", parameter);
 
-        String sql = "INSERT INTO " + schema + ".bot_info (botname, idsesji, info, klucz, symbol, timestamp, wartosc) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        if (parameter == null || dataSource == null) {
+            log.warn("getRecordStatus invalid input");
+            return null;
+        }
 
-        try (Connection connection = DriverManager.getConnection(url, username, password);
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        int recordId;
+        try {
+            recordId = Integer.parseInt(parameter);
+        } catch (NumberFormatException e) {
+            log.warn("getRecordStatus invalid id: {}", parameter);
+            return null;
+        }
 
-            preparedStatement.setString(1, report.botName());
-            preparedStatement.setString(2, sessionId);
-            preparedStatement.setString(3, report.info());
-            preparedStatement.setString(4, report.klucz());
-            preparedStatement.setString(5, symbol);
-            preparedStatement.setTimestamp(6, getTimestamp());
-            preparedStatement.setString(7, report.wartosc());
+        String sql = "SELECT r.id, r.status, p.phone1, p.cnt_phone1, p.status_phone1, " +
+                "p.phone2, p.cnt_phone2, p.status_phone2 " +
+                "FROM " + schema + ".bot_dialer_contact_record r " +
+                "JOIN " + schema + ".bot_dialer_contact_phone p ON p.id = r.contact_phone_id " +
+                "WHERE r.id = ?";
 
-            int rowsAffected = preparedStatement.executeUpdate();
-            log.info("botInfo save report rows affected: {}", rowsAffected);
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, recordId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return String.format("%d###%d###%s###%d###%d###%s###%d###%d",
+                            rs.getInt("id"),
+                            rs.getInt("status"),
+                            rs.getString("phone1"),
+                            rs.getInt("cnt_phone1"),
+                            rs.getInt("status_phone1"),
+                            rs.getString("phone2"),
+                            rs.getInt("cnt_phone2"),
+                            rs.getInt("status_phone2")
+                    );
+                }
+            }
 
         } catch (SQLException e) {
-            log.warn("botInfo save report error", e);
+            log.error("getRecordStatus error", e);
+        }
+
+        return null;
+    }
+
+    public static String getData(String parameter, String sessionId) {
+        log.info("{} getData parameter: {}", sessionId, parameter);
+
+        if (parameter == null || sessionId == null || dataSource == null) {
+            log.warn("{} getData invalid input", sessionId);
+            return null;
+        }
+
+        String sql = "SELECT extdata FROM " + schema + ".bot_session WHERE session_id = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, sessionId);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String extData = rs.getString("extdata");
+                    if (extData != null) {
+                        Map<String, String> map = mapper.readValue(extData, MAP_TYPE_REF);
+                        return map.get(parameter);
+                    }
+                }
+            }
+
+        } catch (SQLException | JsonProcessingException e) {
+            log.error("{} getData error", sessionId, e);
+        }
+
+        return null;
+    }
+
+    public static String setData(String parameter, String sessionId) {
+        log.info("{} setData parameter: {}", sessionId, parameter);
+
+        if (parameter == null || sessionId == null || dataSource == null) {
+            log.warn("{} setData invalid input", sessionId);
+            return null;
+        }
+
+        String[] params = parameter.split("###");
+        if (params.length < 2) {
+            log.warn("{} setData invalid parameter: {}", sessionId, parameter);
+            return null;
+        }
+
+        Map<String, String> data = new HashMap<>();
+        data.put(params[0], params[1]);
+
+        String selectSql = "SELECT extdata FROM " + schema + ".bot_session WHERE session_id = ?";
+        String updateSql = "UPDATE " + schema + ".bot_session SET extdata = ? WHERE session_id = ?";
+
+        try (Connection conn = dataSource.getConnection()) {
+            // SELECT
+            String extData = null;
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                ps.setString(1, sessionId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        extData = rs.getString("extdata");
+                    }
+                }
+            }
+
+            // Merge data
+            Map<String, String> currentData = extData != null
+                    ? mapper.readValue(extData, MAP_TYPE_REF)
+                    : new HashMap<>();
+            currentData.putAll(data);
+
+            // UPDATE
+            try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+                ps.setString(1, mapper.writeValueAsString(currentData));
+                ps.setString(2, sessionId);
+                int rows = ps.executeUpdate();
+                log.info("{} setData updated rows: {}", sessionId, rows);
+            }
+
+            return "OK";
+
+        } catch (SQLException | JsonProcessingException e) {
+            log.error("{} setData error", sessionId, e);
+            return null;
+        }
+    }
+
+    private static void botInfo(String symbol, Report report, String sessionId) {
+        String sql = "INSERT INTO " + schema + ".bot_info " +
+                "(botname, idsesji, info, klucz, symbol, timestamp, wartosc) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, report.botName());
+            ps.setString(2, sessionId);
+            ps.setString(3, report.info());
+            ps.setString(4, report.klucz());
+            ps.setString(5, symbol);
+            ps.setTimestamp(6, getTimestamp());
+            ps.setString(7, report.wartosc());
+
+            int rows = ps.executeUpdate();
+            log.info("botInfo saved rows: {}", rows);
+
+        } catch (SQLException e) {
+            log.error("botInfo error", e);
         }
     }
 
     private static void botOcena(String symbol, Report report, String sessionId) {
-        String sql = "INSERT INTO " + schema + ".bot_ocena (idsesji, licznikfraz, licznikocen, ocena, sposoboceny, symbol, timestamp) " +
+        String sql = "INSERT INTO " + schema + ".bot_ocena " +
+                "(idsesji, licznikfraz, licznikocen, ocena, sposoboceny, symbol, timestamp) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection connection = DriverManager.getConnection(url, username, password);
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            preparedStatement.setString(1, sessionId);
-            if(report.licznikFraz() != null)
-                preparedStatement.setInt(2, Integer.parseInt(report.licznikFraz()));
-            if(report.licznikOcen() != null)
-                preparedStatement.setInt(3, Integer.parseInt(report.licznikOcen()));
-            preparedStatement.setString(4, report.ocena());
-            preparedStatement.setString(5, report.sposobOceny());
-            preparedStatement.setString(6, symbol);
-            preparedStatement.setTimestamp(7, getTimestamp());
+            ps.setString(1, sessionId);
 
+            if (report.licznikFraz() != null) {
+                ps.setInt(2, Integer.parseInt(report.licznikFraz()));
+            } else {
+                ps.setNull(2, Types.INTEGER);
+            }
 
-            int rowsAffected = preparedStatement.executeUpdate();
-            log.info("botOcena save report rows affected: {}", rowsAffected);
+            if (report.licznikOcen() != null) {
+                ps.setInt(3, Integer.parseInt(report.licznikOcen()));
+            } else {
+                ps.setNull(3, Types.INTEGER);
+            }
+
+            ps.setString(4, report.ocena());
+            ps.setString(5, report.sposobOceny());
+            ps.setString(6, symbol);
+            ps.setTimestamp(7, getTimestamp());
+
+            int rows = ps.executeUpdate();
+            log.info("botOcena saved rows: {}", rows);
 
         } catch (SQLException e) {
-            log.warn("botOcena save report error", e);
+            log.error("botOcena error", e);
         }
     }
 
     private static void botFraza(String symbol, Report report, String sessionId) {
-        String sql = "INSERT INTO " + schema + ".BOT_FRAZA (fakt, fraza, frazacala, idsesji, label, licznikfraz, rozpoznanie, symbol, timestamp, wiarygodnosc) " +
+        String sql = "INSERT INTO " + schema + ".bot_fraza " +
+                "(fakt, fraza, frazacala, idsesji, label, licznikfraz, rozpoznanie, symbol, timestamp, wiarygodnosc) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection connection = DriverManager.getConnection(url, username, password);
-             PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            preparedStatement.setString(1, report.fakt());
-            preparedStatement.setString(2, report.fraza());
-            preparedStatement.setString(3, report.frazaCala());
-            preparedStatement.setString(4, sessionId);
-            preparedStatement.setString(5, report.label());
-            if(report.licznikFraz() != null)
-                preparedStatement.setInt(6, Integer.parseInt(report.licznikFraz()));
-            preparedStatement.setString(7, report.rozpoznanie());
-            preparedStatement.setString(8, symbol);
-            preparedStatement.setTimestamp(9, getTimestamp());
-            if(report.wiarygodnosc() != null)
-                preparedStatement.setInt(10, Integer.parseInt(report.wiarygodnosc()));
+            ps.setString(1, report.fakt());
+            ps.setString(2, report.fraza());
+            ps.setString(3, report.frazaCala());
+            ps.setString(4, sessionId);
+            ps.setString(5, report.label());
 
-            int rowsAffected = preparedStatement.executeUpdate();
-            log.info("botFraza save report rows affected: {}", rowsAffected);
+            if (report.licznikFraz() != null) {
+                ps.setInt(6, Integer.parseInt(report.licznikFraz()));
+            } else {
+                ps.setNull(6, Types.INTEGER);
+            }
+
+            ps.setString(7, report.rozpoznanie());
+            ps.setString(8, symbol);
+            ps.setTimestamp(9, getTimestamp());
+
+            if (report.wiarygodnosc() != null) {
+                ps.setInt(10, Integer.parseInt(report.wiarygodnosc()));
+            } else {
+                ps.setNull(10, Types.INTEGER);
+            }
+
+            int rows = ps.executeUpdate();
+            log.info("botFraza saved rows: {}", rows);
 
         } catch (SQLException e) {
-            log.warn("botFraza save report error", e);
+            log.error("botFraza error", e);
         }
     }
-
 
     public static Timestamp getTimestamp() {
         Instant instant = Instant.now();
@@ -470,62 +601,11 @@ public class SprintBotDbUtils {
         return Timestamp.from(zdt.toInstant());
     }
 
-    public static String setData(String parameter, String sessionId) {
-        log.info("{} setData parameter: {}", sessionId, parameter);
-        if(parameter == null)
-            return null;
-
-        if(url == null) {
-            log.warn("{} setData invalid dbUrl: {}", sessionId, url);
-            return null;
+    // Metoda do zamykania pool'a przy shutdown aplikacji
+    public static void shutdown() {
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
+            log.info("DataSource closed");
         }
-
-        String[] parameters = parameter.split("###");
-        if(parameter.length() < 2){
-            log.warn("{} setData invalid parameter: {}", sessionId, parameter);
-            return null;
-        }
-
-        Map<String, String> data = new HashMap<>();
-        data.put(parameters[0], parameters[1]);
-
-        try (Connection connection = DriverManager.getConnection(url, username, password)) {
-
-            String selectSql = "SELECT extdata FROM " + schema + ".bot_session WHERE session_id = ?";
-            String extData = null;
-
-            try (PreparedStatement selectStmt = connection.prepareStatement(selectSql)) {
-                selectStmt.setString(1, sessionId);
-                try (ResultSet resultSet = selectStmt.executeQuery()) {
-                    if (resultSet.next()) {
-                        extData = resultSet.getString("extdata");
-                        log.info("{} setData extdata: {} ", sessionId, extData);
-                    }
-                }
-            }
-
-            TypeReference<HashMap<String, String>> typeRef = new TypeReference<>() {};
-
-            Map<String, String> currentData = extData != null ?
-                    mapper.readValue(extData, typeRef) :
-                    new HashMap<>();
-
-            currentData.putAll(data);
-
-            String updateSql = "UPDATE " + schema + ".bot_session SET extdata = ? WHERE session_id = ?";
-            try (PreparedStatement updateStmt = connection.prepareStatement(updateSql)) {
-                updateStmt.setString(1, mapper.writeValueAsString(currentData));
-                updateStmt.setString(2, sessionId);
-                int rowsUpdated = updateStmt.executeUpdate();
-                log.info("{} setData updated rows: {} ", sessionId, rowsUpdated);
-            }
-
-        } catch (SQLException | JsonProcessingException e) {
-            log.error("{} setData err", sessionId, e);
-            return null;
-        }
-
-        return "OK";
     }
-
 }
