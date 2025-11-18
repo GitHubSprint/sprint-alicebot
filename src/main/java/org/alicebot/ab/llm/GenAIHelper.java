@@ -78,10 +78,12 @@ public class GenAIHelper {
             messages.put(assistantMessage);
         }
 
-        JSONObject userMessage = new JSONObject();
-        userMessage.put("role", "user");
-        userMessage.put("content", user);
-        messages.put(userMessage);
+        if(user != null && !user.isEmpty()) {
+            JSONObject userMessage = new JSONObject();
+            userMessage.put("role", "user");
+            userMessage.put("content", user);
+            messages.put(userMessage);
+        }
 
         jsonRequest.put("messages", messages);
 

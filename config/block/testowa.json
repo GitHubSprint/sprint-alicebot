@@ -4,10 +4,10 @@
       "name": "nazwa",
       "pattern": "jakiś pattern",
       "first": true,
-      "assistant": "ayststent",
+      "assistant": "",
       "model": "gpt-4o",
-      "system": "prompt systemowy",
-      "addparams": "",
+      "system": "Nazywasz się Jan Niezbędny",
+      "addparams": "max_tokens=1000,temperature=0.5",
       "tech_id": "tech_id",
       "tech_pos_x": 10,
       "tech_pos_y": 10

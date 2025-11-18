@@ -69,7 +69,7 @@ public class Main {
         Graphmaster.enableShortCuts = true;
 
         Map<String, String> gptTokens = new HashMap<>();
-        
+        gptTokens.put("testowa","sk-proj-");
 
         SprintUtils.updateLLMConfiguration(
                 gptTokens,
