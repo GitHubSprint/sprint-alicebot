@@ -23,19 +23,9 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.*;
 
-import org.alicebot.ab.AB;
-import org.alicebot.ab.AIMLProcessor;
-import org.alicebot.ab.Bot;
-import org.alicebot.ab.Category;
-import org.alicebot.ab.Chat;
-import org.alicebot.ab.Graphmaster;
-import org.alicebot.ab.MagicBooleans;
-import org.alicebot.ab.MagicStrings;
-import org.alicebot.ab.PCAIMLProcessorExtension;
+import org.alicebot.ab.*;
 import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
@@ -77,10 +67,25 @@ public class Main {
 
         log.info("trace mode = {}", MagicBooleans.trace_mode);
         Graphmaster.enableShortCuts = true;
-        //Timer timer = new Timer();
-        Bot bot = new Bot(botName, MagicStrings.root_path, action); //
-        //bot.preProcessor.normalizeFile("c:/ab/log1.txt", "c:/ab/data/lognormal.txt");
 
+        Map<String, String> gptTokens = new HashMap<>();
+        
+
+        SprintUtils.updateLLMConfiguration(
+                gptTokens,
+                "https://api.openai.com/v1/chat/completions",
+                "http://localhost:11434/api/chat",
+                gptTokens,
+                "https://us-central1-aiplatform.googleapis.com/v1/projects/asystent-1d7d2/locations/us-central1/publishers/google/models/chat-bison:predict",
+                "gpt-3.5-turbo",
+                "llama3.1",
+                15,
+                15,
+                15
+        );
+
+
+        Bot bot = new Bot(botName, MagicStrings.root_path, action); //
 
         log.info("Categories.size = {}", bot.brain.getCategories().size());
         
@@ -135,30 +140,26 @@ public class Main {
                 default -> {
 
                     log.debug("STATE={}:THAT={}:TOPIC={}", textLine, chatSession.thatHistory.get(0).get(0), chatSession.predicates.get("topic"));
-                    String response = chatSession.multisentenceRespond(textLine, json, "ostatnia odpowiedź");
-                    json = response.substring(4);
+                    json = chatSession.json;
 
+                    System.out.println("json: "+json);
+
+                    String response;
+                    if(json != null) {
+                        response = chatSession.multisentenceRespond(textLine, json, "ostatnia odpowiedź");
+                    } else {
+                        response = chatSession.multisentenceRespond(textLine);
+                    }
 
                     while (response.contains("&lt;")) response = response.replace("&lt;", "<");
                     while (response.contains("&gt;")) response = response.replace("&gt;", ">");
-                    log.info("Robot: " + response);
-                    //MemStats.memStats();
+                    log.info("Robot: {}", response);
+                    MemStats.memStats();
                     chatSession.requestHistory.printHistory();
                 }
             }
 
         }
-    }
-    public static void testBotChat () {
-        Bot bot = new Bot("alice");
-        log.info(bot.brain.upgradeCnt+" brain upgrades");
-        bot.brain.nodeStats();
-        //bot.brain.printgraph();
-        Chat chatSession = new Chat(bot);
-        String request = "Hello.  How are you?  What is your name?  Tell me about yourself.";
-        String response = chatSession.multisentenceRespond(request);
-        log.info("Human: "+request);
-        log.info("Robot: "+response);
     }
     public static void testSuite (Bot bot, String filename) {
         try{

@@ -35,8 +35,9 @@
             <template>  
                 <think>
                     <set name="user"><input /></set>
-                </think>                           
-                <save-context type="gpt" name="test" user="user"/> 
+                    <set name="context">nazwa</set>
+                </think>
+                <save-context type="gpt" name="context"/>
             </template>
         </category>
 
@@ -46,7 +47,8 @@
                 <think>
                     <set name="user"><input /></set>
                 </think>
-                <get-context type="gpt" name="test" user="user"/> 
+                hmmm...
+                <gpt model="model" system="system" assistant="assistant" user="user" addparams="addparams" context="context"/>
             </template>
         </category>
     </topic>

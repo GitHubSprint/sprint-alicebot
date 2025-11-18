@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    {
+      "name": "nazwa",
+      "pattern": "jakiś pattern",
+      "first": true,
+      "assistant": "ayststent",
+      "model": "gpt-4o",
+      "system": "prompt systemowy",
+      "addparams": "",
+      "tech_id": "tech_id",
+      "tech_pos_x": 10,
+      "tech_pos_y": 10
+    }
+  ],
+  "edges": [
+    {
+      "source_tech_id": "Node 1",
+      "target_tech_id": "Node 2",
+      "value": "value"
+    }
+  ]
+}

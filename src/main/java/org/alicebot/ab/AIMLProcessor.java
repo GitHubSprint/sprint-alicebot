@@ -45,6 +45,7 @@ import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -1675,10 +1676,12 @@ public class AIMLProcessor {
 
         String sessionId = ps.chatSession.sessionId;
 
-        log.info("{}\tsaveContext type: {} name : {}", sessionId, type, contextName);
+        log.info("{}\tsaveContext type: {} name : {}\njson:\t{}", sessionId, type, contextName,ps.chatSession.json);
 
         if(type.equals(MagicStrings.unknown_property_value) || contextName.equals(MagicStrings.unknown_property_value))
             return "";
+
+
 
         ps.chatSession.llmContext.put(type+contextName,ps.chatSession.json);
 
@@ -1704,7 +1707,9 @@ public class AIMLProcessor {
 
         String sessionId = ps.chatSession.sessionId;
 
-        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
+        log.info("gpt contextName: {}", contextName);
+
+        if (contextName != null && !contextName.isEmpty() && !contextName.equals(MagicStrings.unknown_property_value)) {
             context = ps.chatSession.llmContext.get("gpt"+contextName);
             log.info("{}\tgetContext context name: {} value:\t{}", sessionId, contextName, context);
         }
@@ -1768,6 +1773,28 @@ public class AIMLProcessor {
                 sessionId, botname, model, user, system, assistant, addparams, iMaxResponse, json);
 
 
+        String request = gptRequest(addparams, sessionId, assistant, system, json, model, user, iMaxResponse);
+
+        ps.chatSession.json = request;
+
+        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
+                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
+
+        if(LLMConfiguration.timeout != timeout) {
+            LLMService.setTimeout(timeout);
+            log.info("GPT new timeout: {}", timeout);
+        }
+
+        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
+        ps.chatSession.lastResponse = response;
+
+        log.info("{}\tGPT response: {}", sessionId, response);
+
+        return response;
+
+    }
+
+    public static String gptRequest(String addparams, String sessionId, String assistant, String system, String json, String model, String user, int iMaxResponse) throws JSONException {
         Map<String, String> additionalParameters = new HashMap<>();
         if(addparams != null && !addparams.isEmpty()) {
             String[] params = addparams.split(",");
@@ -1779,7 +1806,7 @@ public class AIMLProcessor {
             }
         }
 
-        log.info("{}\tGPT  assistant: {} system: {}", sessionId, assistant, system);
+        log.info("{}\tgptRequest  assistant: {} system: {}", sessionId, assistant, system);
 
         String request;
 
@@ -1803,23 +1830,7 @@ public class AIMLProcessor {
 
             request = json;
         }
-        ps.chatSession.json = request;
-
-        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
-                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
-
-        if(LLMConfiguration.timeout != timeout) {
-            LLMService.setTimeout(timeout);
-            log.info("GPT new timeout: {}", timeout);
-        }
-
-        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
-        ps.chatSession.lastResponse = response;
-
-        log.info("{}\tGPT response: {}", sessionId, response);
-
-        return response;
-
+        return request;
     }
 
     private static String ollama(Node node, ParseState ps) throws Exception {

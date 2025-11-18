@@ -8,6 +8,7 @@ package org.alicebot.ab.utils;
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
 import org.alicebot.ab.llm.LLMConfiguration;
+import org.alicebot.ab.model.block.Block;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +21,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +34,20 @@ public class SprintUtils {
     private static final Map<File, SharedClassLoader> sharedClassLoaderMap = new ConcurrentHashMap<>();
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
 
+    public static Block getBlock(String blockName) {
+        File file = new File("config/block/" + blockName + ".json");
+        if(file.exists()) {
+            try {
+                String json = Files.readString(file.toPath());
+                log.info("getBlock: {}", json);
+                return Block.fromJson(json);
+
+            } catch (IOException e) {
+                log.error("getBlock ERROR", e);
+            }
+        }
+        return null;
+    }
 
     public static void updateGeminiToken(Map<String, String> tokens) {
         LLMConfiguration.geminiTokens = new HashMap<>(tokens);

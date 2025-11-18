@@ -3,8 +3,12 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.*;
 
+import org.alicebot.ab.llm.LLMConfiguration;
+import org.alicebot.ab.model.block.Block;
+import org.alicebot.ab.model.block.Node;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
+import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /* Program AB Reference AIML 2.0 implementation
@@ -78,7 +82,30 @@ public class Chat {
         thatHistory.add(contextThatHistory);
         addPredicates();
         predicates.put("topic", MagicStrings.default_topic);
+
+        Block block = SprintUtils.getBlock(bot.name);
+
+        int iMaxResponse = maxHistory;
+        if(iMaxResponse == 0) {
+            iMaxResponse = LLMConfiguration.gptMaxHistory;
+        }
+
+        if(block != null && !block.nodes().isEmpty()) {
+            for(Node node : block.nodes()) {
+                log.info("Chat Node: {}", node);
+                try {
+                    String nodeJson = AIMLProcessor.gptRequest(node.addparams(), sessionId, node.assistant(), node.system(), json, node.model(), null, iMaxResponse);
+                    llmContext.put("gpt" + node.name(), nodeJson);
+                } catch (JSONException e) {
+                    log.error("Chat JSONException",e);
+                }
+            }
+
+            log.info("{} Chat llmContexts: {}", sessionId, llmContext);
+        }
     }
+
+
 
     public Date getSessionCreated() 
     {
