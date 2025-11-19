@@ -880,33 +880,43 @@ public class AIMLProcessor {
         return checkEmpty(result);
     }
 
-    private static String getBlock(Node node, ParseState ps) {
+    private static String getBlock(Node node, ParseState ps) throws JSONException {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
         String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
-        Block block = SprintUtils.getBlock(ps.chatSession.bot.name);
 
-        log.info("{} getBlock parameter: {} context: {} block: {}", ps.chatSession.sessionId, parameter, context, block);
+        String json = ps.chatSession.llmContext.get(GPT+context);
+        log.info("{} setBlock parameter: {} name: {} json: {} ", ps.chatSession.sessionId, parameter, context, json);
 
-        if(block == null)
-            return MagicStrings.unknown_property_value;
+        if(json != null && !json.isEmpty()) {
+            JSONObject jsonObject = new JSONObject(json);
 
-        Optional<org.alicebot.ab.model.block.Node> first = block.nodes().stream()
-                .filter(n -> n.name().equals(context)).findFirst();
-
-        if(first.isPresent()){
-            return switch (parameter) {
-                case "system" -> first.get().system();
-                case "assistant" -> first.get().assistant();
-                case "name" -> first.get().name();
-                case "pattern" -> first.get().pattern();
-                case "model" -> first.get().model();
-                case "addparams" -> first.get().addparams();
-                case "first" -> String.valueOf(first.get().first());
-                default -> MagicStrings.unknown_property_value;
-            };
+            switch (parameter) {
+                case "system", "assistant":
+                    JSONArray messages = jsonObject.optJSONArray("messages");
+                    for (int i = 0; i < messages.length(); i++) {
+                        JSONObject message = messages.getJSONObject(i);
+                        if (parameter.equals(message.optString("role"))) {
+                            return message.get("content").toString();
+                        }
+                    }
+                    break;
+                case "model" :
+                    return jsonObject.optString("model");
+                case "addparams" :
+                    StringBuilder paramsBuilder = new StringBuilder();
+                    Iterator<String> keys = jsonObject.keys();
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        if (!key.equals("messages") && !key.equals("model")) {
+                            if (!paramsBuilder.isEmpty()) {
+                                paramsBuilder.append(",");
+                            }
+                            paramsBuilder.append(key).append("=").append(jsonObject.get(key));
+                        }
+                    }
+                    return paramsBuilder.toString();
+            }
         }
-
-
         return MagicStrings.unknown_property_value;
     }
 
@@ -3113,6 +3123,3 @@ public class AIMLProcessor {
     }
 
 }
-
-
-

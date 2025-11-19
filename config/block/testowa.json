@@ -4,7 +4,7 @@
       "name": "nazwa",
       "pattern": "jakiś pattern",
       "first": true,
-      "assistant": "",
+      "assistant": "Tekst asystenta",
       "model": "gpt-4o",
       "system": "Nazywasz się Jan Niezbędny",
       "addparams": "max_tokens=1000,temperature=0.5",

@@ -30,8 +30,12 @@
                 <gpt model="model" user="user"/>
 
 
-                ==Paramatr system=
-                <get-block context="context" parameter="system" />
+                ==Paramatr system=<br/>
+                <get-block context="context" parameter="system" /><br/>
+                <get-block context="context" parameter="assistant" /><br/>
+                <get-block context="context" parameter="model" /><br/>
+                <get-block context="context" parameter="addparams" />
+
             </template>
         </category>
 
