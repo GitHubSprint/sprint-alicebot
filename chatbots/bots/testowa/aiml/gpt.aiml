@@ -28,6 +28,10 @@
                     <set name="user"><star /></set>
                 </think>
                 <gpt model="model" user="user"/>
+
+
+                ==Paramatr system=
+                <get-block context="context" parameter="system" />
             </template>
         </category>
 
@@ -50,6 +54,7 @@
                     <set name="user"><input /></set>
                 </think>
                 <gpt context="context" user="user" model="model" addparams="addparams"/>
+                <set-block context="context" parameter="system">Nazywasz się Zenon.</set-block>
             </template>
         </category>
     </topic>

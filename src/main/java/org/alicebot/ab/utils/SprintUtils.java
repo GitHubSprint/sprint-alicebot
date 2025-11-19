@@ -39,7 +39,7 @@ public class SprintUtils {
         if(file.exists()) {
             try {
                 String json = Files.readString(file.toPath());
-                log.info("getBlock: {}", json);
+                log.debug("getBlock: {}", json);
                 return Block.fromJson(json);
 
             } catch (IOException e) {

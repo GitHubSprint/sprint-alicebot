@@ -37,6 +37,7 @@ import org.alicebot.ab.llm.LLMService;
 import org.alicebot.ab.db.Report;
 import org.alicebot.ab.model.Param;
 import org.alicebot.ab.model.SayResponse;
+import org.alicebot.ab.model.block.Block;
 import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
@@ -45,6 +46,7 @@ import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -69,6 +71,7 @@ public class AIMLProcessor {
 	
     private static final Logger log = LoggerFactory.getLogger(AIMLProcessor.class);
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final String GPT="gpt";
 
     /**
      * when parsing an AIML file, process a category element.
@@ -877,6 +880,36 @@ public class AIMLProcessor {
         return checkEmpty(result);
     }
 
+    private static String getBlock(Node node, ParseState ps) {
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
+        Block block = SprintUtils.getBlock(ps.chatSession.bot.name);
+
+        log.info("{} getBlock parameter: {} context: {} block: {}", ps.chatSession.sessionId, parameter, context, block);
+
+        if(block == null)
+            return MagicStrings.unknown_property_value;
+
+        Optional<org.alicebot.ab.model.block.Node> first = block.nodes().stream()
+                .filter(n -> n.name().equals(context)).findFirst();
+
+        if(first.isPresent()){
+            return switch (parameter) {
+                case "system" -> first.get().system();
+                case "assistant" -> first.get().assistant();
+                case "name" -> first.get().name();
+                case "pattern" -> first.get().pattern();
+                case "model" -> first.get().model();
+                case "addparams" -> first.get().addparams();
+                case "first" -> String.valueOf(first.get().first());
+                default -> MagicStrings.unknown_property_value;
+            };
+        }
+
+
+        return MagicStrings.unknown_property_value;
+    }
+
     private static String updateRecord(Node node, ParseState ps) {
 
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
@@ -928,6 +961,32 @@ public class AIMLProcessor {
         String result = SprintBotDbUtils.setData(input, ps.chatSession.sessionId);
         log.info("{} setData  parameter: {} input: {} result: {}", ps.chatSession.sessionId, parameter, input, result);
         return result == null ? "ERR" : result;
+    }
+
+    private static String setBlock(Node node, ParseState ps) throws JSONException {
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
+        String input = evalTagContent(node, ps, null);
+
+        String json = ps.chatSession.llmContext.get(GPT+context);
+        log.info("{} setBlock parameter: {} name: {} json: {} input: {} ", ps.chatSession.sessionId, parameter, context, json, input);
+
+        JSONObject jsonObject = new JSONObject(json);
+        JSONArray messages = jsonObject.optJSONArray("messages");
+
+        for (int i = 0; i < messages.length(); i++) {
+            JSONObject message = messages.getJSONObject(i);
+            if ("system".equals(message.optString("role"))) {
+                message.put("content", input);
+                break;
+            }
+        }
+        String updatedJson = jsonObject.toString(4);
+
+        log.info("{} setBlock parameter: {} name: {} updatedJson: {} ", ps.chatSession.sessionId, parameter, context, updatedJson);
+        ps.chatSession.llmContext.put(GPT+context, updatedJson);
+
+        return "OK";
     }
 
     private static String dateadd(Node node, ParseState ps) throws ParseException {
@@ -2953,6 +3012,11 @@ public class AIMLProcessor {
            else if (nodeName.equals("survey-summary"))
                 return surveySummary(node, ps);
            //Survey end
+
+            else if (nodeName.equals("set-block"))
+                return setBlock(node, ps);
+            else if (nodeName.equals("get-block"))
+                return getBlock(node, ps);
 
 
             else if (nodeName.equals("session"))
