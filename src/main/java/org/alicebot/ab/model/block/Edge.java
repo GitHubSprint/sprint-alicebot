@@ -1,7 +1,9 @@
 package org.alicebot.ab.model.block;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record Edge(
 
 	@JsonProperty("target_tech_id")

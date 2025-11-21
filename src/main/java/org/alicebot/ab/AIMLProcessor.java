@@ -885,7 +885,7 @@ public class AIMLProcessor {
         String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
 
         String json = ps.chatSession.llmContext.get(GPT+context);
-        log.info("{} setBlock parameter: {} name: {} json: {} ", ps.chatSession.sessionId, parameter, context, json);
+        log.info("{} getBlock parameter: {} name: {} json: {} ", ps.chatSession.sessionId, parameter, context, json);
 
         if(json != null && !json.isEmpty()) {
             JSONObject jsonObject = new JSONObject(json);
