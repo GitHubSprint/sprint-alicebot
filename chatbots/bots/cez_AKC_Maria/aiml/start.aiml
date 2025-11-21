@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- File: start.aiml -->
+<!-- Author: Slawomir Kostrzewa -->
+<!-- Template date: June 06, 2024 -->
+<!--  -->
+<!-- This AIML file is part of the SprintBot knowledge base. -->
+<!--  -->
+<!-- The SprintBot is Copyrighted &copy; 2024 by Sprint S.A.. -->
+<!--  -->
+<!-- For more information see http://www.sprintbot.ai -->
+
+<aiml>
+<!-- Standard BOT response please don't remove -->
+    <category>
+        <pattern>GETALL *</pattern>
+        <template>
+                <getall><name><star/></name></getall>        
+        </template>
+    </category>
+    <category>
+        <pattern>GETALL</pattern>
+        <template>
+                <getall />        
+        </template>
+    </category>
+    <category>
+        <pattern>NO%INPUT</pattern>
+        <template>
+                KO|Nic nie słyszę, proszę sprawdź, czy telefon nie jest wyciszony.
+        </template>
+    </category>
+    <category>
+        <pattern>NO%MATCH</pattern>
+        <template>
+                KO|Przepraszam, czy możesz powtórzyć?
+        </template>
+    </category>	
+    <category>
+        <pattern>ON%DISCONNECT</pattern>
+        <template>
+                END|.        
+        </template>
+    </category>
+    <category>
+        <pattern>ON%TIMEOUT</pattern>
+        <template>
+            Timeout...
+        </template>
+    </category>
+    <category>
+        <pattern>TRANSFER%AGENT</pattern>
+        <template>
+                AGENT|Proszę czekać na połączenie z agentem.        
+        </template>
+    </category>
+	<category>
+        <pattern>HALO</pattern>
+        <template>BW|Jestem.</template>
+    </category>
+<!-- Standard BOT response please don't remove -->
+	
+	
+
+
+
+
+	<category>
+		<pattern>START</pattern>
+			<template>
+                <think>
+                    <set name="context">start</set>
+                </think>
+				Witam!
+             
+                    <srai>Sprintbot utwórz kontekst start</srai>
+                    <set name="topic">GPT</set>
+
+
+                <get-block context="context" parameter="system" /><br/>
+			</template>
+	</category>    
+</aiml>
