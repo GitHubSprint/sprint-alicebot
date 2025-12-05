@@ -112,11 +112,17 @@ public class Chat {
         return sessionCreated;
     }
     
-    public String getBotName()
-    {
+    public String getBotName() {
         return bot.name;
     }
-    
+
+    public String getTtsName() {
+        return bot.properties.get("tts_name");
+    }
+
+    public String getAsrName() {
+        return bot.properties.get("asr_name");
+    }
        
     /**
      * Load all predicate defaults
