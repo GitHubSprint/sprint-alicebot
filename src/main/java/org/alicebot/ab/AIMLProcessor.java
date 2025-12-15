@@ -41,10 +41,7 @@ import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
 import org.alicebot.ab.model.survey.*;
-import org.alicebot.ab.utils.CalendarUtils;
-import org.alicebot.ab.utils.DomUtils;
-import org.alicebot.ab.utils.IOUtils;
-import org.alicebot.ab.utils.SprintUtils;
+import org.alicebot.ab.utils.*;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -65,7 +62,7 @@ import pl.sprint.sprintvalidator.utils.PeselValidator;
  * <a href="https://docs.google.com/document/d/1wNT25hJRyupcG51aO89UcQEiG-HkXRXusukADpFnDs4/pub" />
  */
 public class AIMLProcessor {
-	
+
     private static final Logger log = LoggerFactory.getLogger(AIMLProcessor.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -869,10 +866,9 @@ public class AIMLProcessor {
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;
 
-        String result = SprintBotDbUtils.getData(input, ps.chatSession.sessionId);
-
-        log.info("{} getdata parameter: {} input: {} result: {}", ps.chatSession.sessionId, parameter, input, result);
-
+        Map<String,String> data = AlicebotContext.getProvider().getSessionData(ps.chatSession.sessionId);
+        String result = data.get(input);
+        log.info("{} getdata parameter: {} input: {} result: {}", ps.chatSession.sessionId, parameter, input, data.get(result));
         return checkEmpty(result);
     }
 
@@ -915,6 +911,7 @@ public class AIMLProcessor {
 
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
+
         String input;
         if(parameter == null)
             input = evalTagContent(node, ps, null);
@@ -924,9 +921,21 @@ public class AIMLProcessor {
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;
 
-        String result = SprintBotDbUtils.setData(input, ps.chatSession.sessionId);
-        log.info("{} setData  parameter: {} input: {} result: {}", ps.chatSession.sessionId, parameter, input, result);
-        return result == null ? "ERR" : result;
+        if (input == null) {
+            log.warn("{} setData invalid input", ps.chatSession.sessionId);
+            return "ERR Invalid input";
+        }
+
+        String[] params = input.split("###");
+        if (params.length < 2) {
+            log.warn("{} setData invalid parameter: {}", ps.chatSession.sessionId, parameter);
+            return "ERR Invalid parameter";
+        }
+        Map<String, String> data = new HashMap<>();
+        data.put(params[0], params[1]);
+        AlicebotContext.getProvider().updateSessionData(ps.chatSession.sessionId, data);
+
+        return "OK";
     }
 
     private static String dateadd(Node node, ParseState ps) throws ParseException {
