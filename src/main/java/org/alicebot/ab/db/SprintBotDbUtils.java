@@ -3,8 +3,6 @@ package org.alicebot.ab.db;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import org.alicebot.ab.model.Param;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,8 +20,9 @@ import java.util.concurrent.Executors;
 
 public class SprintBotDbUtils {
     private static final Logger log = LoggerFactory.getLogger(SprintBotDbUtils.class);
-
-    private static HikariDataSource dataSource;
+    private static String url = null;
+    private static String username;
+    private static String password;
     private static String schema;
     private static String timezone;
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -39,39 +38,18 @@ public class SprintBotDbUtils {
     // TypeReference jako stała - nie trzeba tworzyć za każdym razem
     private static final TypeReference<HashMap<String, String>> MAP_TYPE_REF = new TypeReference<>() {};
 
-    public static void updateConfiguration(String url,
-                                           String driverClassName,
-                                           String username,
-                                           String password,
+    public static void updateConfiguration(String newUrl,
+                                           String newDriverClassName,
+                                           String newUsername,
+                                           String newPassword,
                                            String newSchema,
                                            String newTimezone)
     {
+        url = newUrl;
+        username = newUsername;
+        password = newPassword;
         schema = newSchema;
         timezone = newTimezone;
-
-        if (dataSource != null && !dataSource.isClosed()) {
-            dataSource.close();
-        }
-
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(url);
-        config.setUsername(username);
-        config.setPassword(password);
-        config.setDriverClassName(driverClassName);
-
-        // Optymalizacje connection pool
-        config.setMaximumPoolSize(15);
-        config.setMinimumIdle(5);
-        config.setConnectionTimeout(30000);
-        config.setIdleTimeout(120000);
-        config.setMaxLifetime(1800000);
-        config.setAutoCommit(true);
-        config.addDataSourceProperty("cachePrepStmts", "true");
-        config.addDataSourceProperty("prepStmtCacheSize", "250");
-        config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-
-        dataSource = new HikariDataSource(config);
-
         // Wyczyść cache przy zmianie konfiguracji
         sqlCache.clear();
 
@@ -82,9 +60,8 @@ public class SprintBotDbUtils {
     public static String getDbSelect(String reportName, Set<Param> params) {
         log.info("getDbSelect reportName: {} params: {}", reportName, params);
 
-        if (reportName == null || dataSource == null) {
-            log.warn("getDbSelect invalid input - reportName: {}, dataSource: {}",
-                    reportName, dataSource != null);
+        if (reportName == null) {
+            log.warn("getDbSelect invalid input - reportName: {}", reportName);
             return null;
         }
 
@@ -95,7 +72,7 @@ public class SprintBotDbUtils {
         if (queryTemplate == null) {
             String sql = "SELECT sql FROM " + schema + ".sys_bot_selects WHERE name = ?";
 
-            try (Connection conn = dataSource.getConnection();
+            try (Connection conn = DriverManager.getConnection(url, username, password);
                  PreparedStatement ps = conn.prepareStatement(sql)) {
 
                 ps.setString(1, reportName);
@@ -126,7 +103,7 @@ public class SprintBotDbUtils {
 
         log.info("getDbSelect query: {}", query);
 
-        try (Connection conn = dataSource.getConnection()) {
+        try (Connection conn = DriverManager.getConnection(url, username, password)) {
             return getDbSelectData(query, conn);
         } catch (SQLException e) {
             log.error("getDbSelect error executing query", e);
@@ -164,11 +141,6 @@ public class SprintBotDbUtils {
         return CompletableFuture.runAsync(() -> {
             log.info("saveReport sessionId: {} name: {} symbol: {}", sessionId, name, symbol);
 
-            if (dataSource == null) {
-                log.warn("{} saveReport invalid dataSource", sessionId);
-                return;
-            }
-
             switch (name) {
                 case "fraza":
                     botFraza(symbol, report, sessionId);
@@ -189,7 +161,7 @@ public class SprintBotDbUtils {
     public static String updateRecord(String parameter) {
         log.info("updateRecord parameter: {}", parameter);
 
-        if (parameter == null || dataSource == null) {
+        if (parameter == null) {
             log.warn("updateRecord invalid input");
             return null;
         }
@@ -214,7 +186,7 @@ public class SprintBotDbUtils {
         String selectSql = "SELECT ext_data FROM " + schema + ".bot_dialer_contact_record WHERE id = ?";
         String updateSql = "UPDATE " + schema + ".bot_dialer_contact_record SET ext_data = ? WHERE id = ?";
 
-        try (Connection conn = dataSource.getConnection()) {
+        try (Connection conn = DriverManager.getConnection(url, username, password)) {
             // SELECT
             String extData = null;
             try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
@@ -251,7 +223,7 @@ public class SprintBotDbUtils {
     public static String updateRecordStatus(String parameter) {
         log.info("updateRecordStatus parameter: {}", parameter);
 
-        if (parameter == null || dataSource == null) {
+        if (parameter == null) {
             log.warn("updateRecordStatus invalid input");
             return null;
         }
@@ -280,7 +252,7 @@ public class SprintBotDbUtils {
                     "FROM " + schema + ".bot_dialer_contact_record r " +
                     "WHERE p.id = r.contact_phone_id AND r.id = ?";
 
-            try (Connection conn = dataSource.getConnection()) {
+            try (Connection conn = DriverManager.getConnection(url, username, password)) {
                 conn.setAutoCommit(false);
 
                 try {
@@ -321,7 +293,7 @@ public class SprintBotDbUtils {
     public static String getRecord(String parameter) {
         log.info("getRecord parameter: {}", parameter);
 
-        if (parameter == null || dataSource == null) {
+        if (parameter == null) {
             log.warn("getRecord invalid input");
             return null;
         }
@@ -342,7 +314,7 @@ public class SprintBotDbUtils {
 
         String sql = "SELECT ext_data FROM " + schema + ".bot_dialer_contact_record WHERE id = ?";
 
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = DriverManager.getConnection(url, username, password);
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, recordId);
@@ -367,7 +339,7 @@ public class SprintBotDbUtils {
     public static String getRecordStatus(String parameter) {
         log.info("getRecordStatus parameter: {}", parameter);
 
-        if (parameter == null || dataSource == null) {
+        if (parameter == null) {
             log.warn("getRecordStatus invalid input");
             return null;
         }
@@ -386,7 +358,7 @@ public class SprintBotDbUtils {
                 "JOIN " + schema + ".bot_dialer_contact_phone p ON p.id = r.contact_phone_id " +
                 "WHERE r.id = ?";
 
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = DriverManager.getConnection(url, username, password);
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, recordId);
@@ -418,7 +390,7 @@ public class SprintBotDbUtils {
                 "(botname, idsesji, info, klucz, symbol, timestamp, wartosc) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = DriverManager.getConnection(url, username, password);
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, report.botName());
@@ -442,7 +414,7 @@ public class SprintBotDbUtils {
                 "(idsesji, licznikfraz, licznikocen, ocena, sposoboceny, symbol, timestamp) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = DriverManager.getConnection(url, username, password);
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, sessionId);
@@ -477,7 +449,7 @@ public class SprintBotDbUtils {
                 "(fakt, fraza, frazacala, idsesji, label, licznikfraz, rozpoznanie, symbol, timestamp, wiarygodnosc) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-        try (Connection conn = dataSource.getConnection();
+        try (Connection conn = DriverManager.getConnection(url, username, password);
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setString(1, report.fakt());
@@ -518,9 +490,5 @@ public class SprintBotDbUtils {
 
     // Metoda do zamykania pool'a przy shutdown aplikacji
     public static void shutdown() {
-        if (dataSource != null && !dataSource.isClosed()) {
-            dataSource.close();
-            log.info("DataSource closed");
-        }
     }
 }

@@ -42,14 +42,6 @@
 	    	<version>2.14.0</version>
 	    </dependency>
 
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>7.0.2</version>
-        </dependency>
-
-
-            
 		<!-- https://github.com/GitHubSprint/sprint-validator -->
 		<dependency>
 			<groupId>pl.sprint</groupId>
