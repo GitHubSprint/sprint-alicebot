@@ -36,10 +36,7 @@ import org.alicebot.ab.Graphmaster;
 import org.alicebot.ab.MagicBooleans;
 import org.alicebot.ab.MagicStrings;
 import org.alicebot.ab.PCAIMLProcessorExtension;
-import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.utils.IOUtils;
-import org.alicebot.ab.utils.SprintUtils;
-import org.alicebot.ab.utils.ThreadTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,15 +82,6 @@ public class Main {
         log.info("Categories.size = {}", bot.brain.getCategories().size());
         
         if (bot.brain.getCategories().size() < 100) bot.brain.printgraph();
-
-        SprintBotDbUtils.updateConfiguration(
-            "jdbc:postgresql://192.168.200.201:5432/sprint",
-    "org.postgresql.Driver",
-                "sprint",
-                "Sprint0666!@#",
-                "public",
-                "Europe/Warsaw"
-        );
 
         switch (action) {
             case "chat" -> testChat(bot, MagicBooleans.trace_mode);

@@ -24,17 +24,15 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.alicebot.ab.db.SprintBotDbUtils;
 import org.alicebot.ab.llm.GenAIHelper;
 import org.alicebot.ab.llm.LLMConfiguration;
 import org.alicebot.ab.llm.LLMService;
-import org.alicebot.ab.db.Report;
+import org.alicebot.ab.model.Report;
 import org.alicebot.ab.model.Param;
 import org.alicebot.ab.model.SayResponse;
 import org.alicebot.ab.model.feedback.Feedback;
@@ -828,7 +826,7 @@ public class AIMLProcessor {
             input = parameter;
 
 
-        String result = SprintBotDbUtils.getRecord(input);
+        String result = AlicebotContext.getProvider().getRecord(input);
 
         log.info("getRecord  parameter: {} input: {} result: {}", parameter, input, result);
 
@@ -848,8 +846,7 @@ public class AIMLProcessor {
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;
 
-
-        String result = SprintBotDbUtils.getRecordStatus(input);
+        String result  = AlicebotContext.getProvider().getRecordStatus(input);
 
         log.info("getRecordStatus  parameter: {} input: {} result: {}", parameter, input, result);
 
@@ -885,7 +882,7 @@ public class AIMLProcessor {
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;
 
-        String result = SprintBotDbUtils.updateRecord(input);
+        String result = AlicebotContext.getProvider().updateRecord(input);
         log.info("updateRecord  parameter: {} input: {} result: {}", parameter, input, result);
         return result == null ? "ERR" : result;
     }
@@ -903,7 +900,7 @@ public class AIMLProcessor {
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;
 
-        String result = SprintBotDbUtils.updateRecordStatus(input);
+        String result = AlicebotContext.getProvider().updateRecordStatus(input);
         log.info("updateRecordStatus  parameter: {} input: {} result: {}", parameter, input, result);
         return result == null ? "ERR" : result;
     }
@@ -1462,7 +1459,7 @@ public class AIMLProcessor {
         return returnValue;
     }
 
-    private static String dbSelect(Node node, ParseState ps) throws JsonProcessingException {
+    private static String dbSelect(Node node, ParseState ps) {
         String report = getPredicateOrValue(getAttributeOrTagValue(node, ps, "report"), ps);
         String params = getPredicateOrValue(getAttributeOrTagValue(node, ps, "params"), ps);
         log.info("{} dbSelect  report: {} labels: {}", ps.chatSession.sessionId, report, params);
@@ -1481,8 +1478,6 @@ public class AIMLProcessor {
                 paramList.add(param);
             }
         }
-
-//        return SprintBotDbUtils.getDbSelect(report, paramList);
         return AlicebotContext.getProvider().getDbSelect(report, paramList);
     }
 
@@ -1527,14 +1522,7 @@ public class AIMLProcessor {
                 getPredicate(klucz, ps),
                 getPredicate(wartosc, ps));
 
-        CompletableFuture<Void> future = SprintBotDbUtils.saveReportAsync(reportName, ps.chatSession.symbol, report, ps.chatSession.sessionId);
-
-        future.thenRun(() -> log.info("saveReportAsync reportName: {} saved", reportName))
-                .exceptionally(ex -> {
-                    log.warn("saveReportAsync Error", ex);
-                    return null;
-                });
-
+        AlicebotContext.getProvider().reportSave(reportName, ps.chatSession.symbol, report, ps.chatSession.sessionId);
         return "";
     }
 
