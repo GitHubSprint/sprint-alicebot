@@ -1482,7 +1482,8 @@ public class AIMLProcessor {
             }
         }
 
-        return SprintBotDbUtils.getDbSelect(report, paramList);
+//        return SprintBotDbUtils.getDbSelect(report, paramList);
+        return AlicebotContext.getProvider().getDbSelect(report, paramList);
     }
 
 
