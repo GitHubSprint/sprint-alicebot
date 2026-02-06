@@ -96,6 +96,10 @@ public class Chat {
     public String getAsrName() {
         return bot.properties.get("asr_name");
     }
+
+    public String getConfidenceLevel() {
+        return bot.properties.get("confidence_level");
+    }
        
     /**
      * Load all predicate defaults
