@@ -13,11 +13,18 @@ import org.alicebot.ab.llm.dto.ollama.OllamaChatResponse;
 import org.alicebot.ab.llm.report.CustomReport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.security.*;
+import java.security.cert.CertificateException;
 import java.time.Duration;
 
 import static org.alicebot.ab.MagicStrings.invalid_llm_configuration;
@@ -33,9 +40,35 @@ public class LLMService {
     }
 
     private static HttpClient createHttpClient(int timeout) {
-        return HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(timeout))
-                .build();
+
+        String p12Path = "config/sprint.cez.p12";
+        char[] password = "Sprint01!".toCharArray();
+
+        // 2. Wczytanie KeyStore
+        try {
+            KeyStore keyStore = KeyStore.getInstance("PKCS12");
+            try (FileInputStream fis = new FileInputStream(p12Path)) {
+                keyStore.load(fis, password);
+            }
+
+            // 3. Inicjalizacja KeyManagerFactory
+            KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            kmf.init(keyStore, password);
+
+            // 4. Konfiguracja SSLContext
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(kmf.getKeyManagers(), null, null);
+
+            return HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(timeout))
+                    .sslContext(sslContext)
+                    .build();
+        } catch (Exception e) {
+            logger.warn("createHttpClient Exception", e);
+            return HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(timeout))
+                    .build();
+        }
     }
 
     public static void setTimeout(int timeout) {
