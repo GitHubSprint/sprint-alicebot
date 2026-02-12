@@ -1459,6 +1459,10 @@ public class AIMLProcessor {
         return returnValue;
     }
 
+    private static String timestamp(Node node, ParseState ps) {
+        return String.valueOf(System.currentTimeMillis());
+    }
+
     private static String dbSelect(Node node, ParseState ps) {
         String report = getPredicateOrValue(getAttributeOrTagValue(node, ps, "report"), ps);
         String params = getPredicateOrValue(getAttributeOrTagValue(node, ps, "params"), ps);
@@ -1635,8 +1639,7 @@ public class AIMLProcessor {
         operation = operation.replaceAll(",", ".");
 
         log.info("math  operation: {} format: {}", operation, format);
-                  
-        //result = String.format(format,Validator.math(operation));
+
         String result = new DecimalFormat(format).format(Validator.math(operation));
 
         log.info("math  operation: {} format: {} result: {}", operation, format, result);
@@ -2929,6 +2932,8 @@ public class AIMLProcessor {
                 return feedback(node, ps);
            else if (nodeName.equals("db-select"))
                 return dbSelect(node, ps);
+           else if (nodeName.equals("timestamp"))
+                return timestamp(node, ps);
 
            //Survey
            else if (nodeName.equals("survey-prompt"))
