@@ -1765,7 +1765,7 @@ public class AIMLProcessor {
 
         String botname = ps.chatSession.bot.name;
 
-        log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {} json: \n{}\n",
+        log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {} json: \n\n{}\n\n",
                 sessionId, botname, model, user, system, assistant, addparams, iMaxResponse, json);
 
 
@@ -1817,7 +1817,7 @@ public class AIMLProcessor {
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
         ps.chatSession.lastResponse = response;
 
-        log.info("{}\tGPT response: {}", sessionId, response);
+        log.debug("{}\tGPT response: {}", sessionId, response);
 
         return response;
 
@@ -1863,7 +1863,7 @@ public class AIMLProcessor {
         if(context != null) json = context;
 
         String sessionId = ps.chatSession.sessionId;
-        log.info("{} OLLAMA  user: {} system: {} stream: {} json: \n{}\n", sessionId, user, system, stream, json);
+        log.info("{} OLLAMA  user: {} system: {} stream: {} json: \n\n{}\n\n", sessionId, user, system, stream, json);
 
 
         if(model == null || model.equals(MagicStrings.unknown_property_value) || model.isEmpty()) {
@@ -1917,7 +1917,7 @@ public class AIMLProcessor {
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
         ps.chatSession.lastResponse = response;
 
-        log.info("OLLAMA response: {}", response);
+        log.debug("OLLAMA response: {}", response);
 
         return response;
 
@@ -1990,7 +1990,7 @@ public class AIMLProcessor {
         String sessionId = ps.chatSession.sessionId;
 
         String botname = ps.chatSession.bot.name;
-        log.info("{} gemini botname: {} context: {} user: {} bot: {} json: \n{}\n",
+        log.info("{} gemini botname: {} context: {} user: {} bot: {} json: \n\n{}\n\n",
                 sessionId, botname, context, user, bot, json);
 
         int iMaxResponse = ps.chatSession.maxHistory;
