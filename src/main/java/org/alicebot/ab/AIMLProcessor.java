@@ -1793,13 +1793,18 @@ public class AIMLProcessor {
                     .createGPTResponse(model, system, user, assistant, additionalParameters);
             request = responseJson.toString();
         } else {
-            if(assistant != null && !assistant.isEmpty())
+            if(assistant != null && !assistant.isEmpty()) {
+                log.info("GPT assistant: {} lastResposne: {}", assistant, ps.chatSession.lastResponse);
+                if(ps.chatSession.lastResponse != null && !ps.chatSession.lastResponse.isEmpty())
+                    assistant = ps.chatSession.lastResponse;
                 json = GenAIHelper
-                        .addGptMessageToJSON(json,"assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-            if(system != null && !system.isEmpty())
+                        .addGptMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            }
+            if(system != null && !system.isEmpty()) {
+                log.info("GPT system: {}", system);
                 json = GenAIHelper
-                        .addGptMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-
+                        .addGptMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            }
             json = GenAIHelper.addGptMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
 
             request = json;
