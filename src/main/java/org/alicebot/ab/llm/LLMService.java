@@ -59,7 +59,7 @@ public class LLMService {
             json = json.substring(0,idxReport);
         }
 
-        logger.info("chatGpt json: \n{}\n", json);
+        logger.info("chatGpt json: \n\n{}\n\n", json);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(LLMConfiguration.gptApiUrl))

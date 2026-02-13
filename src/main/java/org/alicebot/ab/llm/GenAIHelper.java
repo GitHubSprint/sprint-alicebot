@@ -92,7 +92,7 @@ public class GenAIHelper {
                 jsonRequest.put(entry.getKey(), entry.getValue());
         }
 
-        logger.info("createGPTResponse request: {}", jsonRequest);
+        logger.debug("createGPTResponse request: {}", jsonRequest);
         return jsonRequest;
     }
 
@@ -188,7 +188,7 @@ public class GenAIHelper {
         jsonObject.put("messages", messages);
 
         String response = jsonObject.toString();
-        logger.info("addMessageToJSON response: {}", response);
+        logger.debug("addMessageToJSON response: {}", response);
         return response;
     }
 
@@ -211,7 +211,7 @@ public class GenAIHelper {
         jsonObject.put("messages", messages);
 
         String response = jsonObject.toString();
-        logger.info("addOllamaMessageToJSON response: {}", response);
+        logger.debug("addOllamaMessageToJSON response: {}", response);
         return response;
     }
 
@@ -247,7 +247,7 @@ public class GenAIHelper {
         jsonObject.put("instances", instances);
         String response = jsonObject.toString();
 
-        logger.info("addGeminiMessageToJSON response: {}", response);
+        logger.debug("addGeminiMessageToJSON response: {}", response);
         return response;
     }
 

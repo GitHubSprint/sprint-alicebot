@@ -52,6 +52,7 @@ public class Chat {
     public String channel;
     public Map<String, String> llmContext = new HashMap<>();
     public String symbol;
+    public String curentReply;
 
     /**
      * Constructor  (defualt customer ID)
@@ -159,7 +160,7 @@ public class Chat {
         for (int i = 0; i < sentences.length; i++) {
           that = sentences[i];
           //log.info("That "+i+" '"+that+"'");
-          if (that.trim().equals("")) that = MagicStrings.default_that;
+          if (that.trim().isEmpty()) that = MagicStrings.default_that;
           contextThatHistory.add(that);
         }
         return response.trim()+"  ";
@@ -241,6 +242,7 @@ public class Chat {
                 String reply = respond(sentence, contextThatHistory);
                 response.append("  ").append(reply);
                 log.info("{} Robot: {}", sessionId, reply);
+                curentReply = reply;
             }
             requestHistory.add(request);
             responseHistory.add(response.toString());
@@ -263,9 +265,7 @@ public class Chat {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Chat)) return false;
-
-        Chat chat = (Chat) o;
+        if (!(o instanceof Chat chat)) return false;
 
         if (!getSessionCreated().equals(chat.getSessionCreated())) return false;
         return sessionId.equals(chat.sessionId);

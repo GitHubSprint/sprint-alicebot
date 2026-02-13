@@ -1765,9 +1765,8 @@ public class AIMLProcessor {
 
         String botname = ps.chatSession.bot.name;
 
-        log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {} json: \n\n{}\n\n",
-                sessionId, botname, model, user, system, assistant, addparams, iMaxResponse, json);
-
+        log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {}",
+                sessionId, botname, model, user, system, assistant, addparams, iMaxResponse);
 
         Map<String, String> additionalParameters = new HashMap<>();
         if(addparams != null && !addparams.isEmpty()) {
@@ -1794,9 +1793,10 @@ public class AIMLProcessor {
             request = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty()) {
-                log.info("GPT assistant: {} lastResposne: {}", assistant, ps.chatSession.lastResponse);
-                if(ps.chatSession.lastResponse != null && !ps.chatSession.lastResponse.isEmpty())
-                    assistant = ps.chatSession.lastResponse;
+                log.info("GPT assistant: {} curentReply: {}", assistant, ps.chatSession.curentReply);
+                if(ps.chatSession.curentReply != null && !ps.chatSession.curentReply.isEmpty())
+                    assistant = ps.chatSession.curentReply;
+
                 json = GenAIHelper
                         .addGptMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             }
@@ -1822,7 +1822,7 @@ public class AIMLProcessor {
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
         ps.chatSession.lastResponse = response;
 
-        log.debug("{}\tGPT response: {}", sessionId, response);
+        log.info("{}\tGPT response: {}", sessionId, response);
 
         return response;
 
@@ -1868,7 +1868,7 @@ public class AIMLProcessor {
         if(context != null) json = context;
 
         String sessionId = ps.chatSession.sessionId;
-        log.info("{} OLLAMA  user: {} system: {} stream: {} json: \n\n{}\n\n", sessionId, user, system, stream, json);
+        log.info("{} OLLAMA  user: {} system: {} stream: {}", sessionId, user, system, stream);
 
 
         if(model == null || model.equals(MagicStrings.unknown_property_value) || model.isEmpty()) {
@@ -1995,8 +1995,8 @@ public class AIMLProcessor {
         String sessionId = ps.chatSession.sessionId;
 
         String botname = ps.chatSession.bot.name;
-        log.info("{} gemini botname: {} context: {} user: {} bot: {} json: \n\n{}\n\n",
-                sessionId, botname, context, user, bot, json);
+        log.info("{} gemini botname: {} context: {} user: {} bot: {}",
+                sessionId, botname, context, user, bot);
 
         int iMaxResponse = ps.chatSession.maxHistory;
         if(iMaxResponse == 0) {
