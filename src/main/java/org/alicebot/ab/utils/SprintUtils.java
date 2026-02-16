@@ -96,7 +96,7 @@ public class SprintUtils {
 
         FastText fastText = mlModels.get(model);
         if(fastText != null) {
-            log.info("updateMlModel. Model {} removed from system.", model);
+            log.info("updateMlModel. Old model {} removed from system.", model);
             mlModels.remove(model);
         }
 
@@ -110,12 +110,12 @@ public class SprintUtils {
         }
         try {
             fastText = FastText.Companion.loadModelFromSingleFile(file);
+            mlModels.put(model, fastText);
+            log.info("updateMlModel. Model {} loaded to system.", model);
         } catch (Exception ex) {
             log.error("updateMlModel ERROR : {}", ex, ex);
             return false;
         }
-
-        mlModels.put(model, fastText);
 
         return true;
     }
