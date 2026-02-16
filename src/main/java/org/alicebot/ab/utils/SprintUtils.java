@@ -84,7 +84,13 @@ public class SprintUtils {
         return temp;
     }
 
-
+    public static void deleteMLmodel(String model) {
+        FastText fastText = mlModels.get(model);
+        if(fastText != null) {
+            log.info("deleteMLmodel. Model {} removed from system.", model);
+            mlModels.remove(model);
+        }
+    }
 
     public static boolean updateMlModel(String model) {
 
