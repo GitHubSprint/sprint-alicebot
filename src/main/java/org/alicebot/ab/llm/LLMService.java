@@ -26,21 +26,39 @@ public class LLMService {
     private static final Logger logger = LoggerFactory.getLogger(LLMService.class);
     private static final ObjectMapper mapper = new ObjectMapper();
     private static HttpClient client;
-
+    private static int httpVersion = 2;
 
     static {
-        client = createHttpClient(LLMConfiguration.timeout);
+        client = createHttpClient(LLMConfiguration.timeout, 2);
     }
 
-    private static HttpClient createHttpClient(int timeout) {
-        return HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(timeout))
-                .build();
+    private static HttpClient createHttpClient(int timeout, int version) {
+        if(version == 1) {
+            return HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(timeout))
+                    .version(HttpClient.Version.HTTP_1_1)
+                    .build();
+        } else {
+            return HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(timeout))
+                    .version(HttpClient.Version.HTTP_2)
+                    .build();
+        }
+    }
+
+    public static void setTimeoutAndVersion(int timeout, int version) {
+        LLMConfiguration.timeout = timeout;
+        if(version == 1) {
+            httpVersion = 1;
+        } else {
+            httpVersion = 2;
+        }
+        client = createHttpClient(LLMConfiguration.timeout, version);
     }
 
     public static void setTimeout(int timeout) {
         LLMConfiguration.timeout = timeout;
-        client = createHttpClient(LLMConfiguration.timeout);
+        client = createHttpClient(LLMConfiguration.timeout, 2);
     }
 
     public static String chatGpt(String json, String token) throws Exception {
@@ -59,7 +77,7 @@ public class LLMService {
             json = json.substring(0,idxReport);
         }
 
-        logger.info("chatGpt json: \n\n{}\n\n", json);
+        logger.info("chatGpt URI: {} json: \n\n{}\n\n", LLMConfiguration.gptApiUrl, json);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(LLMConfiguration.gptApiUrl.trim()))
@@ -121,7 +139,7 @@ public class LLMService {
         HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
         if (httpResponse.statusCode() != 200) {
-            logger.error("Błąd API Geminy! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            logger.error("Błąd API Gemini! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
             return MagicStrings.error_bot_response();
         }
 

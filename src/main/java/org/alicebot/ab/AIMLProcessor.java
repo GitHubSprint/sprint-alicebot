@@ -1814,9 +1814,12 @@ public class AIMLProcessor {
         int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
                 10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
 
+        int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
+                2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
+
         if(LLMConfiguration.timeout != timeout) {
-            LLMService.setTimeout(timeout);
-            log.info("GPT new timeout: {}", timeout);
+            LLMService.setTimeoutAndVersion(timeout, httpVersion);
+            log.info("GPT new timeout: {} httpVersion: {}", timeout, httpVersion);
         }
 
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
@@ -1914,11 +1917,13 @@ public class AIMLProcessor {
         int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
                 10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
 
-        if(LLMConfiguration.timeout != timeout) {
-            LLMService.setTimeout(timeout);
-            log.info("OLLAMA new timeout: {}", timeout);
-        }
+        int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
+                2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
 
+        if(LLMConfiguration.timeout != timeout) {
+            LLMService.setTimeoutAndVersion(timeout, httpVersion);
+            log.info("OLLAMA new timeout: {} version: {}", timeout, httpVersion);
+        }
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
         ps.chatSession.lastResponse = response;
 
@@ -2030,9 +2035,12 @@ public class AIMLProcessor {
         int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
                 10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
 
+        int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
+                2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
+
         if(LLMConfiguration.timeout != timeout) {
-            LLMService.setTimeout(timeout);
-            log.info("GEMINI new timeout: {}", timeout);
+            LLMService.setTimeoutAndVersion(timeout, httpVersion);
+            log.info("Gemini new timeout: {} httpVersion: {}", timeout, httpVersion);
         }
 
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGemini(request, LLMConfiguration.geminiTokens.get(botname)));
