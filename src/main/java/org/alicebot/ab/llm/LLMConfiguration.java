@@ -10,6 +10,7 @@ public class LLMConfiguration {
     public static Map<String, String> geminiTokens = new HashMap<>();
     public static String geminiApiUrl;
     public static int timeout = 10;
+    public static int httpVersion = 2;
 
     public static String gptDefaultModel;
     public static String ollamaDefaultModel;

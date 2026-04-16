@@ -1,7 +1,6 @@
 package org.alicebot.ab.llm;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.alicebot.ab.MagicNumbers;
 import org.alicebot.ab.MagicStrings;
 import org.alicebot.ab.exception.InternalServerException;
 import org.alicebot.ab.llm.dto.google.Candidates;
@@ -26,10 +25,9 @@ public class LLMService {
     private static final Logger logger = LoggerFactory.getLogger(LLMService.class);
     private static final ObjectMapper mapper = new ObjectMapper();
     private static HttpClient client;
-    private static int httpVersion = 2;
 
     static {
-        client = createHttpClient(LLMConfiguration.timeout, 2);
+        client = createHttpClient(LLMConfiguration.timeout, LLMConfiguration.httpVersion);
     }
 
     private static HttpClient createHttpClient(int timeout, int version) {
@@ -46,19 +44,10 @@ public class LLMService {
         }
     }
 
-    public static void setTimeoutAndVersion(int timeout, int version) {
+    public static void setParameters(int timeout, int version) {
         LLMConfiguration.timeout = timeout;
-        if(version == 1) {
-            httpVersion = 1;
-        } else {
-            httpVersion = 2;
-        }
+        LLMConfiguration.httpVersion = version;
         client = createHttpClient(LLMConfiguration.timeout, version);
-    }
-
-    public static void setTimeout(int timeout) {
-        LLMConfiguration.timeout = timeout;
-        client = createHttpClient(LLMConfiguration.timeout, 2);
     }
 
     public static String chatGpt(String json, String token) throws Exception {

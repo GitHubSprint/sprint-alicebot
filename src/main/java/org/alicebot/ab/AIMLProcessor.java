@@ -1817,8 +1817,8 @@ public class AIMLProcessor {
         int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
                 2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
 
-        if(LLMConfiguration.timeout != timeout) {
-            LLMService.setTimeoutAndVersion(timeout, httpVersion);
+        if(LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
+            LLMService.setParameters(timeout, httpVersion);
             log.info("GPT new timeout: {} httpVersion: {}", timeout, httpVersion);
         }
 
@@ -1920,8 +1920,8 @@ public class AIMLProcessor {
         int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
                 2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
 
-        if(LLMConfiguration.timeout != timeout) {
-            LLMService.setTimeoutAndVersion(timeout, httpVersion);
+        if(LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
+            LLMService.setParameters(timeout, httpVersion);
             log.info("OLLAMA new timeout: {} version: {}", timeout, httpVersion);
         }
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
@@ -2038,8 +2038,8 @@ public class AIMLProcessor {
         int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
                 2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
 
-        if(LLMConfiguration.timeout != timeout) {
-            LLMService.setTimeoutAndVersion(timeout, httpVersion);
+        if(LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
+            LLMService.setParameters(timeout, httpVersion);
             log.info("Gemini new timeout: {} httpVersion: {}", timeout, httpVersion);
         }
 
