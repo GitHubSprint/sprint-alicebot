@@ -62,7 +62,7 @@ public class LLMService {
         logger.info("chatGpt json: \n\n{}\n\n", json);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(LLMConfiguration.gptApiUrl))
+                .uri(URI.create(LLMConfiguration.gptApiUrl.trim()))
                 .header("Authorization", "Bearer " + token)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
@@ -70,6 +70,13 @@ public class LLMService {
 
 
         HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+        logger.debug("chatGpt httpResponse statusCode: {}, body: {}", httpResponse.statusCode(), httpResponse.body());
+
+        if (httpResponse.statusCode() != 200) {
+            logger.error("Błąd API GPT! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            return MagicStrings.error_bot_response();
+        }
 
         GptChatResponse response = mapper.readValue(httpResponse.body(), GptChatResponse.class);
 
@@ -104,7 +111,7 @@ public class LLMService {
 
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(LLMConfiguration.geminiApiUrl))
+                .uri(URI.create(LLMConfiguration.geminiApiUrl.trim()))
                 .header("Authorization", "Bearer " + token)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
@@ -112,6 +119,11 @@ public class LLMService {
 
 
         HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+        if (httpResponse.statusCode() != 200) {
+            logger.error("Błąd API Geminy! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            return MagicStrings.error_bot_response();
+        }
 
         GeminiChatResponse response = mapper.readValue(httpResponse.body(), GeminiChatResponse.class);
 
@@ -154,6 +166,11 @@ public class LLMService {
                 .build();
 
         HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+        if (httpResponse.statusCode() != 200) {
+            logger.error("Błąd API OLLAMA! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            return MagicStrings.error_bot_response();
+        }
 
         OllamaChatResponse response =  mapper.readValue(httpResponse.body(), OllamaChatResponse.class);
 
