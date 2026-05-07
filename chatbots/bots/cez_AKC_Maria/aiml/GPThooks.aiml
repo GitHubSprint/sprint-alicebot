@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--   -->
+<aiml>
+
+<category>
+    <pattern>Sprintbot parsuj odpowiedź GenAI ^ *** godzina *** ^</pattern><topic>GPT</topic>
+    <template> 
+       <srai>Sprintbot parsuj odpowiedź GenAI <star index="1" /> <date format="HH:mm" timezone="Europe/Warsaw" /> <star index="2"/></srai>
+    </template>
+</category>
+
+
+<category>
+    <pattern>Sprintbot parsuj odpowiedź GenAI ^ *** data *** ^</pattern><topic>GPT</topic>
+    <template>  
+       <srai>Sprintbot parsuj odpowiedź GenAI <star index="1" /> <date format="dd-MM-yyyy" locale="pl"/> <star index="2"/></srai>
+    </template>
+</category>
+
+</aiml>

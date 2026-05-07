@@ -1,0 +1,9 @@
+url:https://www.sprint.pl
+name:SprintBot
+email:slawomir.kostrzewa@sprint.pl
+gender:female
+botmaster:Slawomir Kostrzewa
+organization:Sprint S.A.
+version:4.1
+disable_sentence_splitting:true
+

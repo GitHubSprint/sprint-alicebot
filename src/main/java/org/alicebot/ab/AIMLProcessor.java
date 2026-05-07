@@ -39,6 +39,12 @@ import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
 import org.alicebot.ab.model.survey.*;
+import org.alicebot.ab.utils.CalendarUtils;
+import org.alicebot.ab.utils.DomUtils;
+import org.alicebot.ab.utils.IOUtils;
+import org.alicebot.ab.utils.SprintUtils;
+import org.json.JSONArray;
+import org.json.JSONException;
 import org.alicebot.ab.utils.*;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
@@ -63,6 +69,7 @@ public class AIMLProcessor {
 
     private static final Logger log = LoggerFactory.getLogger(AIMLProcessor.class);
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final String GPT="gpt";
 
     /**
      * when parsing an AIML file, process a category element.
@@ -869,6 +876,46 @@ public class AIMLProcessor {
         return checkEmpty(result);
     }
 
+    private static String getBlock(Node node, ParseState ps) throws JSONException {
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
+
+        String json = ps.chatSession.llmContext.get(GPT+context);
+        log.info("{} getBlock parameter: {} name: {} json: {} ", ps.chatSession.sessionId, parameter, context, json);
+
+        if(json != null && !json.isEmpty()) {
+            JSONObject jsonObject = new JSONObject(json);
+
+            switch (parameter) {
+                case "system", "assistant":
+                    JSONArray messages = jsonObject.optJSONArray("messages");
+                    for (int i = 0; i < messages.length(); i++) {
+                        JSONObject message = messages.getJSONObject(i);
+                        if (parameter.equals(message.optString("role"))) {
+                            return message.get("content").toString();
+                        }
+                    }
+                    break;
+                case "model" :
+                    return jsonObject.optString("model");
+                case "addparams" :
+                    StringBuilder paramsBuilder = new StringBuilder();
+                    Iterator<String> keys = jsonObject.keys();
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        if (!key.equals("messages") && !key.equals("model")) {
+                            if (!paramsBuilder.isEmpty()) {
+                                paramsBuilder.append(",");
+                            }
+                            paramsBuilder.append(key).append("=").append(jsonObject.get(key));
+                        }
+                    }
+                    return paramsBuilder.toString();
+            }
+        }
+        return MagicStrings.unknown_property_value;
+    }
+
     private static String updateRecord(Node node, ParseState ps) {
 
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
@@ -931,6 +978,32 @@ public class AIMLProcessor {
         Map<String, String> data = new HashMap<>();
         data.put(params[0], params[1]);
         AlicebotContext.getProvider().updateSessionData(ps.chatSession.sessionId, data);
+
+        return "OK";
+    }
+
+    private static String setBlock(Node node, ParseState ps) throws JSONException {
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
+        String input = evalTagContent(node, ps, null);
+
+        String json = ps.chatSession.llmContext.get(GPT+context);
+        log.info("{} setBlock parameter: {} name: {} json: {} input: {} ", ps.chatSession.sessionId, parameter, context, json, input);
+
+        JSONObject jsonObject = new JSONObject(json);
+        JSONArray messages = jsonObject.optJSONArray("messages");
+
+        for (int i = 0; i < messages.length(); i++) {
+            JSONObject message = messages.getJSONObject(i);
+            if ("system".equals(message.optString("role"))) {
+                message.put("content", input);
+                break;
+            }
+        }
+        String updatedJson = jsonObject.toString(4);
+
+        log.info("{} setBlock parameter: {} name: {} updatedJson: {} ", ps.chatSession.sessionId, parameter, context, updatedJson);
+        ps.chatSession.llmContext.put(GPT+context, updatedJson);
 
         return "OK";
     }
@@ -1676,7 +1749,7 @@ public class AIMLProcessor {
 
         String sessionId = ps.chatSession.sessionId;
 
-        log.info("{}\tsaveContext type: {} name : {}", sessionId, type, contextName);
+        log.info("{}\tsaveContext type: {} name : {}\njson:\t{}", sessionId, type, contextName,ps.chatSession.json);
 
         if(type.equals(MagicStrings.unknown_property_value) || contextName.equals(MagicStrings.unknown_property_value))
             return "";
@@ -1705,7 +1778,9 @@ public class AIMLProcessor {
 
         String sessionId = ps.chatSession.sessionId;
 
-        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
+        log.info("gpt contextName: {}", contextName);
+
+        if (contextName != null && !contextName.isEmpty() && !contextName.equals(MagicStrings.unknown_property_value)) {
             context = ps.chatSession.llmContext.get("gpt"+contextName);
             log.info("{}\tgetContext context name: {} value:\t{}", sessionId, contextName, context);
         }
@@ -2958,6 +3033,11 @@ public class AIMLProcessor {
            else if (nodeName.equals("survey-summary"))
                 return surveySummary(node, ps);
            //Survey end
+
+            else if (nodeName.equals("set-block"))
+                return setBlock(node, ps);
+            else if (nodeName.equals("get-block"))
+                return getBlock(node, ps);
 
 
             else if (nodeName.equals("session"))

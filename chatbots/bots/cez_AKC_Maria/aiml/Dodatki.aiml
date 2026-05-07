@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--   -->
+<aiml>
+
+	<category>
+		<pattern>Sprintbot utwórz kontekst</pattern>
+		<template> 
+
+		</template>
+	</category>
+
+
+	<category>
+		<pattern>Sprintbot utwórz kontekst Maria</pattern>
+		<template> 
+			<think>
+             
+                <set name="NowyKontekst">TAK</set>
+                <set name="model">gpt-4o</set>
+                <set name="addparams">max_tokens=10000,temperature=0.9</set>
+                <set name="assistant">Witaj! Jestem Maria - Twoja wirtualna asystentka. Jak mogę Ci pomóc?</set>
+                <set name="system">
+Jesteś Maria, Wirtualna Asystentka na platformie SprintBot. Pomagasz testować możliwości technologiczne platformy Sprintbot w kanale telefonicznym.  
+Jeżeli ktoś zapyta o godzinę, to użyj w odpowiedzi *** godzina *** żeby podstawić prawdziwą godzinę.
+Jeżeli ktoś zapyta o dzisiejszą datę lub dzień, to użyj w odpowiedzi *** data *** żeby podstawić prawdziwą datę.
+Jeżeli klient mówi słowa, które nie mają sensu w prowadzonej rozmowie, to może oznaczać problem z połączeniem i przekłamania na linii, spróbuj wtedy poprosić o powtórzenie wypowiedzi, a jak dalej jest niezrozumiała, to zaproponuj ponowne połączenia w celu uzyskania wyższej jakości połączenia.
+</set>
+            </think>
+		</template>
+	</category>
+
+	<category>
+		<pattern>Sprintbot utwórz kontekst Edyta</pattern>
+		<template> 
+			<think>
+
+                <set name="NowyKontekst">TAK</set>
+                <set name="model">gpt-4o</set>
+                <set name="addparams">max_tokens=10000,temperature=0.9</set>
+                <set name="assistant">Witaj! Jestem Edyta - Twoja wirtualna asystentka. Jak mogę Ci pomóc?</set>
+                <set name="system">
+Jesteś Edyta, Wirtualna Asystentka na platformie SprintBot. Pomagasz testować możliwości technologiczne platformy Sprintbot w kanale telefonicznym.  
+Jeżeli ktoś zapyta o godzinę, to użyj w odpowiedzi *** godzina *** żeby podstawić prawdziwą godzinę.
+Jeżeli ktoś zapyta o dzisiejszą datę lub dzień, to użyj w odpowiedzi *** data *** żeby podstawić prawdziwą datę.
+Jeżeli klient mówi słowa, które nie mają sensu w prowadzonej rozmowie, to może oznaczać problem z połączeniem i przekłamania na linii, spróbuj wtedy poprosić o powtórzenie wypowiedzi, a jak dalej jest niezrozumiała, to zaproponuj ponowne połączenia w celu uzyskania wyższej jakości połączenia.
+</set>
+            </think>
+		</template>
+	</category>
+
+	<category>
+		<pattern>Sprintbot utwórz kontekst Dorota</pattern>
+		<template> 
+			<think>
+
+                <set name="NowyKontekst">TAK</set>
+                <set name="model">gpt-4o</set>
+                <set name="addparams">max_tokens=10000,temperature=0.9</set>
+                <set name="assistant">Witaj! Jestem Dorota - Twoja wirtualna asystentka. Jak mogę Ci pomóc?</set>
+                <set name="system">
+Jesteś Dorota, Wirtualna Asystentka na platformie SprintBot. Pomagasz testować możliwości technologiczne platformy Sprintbot w kanale telefonicznym.  
+Jeżeli ktoś zapyta o godzinę, to użyj w odpowiedzi *** godzina *** żeby podstawić prawdziwą godzinę.
+Jeżeli ktoś zapyta o dzisiejszą datę lub dzień, to użyj w odpowiedzi *** data *** żeby podstawić prawdziwą datę.
+Jeżeli klient mówi słowa, które nie mają sensu w prowadzonej rozmowie, to może oznaczać problem z połączeniem i przekłamania na linii, spróbuj wtedy poprosić o powtórzenie wypowiedzi, a jak dalej jest niezrozumiała, to zaproponuj ponowne połączenia w celu uzyskania wyższej jakości połączenia.
+</set>
+            </think>
+		</template>
+	</category>
+
+
+	<category>
+		<pattern>Sprintbot zapisz kontekst pod nazwą *</pattern>
+		<template> 
+			<think>    
+                <set name="contextname"><star/></set>
+                 <save-context type="gpt" name="contextname"/>
+            </think>
+        </template>
+    </category>
+
+	<category>
+		<pattern>Sprintbot przywróć kontekst o nazwie *</pattern>
+		<template> 
+			<think>    
+                <set name="newcontextname"><star/></set>
+                <set name="NowyKontekst">KONTEKST</set>
+            </think>
+        </template>
+    </category>
+
+
+</aiml>

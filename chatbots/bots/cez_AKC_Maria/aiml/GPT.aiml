@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--   -->
+<aiml>
+
+
+<category>
+        <pattern>*</pattern><topic>GPT</topic>
+        <template>
+            <think>
+                <set name="user"><star /></set>                                              
+            </think>
+
+              <condition name="NowyKontekst"> 
+                <li value="TAK"> 
+					<!-- Startujemy z kasowaniem/utworzeniem bieżącego kontekstu -->
+                    <think> <set name="NowyKontekst">NIE</set> </think>
+           
+                    <srai>Sprintbot parsuj odpowiedź GenAI <gpt model="model" system="system" assistant="assistant" addparams="addparams" user="user"  /> </srai>
+
+                </li>
+                <li value="KONTEKST">
+					<!-- Startujemy z przywołaniem zapisanego wcześniej kontekstu -->
+                    <think> <set name="NowyKontekst">NIE</set> </think>
+         
+                    <srai>Sprintbot parsuj odpowiedź GenAI <gpt user="user" context="contextname" /> </srai>
+
+                </li>
+                <li>
+					<!-- Wywyołujemy kolejną interakcję w rozmowie w ramach bieżącego kontekstu -->
+                   <srai>Sprintbot parsuj odpowiedź GenAI <gpt model="model" user="user" addparams="addparams" /> </srai>
+                </li>
+            </condition>
+           
+        </template>        
+</category>    
+
+
+
+<category>
+    <pattern>Sprintbot parsuj odpowiedź GenAI _ unknown _</pattern><topic>GPT</topic>
+    <template> 
+       <srai>Sprintbot parsuj odpowiedź GenAI <star index="1" /> <star index="2" /></srai>
+    </template>
+</category>
+<category>
+    <pattern>Sprintbot parsuj odpowiedź GenAI _ unknown</pattern><topic>GPT</topic>
+    <template> 
+       <srai>Sprintbot parsuj odpowiedź GenAI <star index="1" /></srai>
+    </template>
+</category>
+<category>
+    <pattern>Sprintbot parsuj odpowiedź GenAI unknown _</pattern><topic>GPT</topic>
+    <template> 
+       <srai>Sprintbot parsuj odpowiedź GenAI <star index="1" /></srai>
+    </template>
+</category>
+
+
+<category>
+    <pattern>Sprintbot parsuj odpowiedź GenAI *</pattern><topic>GPT</topic>
+    <template> 
+       <denormalize><star /></denormalize>
+    </template>
+</category>
+
+<category>
+    <pattern>Sprintbot utwórz kontekst *</pattern>
+    <template> 
+     Ustawiawm: 
+            <set name="contextname"><star/></set>
+            <set name="assistant"><gpt-block context="contextname" parameter="assistant"/></set>
+   Pokazuję ustawione: [<get name="assistant"/>]
+    </template>
+</category>
+
+
+</aiml>

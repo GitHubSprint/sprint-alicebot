@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<!-- TEST -->
 <aiml>
-
     <category>
         <pattern>GPT</pattern>
         <template>
@@ -11,6 +11,7 @@
                 <set name="user">Dzień dobry</set>
                 <set name="model">gpt-4o</set>
                 <set name="addparams">max_tokens=1000,temperature=0.5</set>
+                <set name="context">nazwa</set>
             </think>
             <gpt model="model" system="system" assistant="assistant" user="user" addparams="addparams"/>
             <think>
@@ -27,28 +28,38 @@
                     <set name="user"><star /></set>
                 </think>
                 <gpt model="model" user="user"/>
+
+
+                ==Paramatr system=<br/>
+                <get-block context="context" parameter="system" /><br/>
+                <get-block context="context" parameter="assistant" /><br/>
+                <get-block context="context" parameter="model" /><br/>
+                <get-block context="context" parameter="addparams" />
+
             </template>
         </category>
 
         <category>
             <pattern>testuje kontekst</pattern>
-            <template>  
-                <think>
-                    <set name="user"><input /></set>
-                </think>                           
-                <save-context type="gpt" name="test" user="user"/> 
-            </template>
-        </category>
-
-        <category>
-            <pattern>jaki jest kontekst</pattern>
             <template>
                 <think>
                     <set name="user"><input /></set>
                 </think>
-                <get-context type="gpt" name="test" user="user"/> 
+                <save-context type="gpt" name="context"/>
+
+                <gpt model="model" user="user"/>
+            </template>
+        </category>
+
+        <category>
+            <pattern>jak się nazywasz</pattern>
+            <template>
+                <think>
+                    <set name="user"><input /></set>
+                </think>
+                <gpt context="context" user="user" model="model" addparams="addparams"/>
+                <set-block context="context" parameter="system">Nazywasz się Zenon.</set-block>
             </template>
         </category>
     </topic>
-
 </aiml>

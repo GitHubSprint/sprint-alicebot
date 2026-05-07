@@ -23,19 +23,9 @@ import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.*;
 
-import org.alicebot.ab.AB;
-import org.alicebot.ab.AIMLProcessor;
-import org.alicebot.ab.Bot;
-import org.alicebot.ab.Category;
-import org.alicebot.ab.Chat;
-import org.alicebot.ab.Graphmaster;
-import org.alicebot.ab.MagicBooleans;
-import org.alicebot.ab.MagicStrings;
-import org.alicebot.ab.PCAIMLProcessorExtension;
+import org.alicebot.ab.*;
 import org.alicebot.ab.utils.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,24 +119,13 @@ public class Main {
 
                     while (response.contains("&lt;")) response = response.replace("&lt;", "<");
                     while (response.contains("&gt;")) response = response.replace("&gt;", ">");
-                    log.info("Robot: " + response);
-                    //MemStats.memStats();
+                    log.info("Robot: {}", response);
+                    MemStats.memStats();
                     chatSession.requestHistory.printHistory();
                 }
             }
 
         }
-    }
-    public static void testBotChat () {
-        Bot bot = new Bot("alice");
-        log.info(bot.brain.upgradeCnt+" brain upgrades");
-        bot.brain.nodeStats();
-        //bot.brain.printgraph();
-        Chat chatSession = new Chat(bot);
-        String request = "Hello.  How are you?  What is your name?  Tell me about yourself.";
-        String response = chatSession.multisentenceRespond(request);
-        log.info("Human: "+request);
-        log.info("Robot: "+response);
     }
     public static void testSuite (Bot bot, String filename) {
         try{
