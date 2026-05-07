@@ -1761,6 +1761,45 @@ public class AIMLProcessor {
         return "";
     }
 
+    public static String gptRequest(String addparams, String sessionId, String assistant, String system, String json, String model, String user, int iMaxResponse) throws JSONException {
+        Map<String, String> additionalParameters = new HashMap<>();
+        if(addparams != null && !addparams.isEmpty()) {
+            String[] params = addparams.split(",");
+            for(String param : params) {
+                String[] keyVal = param.split("=");
+                if(keyVal.length == 2) {
+                    additionalParameters.put(keyVal[0].trim(), keyVal[1].trim());
+                }
+            }
+        }
+
+        log.info("{}\tgptRequest  assistant: {} system: {}", sessionId, assistant, system);
+
+        String request;
+
+        if(assistant != null && !assistant.isEmpty() && system != null && !system.isEmpty()) {
+            json = null;
+        }
+
+        if(json == null) {
+            JSONObject responseJson = GenAIHelper
+                    .createGPTResponse(model, system, user, assistant, additionalParameters);
+            request = responseJson.toString();
+        } else {
+            if(assistant != null && !assistant.isEmpty())
+                json = GenAIHelper
+                        .addGptMessageToJSON(json,"assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            if(system != null && !system.isEmpty())
+                json = GenAIHelper
+                        .addGptMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+
+            json = GenAIHelper.addGptMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+
+            request = json;
+        }
+        return request;
+    }
+
     private static String gpt(Node node, ParseState ps) throws Exception {
 
         String model = getAttributeOrTagValue(node, ps, "model");
