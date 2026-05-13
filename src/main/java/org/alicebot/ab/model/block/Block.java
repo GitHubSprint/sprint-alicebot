@@ -16,6 +16,9 @@ public record Block(
 	List<Edge> edges
 ) {
     public static Block fromJson(String json) {
+        if (json == null || json.trim().equals("{}")) {
+            return null;
+        }
         ObjectMapper mapper = new ObjectMapper();
         try {
             return mapper.readValue(json, Block.class);

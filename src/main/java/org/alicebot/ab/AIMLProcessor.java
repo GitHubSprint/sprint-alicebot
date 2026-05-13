@@ -1695,8 +1695,7 @@ public class AIMLProcessor {
     }
     
     
-    private static String math(Node node, ParseState ps) throws Exception
-    {                
+    private static String math(Node node, ParseState ps) throws Exception {
         String operation = getAttributeOrTagValue(node, ps, "operation");
         
         String format = getAttributeOrTagValue(node, ps, "format");

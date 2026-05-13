@@ -7,8 +7,10 @@ package org.alicebot.ab.utils;
 
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
+import org.alicebot.ab.MagicStrings;
 import org.alicebot.ab.llm.LLMConfiguration;
 import org.alicebot.ab.model.block.Block;
+import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,11 +18,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.text.Normalizer;
 import java.util.*;
@@ -34,8 +32,9 @@ public class SprintUtils {
     private static final Map<File, SharedClassLoader> sharedClassLoaderMap = new ConcurrentHashMap<>();
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
 
-    public static Block getBlock(String blockName) {
-        File file = new File("config/block/" + blockName + ".json");
+    public static Block getBlock(String botName) {
+        File file = new File(MagicStrings.bot_path + File.separator + botName + File.separator + "block" + File.separator + botName + ".json");
+        log.info("getBlock file path: {}", file.getAbsolutePath());
         if(file.exists()) {
             try {
                 String json = Files.readString(file.toPath());
@@ -62,7 +61,8 @@ public class SprintUtils {
                                               String ollamaDefaultModel,
                                               int gptMaxHistory,
                                               int ollamaMaxHistory,
-                                              int geminiMaxHistory)
+                                              int geminiMaxHistory,
+                                              List<AliceBotLlmModelMapper> AliceBotLlmModelMappers)
     {
         LLMConfiguration.gptTokens = new HashMap<>(gptTokens);
         LLMConfiguration.gptApiUrl = gptApiUrl;
@@ -76,9 +76,12 @@ public class SprintUtils {
         LLMConfiguration.ollamaMaxHistory = ollamaMaxHistory;
         LLMConfiguration.geminiMaxHistory = geminiMaxHistory;
 
+        LLMConfiguration.AliceBotLlmModelMappers = AliceBotLlmModelMappers;
+
         log.info("updateLLMConfiguration gptApiUrl: {} ollamaApiUrl: {}  geminiApiUrl: {}", LLMConfiguration.gptApiUrl, LLMConfiguration.ollamaApiUrl, LLMConfiguration.geminiApiUrl);
         log.info("updateLLMConfiguration gptDefaultModel: {} ollamaDefaultModel: {}", LLMConfiguration.gptDefaultModel, LLMConfiguration.ollamaDefaultModel);
         log.info("updateLLMConfiguration gptMaxHistory: {} ollamaMaxHistory: {} geminiMaxHistory: {}", LLMConfiguration.gptMaxHistory, LLMConfiguration.ollamaMaxHistory, LLMConfiguration.geminiMaxHistory);
+        log.info("updateLLMConfiguration llmModelMappers: {}", LLMConfiguration.AliceBotLlmModelMappers);
     }
 
 

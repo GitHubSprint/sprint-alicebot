@@ -1,6 +1,10 @@
 package org.alicebot.ab.llm;
 
+import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class LLMConfiguration {
@@ -18,6 +22,8 @@ public class LLMConfiguration {
     public static int gptMaxHistory;
     public static int ollamaMaxHistory;
     public static int geminiMaxHistory;
+
+    public static List<AliceBotLlmModelMapper> AliceBotLlmModelMappers = new ArrayList<>();
 
 
 }
