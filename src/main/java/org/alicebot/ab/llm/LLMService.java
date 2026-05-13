@@ -1,11 +1,9 @@
 package org.alicebot.ab.llm;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.alicebot.ab.MagicStrings;
 import org.alicebot.ab.exception.InternalServerException;
-import org.alicebot.ab.llm.dto.google.Candidates;
-import org.alicebot.ab.llm.dto.google.GeminiChatResponse;
-import org.alicebot.ab.llm.dto.google.Predictions;
 import org.alicebot.ab.llm.dto.gpt.Choice;
 import org.alicebot.ab.llm.dto.gpt.GptChatResponse;
 import org.alicebot.ab.llm.dto.ollama.OllamaChatResponse;
@@ -99,11 +97,12 @@ public class LLMService {
         return MagicStrings.error_bot_response();
     }
 
-    public static String chatGemini(String json, String token) throws Exception {
+    public static String chatGemini(String json, String token, String model) throws Exception {
         if(LLMConfiguration.geminiApiUrl == null || token == null) {
             logger.warn("chatGemini invalid llmConfiguration: {}", LLMConfiguration.geminiApiUrl);
             throw new InternalServerException(invalid_llm_configuration);
         }
+
         String report = "";
         int idxReport = json.indexOf("{\"report\":");
         if(idxReport >= 0) {
@@ -111,19 +110,19 @@ public class LLMService {
             if(customReport != null) {
                 report = mapper.writeValueAsString(customReport);
             }
-            json = json.substring(0,idxReport);
+            json = json.substring(0, idxReport);
         }
 
-        logger.info("chatGemini json: \n{}\n", json);
 
+        String fullUrl = LLMConfiguration.geminiApiUrl.trim() + "/" + model + ":generateContent?key=" + token;
+
+        logger.info("chatGemini request to URL: {} with body: \n{}\n", fullUrl, json);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(LLMConfiguration.geminiApiUrl.trim()))
-                .header("Authorization", "Bearer " + token)
+                .uri(URI.create(fullUrl))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
                 .build();
-
 
         HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
@@ -132,18 +131,25 @@ public class LLMService {
             return MagicStrings.error_bot_response();
         }
 
-        GeminiChatResponse response = mapper.readValue(httpResponse.body(), GeminiChatResponse.class);
+        // UWAGA: Musisz dostosować klasy GeminiChatResponse, bo struktura 'predictions'
+        // dotyczyła Vertex AI. Nowe Gemini API zwraca 'candidates' bezpośrednio.
+        JsonNode rootNode = mapper.readTree(httpResponse.body());
 
-        logger.info("chatGemini response: {}", response);
-
-        if(response != null && response.getPredictions() != null && !response.getPredictions().isEmpty()) {
-            Predictions predictions = response.getPredictions().getFirst();
-
-            if(predictions.getCandidates() != null && !predictions.getCandidates().isEmpty()){
-                Candidates candidates = predictions.getCandidates().getFirst();
-                return candidates.getContent() + report;
+        try {
+            // Nowa struktura: root -> candidates[] -> content -> parts[] -> text
+            JsonNode candidates = rootNode.path("candidates");
+            if (candidates.isArray() && !candidates.isEmpty()) {
+                JsonNode firstCandidate = candidates.get(0);
+                JsonNode parts = firstCandidate.path("content").path("parts");
+                if (parts.isArray() && !parts.isEmpty()) {
+                    String textResponse = parts.get(0).path("text").asText();
+                    return textResponse + report;
+                }
             }
+        } catch (Exception e) {
+            logger.error("Błąd podczas parsowania odpowiedzi Gemini: {}", e.getMessage());
         }
+
         return MagicStrings.error_bot_response();
     }
 

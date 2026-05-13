@@ -18,6 +18,7 @@ public class LLMConfiguration {
 
     public static String gptDefaultModel;
     public static String ollamaDefaultModel;
+    public static String geminiDefaultModel;
 
     public static int gptMaxHistory;
     public static int ollamaMaxHistory;

@@ -35,6 +35,8 @@ import org.alicebot.ab.llm.LLMService;
 import org.alicebot.ab.model.Report;
 import org.alicebot.ab.model.Param;
 import org.alicebot.ab.model.SayResponse;
+import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
+import org.alicebot.ab.model.block.LlmType;
 import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
@@ -880,7 +882,7 @@ public class AIMLProcessor {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
         String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
 
-        String json = ps.chatSession.llmContext.get(GPT+context);
+        String json = ps.chatSession.llmContext.get(context);
         log.info("{} getBlock parameter: {} name: {} json: {} ", ps.chatSession.sessionId, parameter, context, json);
 
         if(json != null && !json.isEmpty()) {
@@ -987,7 +989,7 @@ public class AIMLProcessor {
         String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
         String input = evalTagContent(node, ps, null);
 
-        String json = ps.chatSession.llmContext.get(GPT+context);
+        String json = ps.chatSession.llmContext.get(context);
         log.info("{} setBlock parameter: {} name: {} json: {} input: {} ", ps.chatSession.sessionId, parameter, context, json, input);
 
         JSONObject jsonObject = new JSONObject(json);
@@ -1003,7 +1005,7 @@ public class AIMLProcessor {
         String updatedJson = jsonObject.toString(4);
 
         log.info("{} setBlock parameter: {} name: {} updatedJson: {} ", ps.chatSession.sessionId, parameter, context, updatedJson);
-        ps.chatSession.llmContext.put(GPT+context, updatedJson);
+        ps.chatSession.llmContext.put(context, updatedJson);
 
         return "OK";
     }
@@ -1759,84 +1761,39 @@ public class AIMLProcessor {
 
         return "";
     }
-
-    public static String gptRequest(String addparams, String sessionId, String assistant, String system, String json, String model, String user, int iMaxResponse) throws JSONException {
-        Map<String, String> additionalParameters = new HashMap<>();
-        if(addparams != null && !addparams.isEmpty()) {
-            String[] params = addparams.split(",");
-            for(String param : params) {
-                String[] keyVal = param.split("=");
-                if(keyVal.length == 2) {
-                    additionalParameters.put(keyVal[0].trim(), keyVal[1].trim());
-                }
-            }
-        }
-
-        log.info("{}\tgptRequest  assistant: {} system: {}", sessionId, assistant, system);
-
-        String request;
-
-        if(assistant != null && !assistant.isEmpty() && system != null && !system.isEmpty()) {
-            json = null;
-        }
-
-        if(json == null) {
-            JSONObject responseJson = GenAIHelper
-                    .createGPTResponse(model, system, user, assistant, additionalParameters);
-            request = responseJson.toString();
-        } else {
-            if(assistant != null && !assistant.isEmpty())
-                json = GenAIHelper
-                        .addGptMessageToJSON(json,"assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-            if(system != null && !system.isEmpty())
-                json = GenAIHelper
-                        .addGptMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-
-            json = GenAIHelper.addGptMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-
-            request = json;
-        }
-        return request;
-    }
-
     private static String gpt(Node node, ParseState ps) throws Exception {
-
         String model = getAttributeOrTagValue(node, ps, "model");
-
         String assistant = getAttributeOrTagValue(node, ps, "assistant");
+        String user = getAttributeOrTagValue(node, ps, "user");
         String max_history = getAttributeOrTagValue(node, ps, "max_history");
-
         String contextName = getAttributeOrTagValue(node, ps, "context");
+        String addparams = getAttributeOrTagValue(node, ps, "addparams");
+        String system = getAttributeOrTagValue(node, ps, "system");
+
         if(contextName == null)
             contextName = evalTagContent(node, ps, null);
         else
             contextName = ps.chatSession.predicates.get(contextName);
 
         String context = null;
-
         String sessionId = ps.chatSession.sessionId;
-
-        log.info("gpt contextName: {}", contextName);
+        log.info("{}\tgpt contextName: {}", sessionId, contextName);
 
         if (contextName != null && !contextName.isEmpty() && !contextName.equals(MagicStrings.unknown_property_value)) {
-            context = ps.chatSession.llmContext.get("gpt"+contextName);
+            context = ps.chatSession.llmContext.get(contextName);
             log.info("{}\tgetContext context name: {} value:\t{}", sessionId, contextName, context);
         }
 
-
-        String addparams = getAttributeOrTagValue(node, ps, "addparams");
         if(addparams == null)
             addparams = evalTagContent(node, ps, null);
         else
             addparams = ps.chatSession.predicates.get(addparams);
 
-        String user = getAttributeOrTagValue(node, ps, "user");
         if(user == null)
             user = evalTagContent(node, ps, null);
         else
             user = ps.chatSession.predicates.get(user);
 
-        String system = getAttributeOrTagValue(node, ps, "system");
         if(system == null)
             system = evalTagContent(node, ps, null);
         else
@@ -1848,10 +1805,8 @@ public class AIMLProcessor {
         else
             assistant = ps.chatSession.predicates.get(assistant);
 
-
-        if(assistant == null || assistant.equals("unknown") || assistant.isEmpty())
+        if(assistant == null || assistant.equals(MagicStrings.unknown_property_value) || assistant.isEmpty())
             assistant = ps.chatSession.lastResponse;
-
 
 
         if(model == null)
@@ -1860,11 +1815,17 @@ public class AIMLProcessor {
             model = ps.chatSession.predicates.get(model);
 
         if(model == null || model.equals(MagicStrings.unknown_property_value) || model.isEmpty()) {
-            model = LLMConfiguration.gptDefaultModel;
+            return "Invalid model";
         }
+        final String finalModel = model;
+        AliceBotLlmModelMapper mappedModel = LLMConfiguration.AliceBotLlmModelMappers.stream()
+                .filter(mapper -> mapper.getModelName().equals(finalModel))
+                .findFirst()
+                .orElse(null);
 
-        String json = ps.chatSession.json;
-        if(context != null) json = context;
+        if(mappedModel == null) {
+            return "Model not supported";
+        }
 
         int iMaxResponse = ps.chatSession.maxHistory;
         if(iMaxResponse == 0) {
@@ -1875,11 +1836,6 @@ public class AIMLProcessor {
             }
             ps.chatSession.maxHistory = iMaxResponse;
         }
-
-        String botname = ps.chatSession.bot.name;
-
-        log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {}",
-                sessionId, botname, model, user, system, assistant, addparams, iMaxResponse);
 
         Map<String, String> additionalParameters = new HashMap<>();
         if(addparams != null && !addparams.isEmpty()) {
@@ -1892,7 +1848,32 @@ public class AIMLProcessor {
             }
         }
 
-        log.info("{}\tGPT  assistant: {} system: {}", sessionId, assistant, system);
+        return switch (mappedModel.getLlmType()) {
+            case GPT -> gpt(ps, context, mappedModel.getModelName(), user, system, assistant, additionalParameters, iMaxResponse, sessionId);
+            case OLLAMA -> ollama(ps, context, mappedModel.getModelName(), user, system, assistant, additionalParameters, iMaxResponse, sessionId);
+            case GEMINI -> gemini(ps, context, mappedModel.getModelName(), user, system, assistant, additionalParameters, iMaxResponse, sessionId);
+        };
+
+    }
+
+
+    private static String gpt(ParseState ps,
+                              String context,
+                              String model,
+                              String user,
+                              String system,
+                              String assistant,
+                              Map<String, String> additionalParameters,
+                              int iMaxResponse,
+                              String sessionId) throws Exception
+    {
+        String json = ps.chatSession.json;
+        if(context != null) json = context;
+
+        String botname = ps.chatSession.bot.name;
+
+        log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {}",
+                sessionId, botname, model, user, system, assistant, additionalParameters, iMaxResponse);
 
         String request;
 
@@ -1906,7 +1887,7 @@ public class AIMLProcessor {
             request = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty()) {
-                log.info("GPT assistant: {} curentReply: {}", assistant, ps.chatSession.curentReply);
+                log.info("{}\tGPT assistant: {} curentReply: {}", sessionId, assistant, ps.chatSession.curentReply);
                 if(ps.chatSession.curentReply != null && !ps.chatSession.curentReply.isEmpty())
                     assistant = ps.chatSession.curentReply;
 
@@ -1914,7 +1895,7 @@ public class AIMLProcessor {
                         .addGptMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             }
             if(system != null && !system.isEmpty()) {
-                log.info("GPT system: {}", system);
+                log.info("{}\tGPT system: {}", sessionId, system);
                 json = GenAIHelper
                         .addGptMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             }
@@ -1932,7 +1913,7 @@ public class AIMLProcessor {
 
         if(LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
             LLMService.setParameters(timeout, httpVersion);
-            log.info("GPT new timeout: {} httpVersion: {}", timeout, httpVersion);
+            log.info("{}\tGPT new timeout: {} httpVersion: {}", sessionId, timeout, httpVersion);
         }
 
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
@@ -1944,83 +1925,32 @@ public class AIMLProcessor {
 
     }
 
-    private static String ollama(Node node, ParseState ps) throws Exception {
-
-        String model = getAttributeOrTagValue(node, ps, "model");
-        String system = getAttributeOrTagValue(node, ps, "system");
-        String user = getAttributeOrTagValue(node, ps, "user");
-        String stream = getAttributeOrTagValue(node, ps, "stream");
-        String max_history = getAttributeOrTagValue(node, ps, "max_history");
-
-
-        String contextName = getAttributeOrTagValue(node, ps, "context");
-        if(contextName == null)
-            contextName = evalTagContent(node, ps, null);
-        else
-            contextName = ps.chatSession.predicates.get(contextName);
-
-
-        String context = null;
-
-        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
-            context = ps.chatSession.llmContext.get("gpt"+contextName);
-            log.info("OLLAMA context name: {} value: {}", contextName, context);
-        }
-
-
-        if(user == null)
-            user = evalTagContent(node, ps, null);
-        else
-            user = ps.chatSession.predicates.get(user);
-
-
-        if(system == null)
-            system = evalTagContent(node, ps, null);
-        else
-            system = ps.chatSession.predicates.get(system);
-
+    private static String ollama(ParseState ps, String context, String model, String user, String system, String assistant, Map<String, String> additionalParameters, int iMaxResponse, String sessionId) throws Exception {
 
         String json = ps.chatSession.json;
         if(context != null) json = context;
-
-        String sessionId = ps.chatSession.sessionId;
-        log.info("{} OLLAMA  user: {} system: {} stream: {}", sessionId, user, system, stream);
-
-
-        if(model == null || model.equals(MagicStrings.unknown_property_value) || model.isEmpty()) {
-            model = LLMConfiguration.ollamaDefaultModel;
-        }
-
-        int iMaxResponse = ps.chatSession.maxHistory;
-        if(iMaxResponse == 0) {
-            if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
-                iMaxResponse = LLMConfiguration.ollamaMaxHistory;
-            } else {
-                iMaxResponse = Integer.parseInt(max_history);
-            }
-            ps.chatSession.maxHistory = iMaxResponse;
-        }
-
-
-
-        boolean bStream = false;
-        if(stream != null) bStream = Boolean.parseBoolean(stream);
-
-        log.info("{} OLLAMA  model: {} user: {} max_history: {} stream: {}",
-                ps.chatSession.sessionId, model, user, iMaxResponse, bStream);
-
-        log.info("{} OLLAMA system: {}", ps.chatSession.sessionId, system);
+        log.info("{}\t OLLAMA  model: {} user: {} system: {} assistant: {} max_history: {}", sessionId, model, user, system,assistant, iMaxResponse);
 
         String request;
         if(json == null) {
             JSONObject responseJson = GenAIHelper
-                    .createOllamaResponse(model, system, user, bStream);
+                    .createOllamaResponse(model, system, user, false, additionalParameters);
 
             request = responseJson.toString();
         } else {
-            if(system != null && !system.isEmpty())
+            if(assistant != null && !assistant.isEmpty()) {
+                log.info("{}\tOLLAMA assistant: {} curentReply: {}", sessionId,assistant, ps.chatSession.curentReply);
+                if(ps.chatSession.curentReply != null && !ps.chatSession.curentReply.isEmpty())
+                    assistant = ps.chatSession.curentReply;
+
                 json = GenAIHelper
-                        .addOllamaMessageToJSON(json,"system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+                        .addOllamaMessageToJSON(json, "system", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            }
+
+            if(system != null && !system.isEmpty()) {
+                json = GenAIHelper
+                        .addOllamaMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            }
 
             json = GenAIHelper.addOllamaMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             request = json;
@@ -2035,99 +1965,22 @@ public class AIMLProcessor {
 
         if(LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
             LLMService.setParameters(timeout, httpVersion);
-            log.info("OLLAMA new timeout: {} version: {}", timeout, httpVersion);
+            log.info("{}\tOLLAMA new timeout: {} version: {}", sessionId,timeout, httpVersion);
         }
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
         ps.chatSession.lastResponse = response;
 
-        log.debug("OLLAMA response: {}", response);
+        log.debug("{}\tOLLAMA response: {}", sessionId,response);
 
         return response;
 
     }
 
-    private static String gemini(Node node, ParseState ps) throws Exception {
-
-        String context = getAttributeOrTagValue(node, ps, "context");
-        String bot = getAttributeOrTagValue(node, ps, "bot");
-        String user = getAttributeOrTagValue(node, ps, "user");
-
-        String max_history = getAttributeOrTagValue(node, ps, "max_history");
-        String addparams = getAttributeOrTagValue(node, ps, "addparams");
-
-        if(addparams == null)
-            addparams = evalTagContent(node, ps, null);
-        else
-            addparams = ps.chatSession.predicates.get(addparams);
-
-        Map<String, String> additionalParameters = new HashMap<>();
-        if(addparams != null && !addparams.isEmpty()) {
-            String[] params = addparams.split(",");
-            for(String param : params) {
-                String[] keyVal = param.split("=");
-                if(keyVal.length == 2) {
-                    additionalParameters.put(keyVal[0].trim(), keyVal[1].trim());
-                }
-            }
-        }
-
-        String contextName = getAttributeOrTagValue(node, ps, "context");
-        if(contextName == null)
-            contextName = evalTagContent(node, ps, null);
-        else
-            contextName = ps.chatSession.predicates.get(contextName);
-
-
-        String gContext = null;
-
-        if (contextName != null && !contextName.equals(MagicStrings.unknown_property_value)) {
-            gContext = ps.chatSession.llmContext.get("gpt"+contextName);
-            log.info("GEMINI context name: {} value: {}", contextName, gContext);
-        }
-
-        if(user == null)
-            user = evalTagContent(node, ps, null);
-        else
-            user = ps.chatSession.predicates.get(user);
-
-
-        if(context == null)
-            context = evalTagContent(node, ps, null);
-        else
-            context = ps.chatSession.predicates.get(context);
-
-
-        if(bot == null)
-            bot = evalTagContent(node, ps, null);
-        else
-            bot = ps.chatSession.predicates.get(bot);
-
-
-        if(bot == null || bot.equals("unknown") || bot.isEmpty())
-            bot = ps.chatSession.lastResponse;
-
+    private static String gemini(ParseState ps, String context, String model, String user, String system, String assistant, Map<String, String> additionalParameters, int iMaxResponse, String sessionId) throws Exception {
+        String botname = ps.chatSession.bot.name;
         String json = ps.chatSession.json;
 
-        if(gContext != null) json = gContext;
-
-        String sessionId = ps.chatSession.sessionId;
-
-        String botname = ps.chatSession.bot.name;
-        log.info("{} gemini botname: {} context: {} user: {} bot: {}",
-                sessionId, botname, context, user, bot);
-
-        int iMaxResponse = ps.chatSession.maxHistory;
-        if(iMaxResponse == 0) {
-            if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
-                iMaxResponse = LLMConfiguration.geminiMaxHistory;
-            } else {
-                iMaxResponse = Integer.parseInt(max_history);
-            }
-            ps.chatSession.maxHistory = iMaxResponse;
-        }
-
-        log.info("{} gemini  user: {} addparams: {}",
-                ps.chatSession.sessionId, user, addparams);
+        log.info("{}\t GEMINI  model: {} user: {} system: {} assistant: {} max_history: {}", sessionId, model, user, system,assistant, iMaxResponse);
 
         String request;
         if(json == null) {
@@ -2135,15 +1988,26 @@ public class AIMLProcessor {
                     .createGeminiResponse(context, user, additionalParameters);
             request = responseJson.toString();
         } else {
-            if(bot != null && !bot.isEmpty())
-                json = GenAIHelper
-                        .addGeminiMessageToJSON(json, context,"bot", bot.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            if(assistant != null && !assistant.isEmpty()) {
+                log.info("{}\tGEMINI assistant: {} curentReply: {}", sessionId,assistant, ps.chatSession.curentReply);
+                if(ps.chatSession.curentReply != null && !ps.chatSession.curentReply.isEmpty())
+                    assistant = ps.chatSession.curentReply;
 
-            json = GenAIHelper.addGeminiMessageToJSON(json,context,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+                json = GenAIHelper
+                        .addGeminiMessageToJSON(json, "model", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            }
+
+            if(system != null && !system.isEmpty()) {
+                json = GenAIHelper
+                        .addGeminiMessageToJSON(json, "model", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
+            }
+
+            json = GenAIHelper.addGeminiMessageToJSON(json,"user", user.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             request = json;
         }
 
         ps.chatSession.json = request;
+
 
         int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
                 10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
@@ -2151,18 +2015,20 @@ public class AIMLProcessor {
         int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
                 2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
 
-        if(LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
+        if (LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
             LLMService.setParameters(timeout, httpVersion);
-            log.info("Gemini new timeout: {} httpVersion: {}", timeout, httpVersion);
+            log.info("{}\tGemini network config updated - timeout: {} httpVersion: {}", sessionId,timeout, httpVersion);
         }
 
-        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGemini(request, LLMConfiguration.geminiTokens.get(botname)));
-        ps.chatSession.lastResponse = response;
 
-        log.info("GEMINI response: {}", response);
+        String apiKey = LLMConfiguration.geminiTokens.get(botname);
+        String rawResponse = LLMService.chatGemini(request, apiKey, model);
+        String response = aiCheckResponse(ps.chatSession.channel, rawResponse);
+
+        ps.chatSession.lastResponse = response;
+        log.info("{}\tGEMINI final response: {}", sessionId,response);
 
         return response;
-
     }
 
     public static void resetClassCache() {
@@ -2973,10 +2839,10 @@ public class AIMLProcessor {
                 return plugin(node, ps);
             else if (nodeName.equals("gpt")) //sprint
                 return gpt(node, ps);
-            else if (nodeName.equals("ollama")) //sprint
-                return ollama(node, ps);
-            else if (nodeName.equals("gemini")) //sprint
-                return gemini(node, ps);
+//            else if (nodeName.equals("ollama")) //sprint
+//                return ollama(node, ps);
+//            else if (nodeName.equals("gemini")) //sprint
+//                return gemini(node, ps);
             else if (nodeName.equals("save-context")) //sprint
                 return saveContext(node, ps);
             else if (nodeName.equals("predictf")) //sprint

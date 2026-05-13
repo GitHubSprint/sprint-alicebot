@@ -3,7 +3,9 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.*;
 
+import org.alicebot.ab.llm.GenAIHelper;
 import org.alicebot.ab.llm.LLMConfiguration;
+import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
 import org.alicebot.ab.model.block.Block;
 import org.alicebot.ab.model.block.Node;
 import org.alicebot.ab.utils.IOUtils;
@@ -95,14 +97,38 @@ public class Chat {
             for(Node node : block.nodes()) {
                 log.info("Chat Node: {}", node);
                 try {
-                    String nodeJson = AIMLProcessor.gptRequest(node.addparams(), sessionId, node.assistant(), node.system(), json, node.model(), null, iMaxResponse);
-                    llmContext.put("gpt" + node.name(), nodeJson);
+                    final String finalModel = node.model();
+                    AliceBotLlmModelMapper mappedModel = LLMConfiguration.AliceBotLlmModelMappers.stream()
+                            .filter(mapper -> mapper.getModelName().equals(finalModel))
+                            .findFirst()
+                            .orElse(null);
+
+                    String nodeJson;
+
+                    if(mappedModel == null) {
+                        log.warn("No model mapping found for model '{}'. Continue", finalModel);
+                        continue;
+                    }
+                    switch (mappedModel.getLlmType()) {
+                        case GPT:
+                            nodeJson = GenAIHelper.gptRequest(node.addparams(), sessionId, node.assistant(), node.system(), json, node.model(), iMaxResponse);
+                            break;
+                        case OLLAMA:
+                            nodeJson = GenAIHelper.ollamaRequest(node.addparams(), sessionId, node.assistant(), node.system(), json, node.model(), iMaxResponse);
+                            break;
+                        case GEMINI:
+                            nodeJson = GenAIHelper.geminiRequest(node.addparams(), sessionId, node.assistant(), node.system(), json, iMaxResponse);
+                            break;
+                        default:
+                            log.warn("Unsupported LLM type '{}' for model '{}'. Skipping node.", mappedModel.getLlmType(), finalModel);
+                            continue;
+                    }
+                    log.info("{} Chat node {} response: {}", sessionId, node.name(), nodeJson);
+                    llmContext.put(node.name(), nodeJson);
                 } catch (JSONException e) {
                     log.error("Chat JSONException",e);
                 }
             }
-
-            log.info("{} Chat llmContexts: {}", sessionId, llmContext);
         }
     }
 

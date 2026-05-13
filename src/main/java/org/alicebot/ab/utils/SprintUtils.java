@@ -48,17 +48,11 @@ public class SprintUtils {
         return null;
     }
 
-    public static void updateGeminiToken(Map<String, String> tokens) {
-        LLMConfiguration.geminiTokens = new HashMap<>(tokens);
-    }
-
     public static void updateLLMConfiguration(Map<String, String> gptTokens,
                                               String gptApiUrl,
                                               String ollamaApiUrl,
                                               Map<String, String> geminiTokens,
                                               String geminiApiUrl,
-                                              String gptDefaultModel,
-                                              String ollamaDefaultModel,
                                               int gptMaxHistory,
                                               int ollamaMaxHistory,
                                               int geminiMaxHistory,
@@ -69,9 +63,6 @@ public class SprintUtils {
         LLMConfiguration.ollamaApiUrl = ollamaApiUrl;
         LLMConfiguration.geminiTokens = new HashMap<>(geminiTokens);
         LLMConfiguration.geminiApiUrl = geminiApiUrl;
-
-        LLMConfiguration.gptDefaultModel = gptDefaultModel;
-        LLMConfiguration.ollamaDefaultModel = ollamaDefaultModel;
         LLMConfiguration.gptMaxHistory = gptMaxHistory;
         LLMConfiguration.ollamaMaxHistory = ollamaMaxHistory;
         LLMConfiguration.geminiMaxHistory = geminiMaxHistory;
@@ -79,7 +70,7 @@ public class SprintUtils {
         LLMConfiguration.AliceBotLlmModelMappers = AliceBotLlmModelMappers;
 
         log.info("updateLLMConfiguration gptApiUrl: {} ollamaApiUrl: {}  geminiApiUrl: {}", LLMConfiguration.gptApiUrl, LLMConfiguration.ollamaApiUrl, LLMConfiguration.geminiApiUrl);
-        log.info("updateLLMConfiguration gptDefaultModel: {} ollamaDefaultModel: {}", LLMConfiguration.gptDefaultModel, LLMConfiguration.ollamaDefaultModel);
+
         log.info("updateLLMConfiguration gptMaxHistory: {} ollamaMaxHistory: {} geminiMaxHistory: {}", LLMConfiguration.gptMaxHistory, LLMConfiguration.ollamaMaxHistory, LLMConfiguration.geminiMaxHistory);
         log.info("updateLLMConfiguration llmModelMappers: {}", LLMConfiguration.AliceBotLlmModelMappers);
     }
