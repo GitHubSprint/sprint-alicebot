@@ -66,4 +66,16 @@ public class AliceBotLlmModelMapper {
     public void setSymbol(String symbol) {
         this.symbol = symbol;
     }
+
+    @Override
+    public String toString() {
+        return "AliceBotLlmModelMapper{" +
+                "id=" + id +
+                ", llmType=" + llmType +
+                ", modelName='" + modelName + '\'' +
+                ", modelLabel='" + modelLabel + '\'' +
+                ", description='" + description + '\'' +
+                ", symbol='" + symbol + '\'' +
+                '}';
+    }
 }
