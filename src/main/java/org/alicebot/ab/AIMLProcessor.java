@@ -1818,13 +1818,14 @@ public class AIMLProcessor {
             return "Invalid model";
         }
         final String finalModel = model;
+        log.info("{}\tRequested model: {}", sessionId, finalModel);
         AliceBotLlmModelMapper mappedModel = LLMConfiguration.AliceBotLlmModelMappers.stream()
                 .filter(mapper -> mapper.getModelName().equals(finalModel))
                 .findFirst()
                 .orElse(null);
 
         if(mappedModel == null) {
-            return "Model not supported";
+            return "Model " + finalModel + " not supported";
         }
 
         int iMaxResponse = ps.chatSession.maxHistory;
