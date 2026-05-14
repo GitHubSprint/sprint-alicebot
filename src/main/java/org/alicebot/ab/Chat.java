@@ -99,7 +99,7 @@ public class Chat {
                 try {
                     final String finalModel = node.model();
                     AliceBotLlmModelMapper mappedModel = LLMConfiguration.AliceBotLlmModelMappers.stream()
-                            .filter(mapper -> mapper.getModelName().equals(finalModel))
+                            .filter(mapper -> mapper.getModelLabel().equals(finalModel) && mapper.getSymbol().equals(symbol))
                             .findFirst()
                             .orElse(null);
 

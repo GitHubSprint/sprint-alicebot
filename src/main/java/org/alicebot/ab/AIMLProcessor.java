@@ -36,6 +36,7 @@ import org.alicebot.ab.model.Report;
 import org.alicebot.ab.model.Param;
 import org.alicebot.ab.model.SayResponse;
 import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
+import org.alicebot.ab.model.block.Block;
 import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
@@ -876,44 +877,36 @@ public class AIMLProcessor {
         return checkEmpty(result);
     }
 
-    private static String getBlock(Node node, ParseState ps) throws JSONException {
+
+    private static String getBlock(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
         String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
+        String botName = ps.chatSession.bot.name;
+        Block block = SprintUtils.getBlock(botName);
 
-        String json = ps.chatSession.llmContext.get(context);
-        log.info("{} getBlock parameter: {} name: {} json: {} ", ps.chatSession.sessionId, parameter, context, json);
-
-        if(json != null && !json.isEmpty()) {
-            JSONObject jsonObject = new JSONObject(json);
-
-            switch (parameter) {
-                case "system", "assistant":
-                    JSONArray messages = jsonObject.optJSONArray("messages");
-                    for (int i = 0; i < messages.length(); i++) {
-                        JSONObject message = messages.getJSONObject(i);
-                        if (parameter.equals(message.optString("role"))) {
-                            return message.get("content").toString();
-                        }
-                    }
-                    break;
-                case "model" :
-                    return jsonObject.optString("model");
-                case "addparams" :
-                    StringBuilder paramsBuilder = new StringBuilder();
-                    Iterator<String> keys = jsonObject.keys();
-                    while (keys.hasNext()) {
-                        String key = keys.next();
-                        if (!key.equals("messages") && !key.equals("model")) {
-                            if (!paramsBuilder.isEmpty()) {
-                                paramsBuilder.append(",");
-                            }
-                            paramsBuilder.append(key).append("=").append(jsonObject.get(key));
-                        }
-                    }
-                    return paramsBuilder.toString();
-            }
+        if(block == null) {
+            log.warn("{} getBlock parameter: {} name: {} botName: {} block not found", ps.chatSession.sessionId, parameter, context, botName);
+            return MagicStrings.unknown_property_value;
         }
-        return MagicStrings.unknown_property_value;
+
+        org.alicebot.ab.model.block.Node blockNode = block.nodes().stream()
+                .filter(n -> n.name().equals(context))
+                .findFirst()
+                .orElse(null);
+
+        log.info("{} getBlock parameter: {} name: {} botName: {} blockNode: {}", ps.chatSession.sessionId, parameter, context, botName, blockNode);
+        if(blockNode == null) {
+            log.warn("{} getBlock parameter: {} name: {} botName: {} blockNode not found", ps.chatSession.sessionId, parameter, context, botName);
+            return MagicStrings.unknown_property_value;
+        }
+        return switch (parameter) {
+            case "system" -> blockNode.system();
+            case "assistant" -> blockNode.assistant();
+            case "model" -> blockNode.model();
+            case "addparams" -> blockNode.addparams();
+            default -> MagicStrings.unknown_property_value;
+        };
+
     }
 
     private static String updateRecord(Node node, ParseState ps) {
@@ -982,31 +975,7 @@ public class AIMLProcessor {
         return "OK";
     }
 
-    private static String setBlock(Node node, ParseState ps) throws JSONException {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");
-        String context = getPredicateOrValue(getAttributeOrTagValue(node, ps, "context"), ps);
-        String input = evalTagContent(node, ps, null);
 
-        String json = ps.chatSession.llmContext.get(context);
-        log.info("{} setBlock parameter: {} name: {} json: {} input: {} ", ps.chatSession.sessionId, parameter, context, json, input);
-
-        JSONObject jsonObject = new JSONObject(json);
-        JSONArray messages = jsonObject.optJSONArray("messages");
-
-        for (int i = 0; i < messages.length(); i++) {
-            JSONObject message = messages.getJSONObject(i);
-            if ("system".equals(message.optString("role"))) {
-                message.put("content", input);
-                break;
-            }
-        }
-        String updatedJson = jsonObject.toString(4);
-
-        log.info("{} setBlock parameter: {} name: {} updatedJson: {} ", ps.chatSession.sessionId, parameter, context, updatedJson);
-        ps.chatSession.llmContext.put(context, updatedJson);
-
-        return "OK";
-    }
 
     private static String dateadd(Node node, ParseState ps) throws ParseException {
 
@@ -2933,8 +2902,6 @@ public class AIMLProcessor {
                 return surveySummary(node, ps);
            //Survey end
 
-            else if (nodeName.equals("set-block"))
-                return setBlock(node, ps);
             else if (nodeName.equals("get-block"))
                 return getBlock(node, ps);
 
