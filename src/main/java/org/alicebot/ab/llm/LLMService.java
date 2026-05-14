@@ -114,12 +114,12 @@ public class LLMService {
         }
 
 
-        String fullUrl = LLMConfiguration.geminiApiUrl.trim() + "/" + model + ":generateContent?key=" + token;
+        String fullUrl = LLMConfiguration.geminiApiUrl.trim() + "/" + model + ":generateContent?key=";
 
         logger.info("chatGemini request to URL: {} with body: \n{}\n", fullUrl, json);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(fullUrl))
+                .uri(URI.create(fullUrl + token))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
                 .build();
