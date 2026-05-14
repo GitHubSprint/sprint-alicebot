@@ -37,7 +37,7 @@ public class SprintUtils {
         if (input == null || input.length() <= maxLength) {
             return input;
         }
-        return input.substring(0, maxLength);
+        return input.substring(0, maxLength) + "...";
     }
 
     public static Block getBlock(String botName) {

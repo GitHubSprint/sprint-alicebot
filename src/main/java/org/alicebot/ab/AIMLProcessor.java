@@ -1586,7 +1586,6 @@ public class AIMLProcessor {
         }
     }
     private static String getPredicateOrValue(String value, ParseState ps) {
-        log.info("getPredicateOrValue value: {}", value);
         if(value == null)
             return null;
         else {

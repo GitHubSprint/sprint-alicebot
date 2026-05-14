@@ -25,6 +25,8 @@ import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.alicebot.ab.utils.SprintUtils.shorten;
+
 /**
  * Manage client predicates
  *
@@ -43,7 +45,7 @@ public class Predicates extends HashMap<String, String> implements Serializable 
      */
     @Override
 	public String put(String key, String value) {
-        if (MagicBooleans.trace_mode) log.info("Setting predicate {} to {}", key, value);
+        if (MagicBooleans.trace_mode) log.info("Setting predicate {} to {}", key, shorten(value));
         return super.put(key, value);
     }
 
