@@ -36,7 +36,6 @@ import org.alicebot.ab.model.Report;
 import org.alicebot.ab.model.Param;
 import org.alicebot.ab.model.SayResponse;
 import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
-import org.alicebot.ab.model.block.LlmType;
 import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
@@ -47,7 +46,6 @@ import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
-import org.alicebot.ab.utils.*;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -1761,7 +1759,7 @@ public class AIMLProcessor {
 
         return "";
     }
-    private static String gpt(Node node, ParseState ps) throws Exception {
+    private static String llm(Node node, ParseState ps) throws Exception {
         String model = getAttributeOrTagValue(node, ps, "model");
         String assistant = getAttributeOrTagValue(node, ps, "assistant");
         String user = getAttributeOrTagValue(node, ps, "user");
@@ -1777,11 +1775,11 @@ public class AIMLProcessor {
 
         String context = null;
         String sessionId = ps.chatSession.sessionId;
-        log.info("{}\tgpt contextName: {}", sessionId, contextName);
+        log.info("{}\tllm contextName: {}", sessionId, contextName);
 
         if (contextName != null && !contextName.isEmpty() && !contextName.equals(MagicStrings.unknown_property_value)) {
             context = ps.chatSession.llmContext.get(contextName);
-            log.info("{}\tgetContext context name: {} value:\t{}", sessionId, contextName, context);
+            log.info("{}\tllm getContext context name: {} value:\t{}", sessionId, contextName, context);
         }
 
         if(addparams == null)
@@ -1819,7 +1817,7 @@ public class AIMLProcessor {
         }
         final String finalModel = model;
         final String symbol = ps.chatSession.symbol;
-        log.info("{}\tRequested model: {} symbol: {} ", sessionId, finalModel, symbol);
+        log.info("{}\tllm Requested model: {} symbol: {} ", sessionId, finalModel, symbol);
         AliceBotLlmModelMapper mappedModel = LLMConfiguration.AliceBotLlmModelMappers.stream()
                 .filter(mapper -> mapper.getModelLabel().equals(finalModel) && mapper.getSymbol().equals(symbol))
                 .findFirst()
@@ -2840,9 +2838,9 @@ public class AIMLProcessor {
             else if (nodeName.equals("plugin")) //sprint
                 return plugin(node, ps);
             else if (nodeName.equals("gpt")) //sprint
-                return gpt(node, ps);
-//            else if (nodeName.equals("ollama")) //sprint
-//                return ollama(node, ps);
+                return llm(node, ps);
+            else if (nodeName.equals("llm")) //sprint
+                return llm(node, ps);
 //            else if (nodeName.equals("gemini")) //sprint
 //                return gemini(node, ps);
             else if (nodeName.equals("save-context")) //sprint
