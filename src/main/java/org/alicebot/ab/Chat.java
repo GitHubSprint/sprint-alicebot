@@ -123,7 +123,7 @@ public class Chat {
                             log.warn("Unsupported LLM type '{}' for model '{}'. Skipping node.", mappedModel.getLlmType(), finalModel);
                             continue;
                     }
-                    log.info("{} Chat node {} response: {}", sessionId, node.name(), nodeJson);
+                    log.info("{} Chat node {} response: \n{}", sessionId, node.name(), nodeJson);
                     llmContext.put(node.name(), nodeJson);
                 } catch (JSONException e) {
                     log.error("Chat JSONException",e);

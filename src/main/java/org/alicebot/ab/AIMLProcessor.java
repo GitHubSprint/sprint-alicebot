@@ -45,8 +45,6 @@ import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -59,6 +57,8 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import pl.sprint.sprintvalidator.Validator;
 import pl.sprint.sprintvalidator.utils.PeselValidator;
+
+import static org.alicebot.ab.utils.SprintUtils.shorten;
 
 /**
  * The core AIML parser and interpreter.
@@ -894,11 +894,13 @@ public class AIMLProcessor {
                 .findFirst()
                 .orElse(null);
 
-        log.info("{} getBlock parameter: {} name: {} botName: {} blockNode: {}", ps.chatSession.sessionId, parameter, context, botName, blockNode);
+
         if(blockNode == null) {
             log.warn("{} getBlock parameter: {} name: {} botName: {} blockNode not found", ps.chatSession.sessionId, parameter, context, botName);
             return MagicStrings.unknown_property_value;
         }
+
+        log.info("{} getBlock parameter: {} name: {} botName: {} blockNode: {}", ps.chatSession.sessionId, parameter, context, botName, blockNode.name());
         return switch (parameter) {
             case "system" -> blockNode.system();
             case "assistant" -> blockNode.assistant();
@@ -1584,13 +1586,15 @@ public class AIMLProcessor {
         }
     }
     private static String getPredicateOrValue(String value, ParseState ps) {
-        log.info("getPredicateOrValue  value: {}", value);
+        log.info("getPredicateOrValue value: {}", value);
         if(value == null)
             return null;
         else {
             String resp = ps.chatSession.predicates.get(value);
             if(resp.equals(MagicStrings.unknown_property_value))
                 return value;
+
+            log.info("getPredicateOrValue value: {} predicateValue: {}", value, resp);
             return resp;
         }
     }
@@ -1716,11 +1720,9 @@ public class AIMLProcessor {
 
         String sessionId = ps.chatSession.sessionId;
 
-        log.info("{}\tsaveContext name : {}\njson:\t{}", sessionId, contextName,ps.chatSession.json);
+        ps.chatSession.llmContext.put(contextName, ps.chatSession.json);
 
-        ps.chatSession.llmContext.put(contextName,ps.chatSession.json);
-
-        log.info("{}\tsaveContext json:\t{}", sessionId, ps.chatSession.json);
+        log.info("{}\tsaveContext name: {} json:\t{}", sessionId, contextName, ps.chatSession.json);
 
         return "";
     }
@@ -1836,8 +1838,8 @@ public class AIMLProcessor {
         if(context != null) json = context;
         String botname = ps.chatSession.bot.name;
 
-        log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {}",
-                sessionId, botname, model, user, system, assistant, additionalParameters, iMaxResponse);
+        log.info("{}\tGPT botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} ",
+                sessionId, botname, iMaxResponse, model, additionalParameters, user, shorten(system), shorten(assistant));
 
         String request;
 
@@ -1851,7 +1853,7 @@ public class AIMLProcessor {
             request = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty()) {
-                log.info("{}\tGPT assistant: {} curentReply: {}", sessionId, assistant, ps.chatSession.curentReply);
+                log.debug("{}\tGPT assistant: {} curentReply: {}", sessionId, assistant, ps.chatSession.curentReply);
                 if(ps.chatSession.curentReply != null && !ps.chatSession.curentReply.isEmpty())
                     assistant = ps.chatSession.curentReply;
 
@@ -1859,7 +1861,6 @@ public class AIMLProcessor {
                         .addGptMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             }
             if(system != null && !system.isEmpty()) {
-                log.info("{}\tGPT system: {}", sessionId, system);
                 json = GenAIHelper
                         .addGptMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
             }
@@ -1883,7 +1884,7 @@ public class AIMLProcessor {
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request, LLMConfiguration.gptTokens.get(botname)));
         ps.chatSession.lastResponse = response;
 
-        log.info("{}\tGPT response: {}", sessionId, response);
+        log.info("{}\tGPT response: \n{}", sessionId, response);
 
         return response;
 
@@ -1892,7 +1893,11 @@ public class AIMLProcessor {
     private static String ollama(ParseState ps, String context, String model, String user, String system, String assistant, Map<String, String> additionalParameters, int iMaxResponse, String sessionId) throws Exception {
         String json = ps.chatSession.json;
         if(context != null) json = context;
-        log.info("{}\t OLLAMA  model: {} user: {} system: {} assistant: {} max_history: {} context: {}", sessionId, model, user, system,assistant, iMaxResponse,context);
+
+        String botname = ps.chatSession.bot.name;
+
+        log.info("{}\tOLLAMA botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} ",
+                sessionId, botname, iMaxResponse, model, additionalParameters, user, shorten(system), assistant);
 
         String request;
         if(json == null) {
@@ -1902,7 +1907,7 @@ public class AIMLProcessor {
             request = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty()) {
-                log.info("{}\tOLLAMA assistant: {} curentReply: {}", sessionId,assistant, ps.chatSession.curentReply);
+                log.debug("{}\tOLLAMA assistant: {} curentReply: {}", sessionId,assistant, ps.chatSession.curentReply);
                 if(ps.chatSession.curentReply != null && !ps.chatSession.curentReply.isEmpty())
                     assistant = ps.chatSession.curentReply;
 
@@ -1933,7 +1938,7 @@ public class AIMLProcessor {
         String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request));
         ps.chatSession.lastResponse = response;
 
-        log.debug("{}\tOLLAMA response: {}", sessionId,response);
+        log.info("{}\tOLLAMA response: \n{}", sessionId,response);
 
         return response;
 
@@ -1944,7 +1949,8 @@ public class AIMLProcessor {
         String json = ps.chatSession.json;
         if(context != null) json = context;
 
-        log.info("{}\t GEMINI  model: {} user: {} system: {} assistant: {} max_history: {} context: {}", sessionId, model, user, system,assistant, iMaxResponse,context);
+        log.info("{}\tGEMINI botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} ",
+                sessionId, botname, iMaxResponse, model, additionalParameters, user, shorten(system), assistant);
 
         String request;
         if(json == null) {
@@ -1953,7 +1959,7 @@ public class AIMLProcessor {
             request = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty()) {
-                log.info("{}\tGEMINI assistant: {} curentReply: {}", sessionId,assistant, ps.chatSession.curentReply);
+                log.debug("{}\tGEMINI assistant: {} curentReply: {}", sessionId,assistant, ps.chatSession.curentReply);
                 if(ps.chatSession.curentReply != null && !ps.chatSession.curentReply.isEmpty())
                     assistant = ps.chatSession.curentReply;
 
@@ -1990,7 +1996,7 @@ public class AIMLProcessor {
         String response = aiCheckResponse(ps.chatSession.channel, rawResponse);
 
         ps.chatSession.lastResponse = response;
-        log.info("{}\tGEMINI final response: {}", sessionId,response);
+        log.info("{}\tGEMINI final response: \n{}", sessionId,response);
 
         return response;
     }

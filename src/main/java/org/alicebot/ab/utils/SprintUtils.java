@@ -32,6 +32,14 @@ public class SprintUtils {
     private static final Map<File, SharedClassLoader> sharedClassLoaderMap = new ConcurrentHashMap<>();
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
 
+    public static String shorten(String input) {
+        int maxLength = 255; // Set your desired maximum length here
+        if (input == null || input.length() <= maxLength) {
+            return input;
+        }
+        return input.substring(0, maxLength);
+    }
+
     public static Block getBlock(String botName) {
         File file = new File(MagicStrings.bot_path + File.separator + botName + File.separator + "block" + File.separator + botName + ".json");
         log.info("getBlock file path: {}", file.getAbsolutePath());

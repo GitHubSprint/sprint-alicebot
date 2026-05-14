@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class GenAIHelper {
-    private static final Logger logger = LoggerFactory.getLogger(GenAIHelper.class);
 
     private static final Map<String, String> GEMINI_PARAM_MAP = Map.of(
             "max_tokens", "maxOutputTokens",
@@ -22,7 +21,6 @@ public class GenAIHelper {
 
     public static String gptRequest(String addparams, String sessionId, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
         Map<String, String> additionalParameters = parseParams(addparams);
-        logger.info("{}\tgptRequest assistant: {} system: {}", sessionId, assistant, system);
 
         if (json == null || (assistant != null && !assistant.isEmpty() && system != null && !system.isEmpty())) {
             return createGPTResponse(model, system, null, assistant, additionalParameters).toString();
@@ -38,7 +36,6 @@ public class GenAIHelper {
 
     public static String ollamaRequest(String addparams, String sessionId, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
         Map<String, String> additionalParameters = parseParams(addparams);
-        logger.info("{}\tollamaRequest assistant: {} system: {}", sessionId, assistant, system);
 
         if (json == null) {
             return createOllamaResponse(model, system, null, false, additionalParameters).toString();
@@ -54,7 +51,6 @@ public class GenAIHelper {
 
     public static String geminiRequest(String addparams, String sessionId, String assistant, String system, String json, int iMaxResponse) throws JSONException {
         Map<String, String> additionalParameters = parseParams(addparams);
-        logger.info("{}\tgeminiRequest assistant: {} system: {}", sessionId, assistant, system);
 
         if (json == null) {
             return createGeminiResponse(system, null, additionalParameters).toString();
