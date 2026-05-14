@@ -1738,7 +1738,6 @@ public class AIMLProcessor {
     }
 
     private static String saveContext(Node node, ParseState ps) {
-        String type = getAttributeOrTagValue(node, ps, "type");
         String contextName = getAttributeOrTagValue(node, ps, "name");
 
         if(contextName == null)
@@ -1748,12 +1747,9 @@ public class AIMLProcessor {
 
         String sessionId = ps.chatSession.sessionId;
 
-        log.info("{}\tsaveContext type: {} name : {}\njson:\t{}", sessionId, type, contextName,ps.chatSession.json);
+        log.info("{}\tsaveContext name : {}\njson:\t{}", sessionId, contextName,ps.chatSession.json);
 
-        if(type.equals(MagicStrings.unknown_property_value) || contextName.equals(MagicStrings.unknown_property_value))
-            return "";
-
-        ps.chatSession.llmContext.put(type+contextName,ps.chatSession.json);
+        ps.chatSession.llmContext.put(contextName,ps.chatSession.json);
 
         log.info("{}\tsaveContext json:\t{}", sessionId, ps.chatSession.json);
 
