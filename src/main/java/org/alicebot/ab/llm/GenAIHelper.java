@@ -97,10 +97,10 @@ public class GenAIHelper {
     }
 
     @NotNull
-    public static JSONObject createGeminiResponse(String context, String user, Map<String, String> addParams) throws JSONException {
+    public static JSONObject createGeminiResponse(String system, String user, Map<String, String> addParams) throws JSONException {
         JSONObject jsonRequest = new JSONObject();
-        if (context != null && !context.isEmpty()) {
-            jsonRequest.put("systemInstruction", new JSONObject().put("parts", new JSONArray().put(new JSONObject().put("text", context))));
+        if (system != null && !system.isEmpty()) {
+            jsonRequest.put("systemInstruction", new JSONObject().put("parts", new JSONArray().put(new JSONObject().put("text", system))));
         }
 
         if(user !=null && !user.isEmpty()) {

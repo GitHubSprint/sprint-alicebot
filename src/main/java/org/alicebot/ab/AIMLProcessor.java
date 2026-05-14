@@ -1865,7 +1865,6 @@ public class AIMLProcessor {
     {
         String json = ps.chatSession.json;
         if(context != null) json = context;
-
         String botname = ps.chatSession.bot.name;
 
         log.info("{}\tGPT botname: {} model: {} user: {} system: {} assistant: {} addparams: {} maxResponse: {}",
@@ -1922,10 +1921,9 @@ public class AIMLProcessor {
     }
 
     private static String ollama(ParseState ps, String context, String model, String user, String system, String assistant, Map<String, String> additionalParameters, int iMaxResponse, String sessionId) throws Exception {
-
         String json = ps.chatSession.json;
         if(context != null) json = context;
-        log.info("{}\t OLLAMA  model: {} user: {} system: {} assistant: {} max_history: {}", sessionId, model, user, system,assistant, iMaxResponse);
+        log.info("{}\t OLLAMA  model: {} user: {} system: {} assistant: {} max_history: {} context: {}", sessionId, model, user, system,assistant, iMaxResponse,context);
 
         String request;
         if(json == null) {
@@ -1975,13 +1973,14 @@ public class AIMLProcessor {
     private static String gemini(ParseState ps, String context, String model, String user, String system, String assistant, Map<String, String> additionalParameters, int iMaxResponse, String sessionId) throws Exception {
         String botname = ps.chatSession.bot.name;
         String json = ps.chatSession.json;
+        if(context != null) json = context;
 
-        log.info("{}\t GEMINI  model: {} user: {} system: {} assistant: {} max_history: {}", sessionId, model, user, system,assistant, iMaxResponse);
+        log.info("{}\t GEMINI  model: {} user: {} system: {} assistant: {} max_history: {} context: {}", sessionId, model, user, system,assistant, iMaxResponse,context);
 
         String request;
         if(json == null) {
             JSONObject responseJson = GenAIHelper
-                    .createGeminiResponse(context, user, additionalParameters);
+                    .createGeminiResponse(system, user, additionalParameters);
             request = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty()) {
