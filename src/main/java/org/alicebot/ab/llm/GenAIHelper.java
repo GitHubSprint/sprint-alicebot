@@ -19,7 +19,7 @@ public class GenAIHelper {
             "top_k", "topK"
     );
 
-    public static String gptRequest(String addparams, String sessionId, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
+    public static String gptRequest(String addparams, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
         Map<String, String> additionalParameters = parseParams(addparams);
 
         if (json == null || (assistant != null && !assistant.isEmpty() && system != null && !system.isEmpty())) {
@@ -34,7 +34,7 @@ public class GenAIHelper {
         }
     }
 
-    public static String ollamaRequest(String addparams, String sessionId, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
+    public static String ollamaRequest(String addparams, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
         Map<String, String> additionalParameters = parseParams(addparams);
 
         if (json == null) {
@@ -49,11 +49,11 @@ public class GenAIHelper {
         }
     }
 
-    public static String geminiRequest(String addparams, String sessionId, String assistant, String system, String json, int iMaxResponse) throws JSONException {
+    public static String geminiRequest(String addparams, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
         Map<String, String> additionalParameters = parseParams(addparams);
 
         if (json == null) {
-            return createGeminiResponse(system, null, additionalParameters).toString();
+            return createGeminiResponse(model, system, null, additionalParameters).toString();
         } else {
             if (assistant != null && !assistant.isEmpty())
                 json = addGeminiMessageToJSON(json, "model", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
@@ -93,8 +93,9 @@ public class GenAIHelper {
     }
 
     @NotNull
-    public static JSONObject createGeminiResponse(String system, String user, Map<String, String> addParams) throws JSONException {
+    public static JSONObject createGeminiResponse(String model, String system, String user, Map<String, String> addParams) throws JSONException {
         JSONObject jsonRequest = new JSONObject();
+        jsonRequest.put("modelname", model);
         if (system != null && !system.isEmpty()) {
             jsonRequest.put("systemInstruction", new JSONObject().put("parts", new JSONArray().put(new JSONObject().put("text", system))));
         }

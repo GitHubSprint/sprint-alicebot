@@ -37,6 +37,7 @@ import org.alicebot.ab.model.Param;
 import org.alicebot.ab.model.SayResponse;
 import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
 import org.alicebot.ab.model.block.Block;
+import org.alicebot.ab.model.block.LlmType;
 import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
@@ -1739,14 +1740,11 @@ public class AIMLProcessor {
         else
             contextName = ps.chatSession.predicates.get(contextName);
 
-        String context = null;
+//        String context = null;
         String sessionId = ps.chatSession.sessionId;
         log.info("{}\tllm contextName: {}", sessionId, contextName);
 
-        if (contextName != null && !contextName.isEmpty() && !contextName.equals(MagicStrings.unknown_property_value)) {
-            context = ps.chatSession.llmContext.get(contextName);
-            log.info("{}\tllm getContext context name: {} value:\t{}", sessionId, contextName, context);
-        }
+
 
         if(addparams == null)
             addparams = evalTagContent(node, ps, null);
@@ -1793,6 +1791,8 @@ public class AIMLProcessor {
             return "Model " + finalModel + " not configured!";
         }
 
+        log.info("{}\tllm Mapped model: {} llmType: {} ", sessionId, mappedModel.getModelName(), mappedModel.getLlmType());
+
         int iMaxResponse = ps.chatSession.maxHistory;
         if(iMaxResponse == 0) {
             if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
@@ -1814,17 +1814,18 @@ public class AIMLProcessor {
             }
         }
 
+
         return switch (mappedModel.getLlmType()) {
-            case GPT -> gpt(ps, context, mappedModel.getModelName(), user, system, assistant, additionalParameters, iMaxResponse, sessionId);
-            case OLLAMA -> ollama(ps, context, mappedModel.getModelName(), user, system, assistant, additionalParameters, iMaxResponse, sessionId);
-            case GEMINI -> gemini(ps, context, mappedModel.getModelName(), user, system, assistant, additionalParameters, iMaxResponse, sessionId);
+            case GPT -> gpt(ps, contextName, mappedModel.getModelName(), user, system, assistant, additionalParameters, iMaxResponse, sessionId);
+            case OLLAMA -> ollama(ps, contextName, mappedModel.getModelName(), user, system, assistant, additionalParameters, iMaxResponse, sessionId);
+            case GEMINI -> gemini(ps, contextName, mappedModel.getModelName(), user, system, assistant, additionalParameters, iMaxResponse, sessionId);
         };
 
     }
 
 
     private static String gpt(ParseState ps,
-                              String context,
+                              String contextName,
                               String model,
                               String user,
                               String system,
@@ -1834,6 +1835,15 @@ public class AIMLProcessor {
                               String sessionId) throws Exception
     {
         String json = ps.chatSession.json;
+
+        String context = null;
+        if (contextName != null && !contextName.isEmpty() && !contextName.equals(MagicStrings.unknown_property_value)) {
+            context = ps.chatSession.llmContext.get(LlmType.GPT.name() + contextName);
+            if(context == null)
+                context = ps.chatSession.llmContext.get(contextName);
+            log.info("{}\tGPT getContext context name: {} value:\t{}", sessionId, contextName, context);
+        }
+
         if(context != null) json = context;
         String botname = ps.chatSession.bot.name;
 
@@ -1889,8 +1899,17 @@ public class AIMLProcessor {
 
     }
 
-    private static String ollama(ParseState ps, String context, String model, String user, String system, String assistant, Map<String, String> additionalParameters, int iMaxResponse, String sessionId) throws Exception {
+    private static String ollama(ParseState ps, String contextName, String model, String user, String system, String assistant, Map<String, String> additionalParameters, int iMaxResponse, String sessionId) throws Exception {
         String json = ps.chatSession.json;
+
+        String context = null;
+        if (contextName != null && !contextName.isEmpty() && !contextName.equals(MagicStrings.unknown_property_value)) {
+            context = ps.chatSession.llmContext.get(LlmType.OLLAMA.name() + contextName);
+            if(context == null)
+                context = ps.chatSession.llmContext.get(contextName);
+            log.info("{}\tOLLAMA getContext context name: {} value:\t{}", sessionId, contextName, context);
+        }
+
         if(context != null) json = context;
 
         String botname = ps.chatSession.bot.name;
@@ -1943,9 +1962,30 @@ public class AIMLProcessor {
 
     }
 
-    private static String gemini(ParseState ps, String context, String model, String user, String system, String assistant, Map<String, String> additionalParameters, int iMaxResponse, String sessionId) throws Exception {
+    private static String gemini(ParseState ps, String contextName, String model, String user, String system, String assistant, Map<String, String> additionalParameters, int iMaxResponse, String sessionId) throws Exception {
         String botname = ps.chatSession.bot.name;
         String json = ps.chatSession.json;
+
+        String context = null;
+        if (contextName != null && !contextName.isEmpty() && !contextName.equals(MagicStrings.unknown_property_value)) {
+            context = ps.chatSession.llmContext.get(LlmType.GEMINI.name() + contextName);
+            if(context == null) {
+                context = ps.chatSession.llmContext.get(contextName);
+            }
+            JSONObject jsonObject = new JSONObject(context);
+            if(jsonObject.has("modelname")) {
+                String modelname = jsonObject.getString("modelname");
+                if(modelname != null && !modelname.isEmpty()) {
+                    model = modelname;
+                    log.info("{}\tGEMINI context model updated from json: {}", sessionId, model);
+                }
+                jsonObject.remove("modelname");
+
+                context = jsonObject.toString();
+            }
+            log.info("{}\tGEMINI getContext context name: {} value:\t{}", sessionId, contextName, context);
+        }
+
         if(context != null) json = context;
 
         log.info("{}\tGEMINI botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} ",
@@ -1954,7 +1994,7 @@ public class AIMLProcessor {
         String request;
         if(json == null) {
             JSONObject responseJson = GenAIHelper
-                    .createGeminiResponse(system, user, additionalParameters);
+                    .createGeminiResponse(model, system, user, additionalParameters);
             request = responseJson.toString();
         } else {
             if(assistant != null && !assistant.isEmpty()) {

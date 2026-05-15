@@ -111,20 +111,20 @@ public class Chat {
                     }
                     switch (mappedModel.getLlmType()) {
                         case GPT:
-                            nodeJson = GenAIHelper.gptRequest(node.addparams(), sessionId, node.assistant(), node.system(), json, node.model(), iMaxResponse);
+                            nodeJson = GenAIHelper.gptRequest(node.addparams(), node.assistant(), node.system(), json, mappedModel.getModelName(), iMaxResponse);
                             break;
                         case OLLAMA:
-                            nodeJson = GenAIHelper.ollamaRequest(node.addparams(), sessionId, node.assistant(), node.system(), json, node.model(), iMaxResponse);
+                            nodeJson = GenAIHelper.ollamaRequest(node.addparams(), node.assistant(), node.system(), json, mappedModel.getModelName(), iMaxResponse);
                             break;
                         case GEMINI:
-                            nodeJson = GenAIHelper.geminiRequest(node.addparams(), sessionId, node.assistant(), node.system(), json, iMaxResponse);
+                            nodeJson = GenAIHelper.geminiRequest(node.addparams(), node.assistant(), node.system(), json, mappedModel.getModelName(), iMaxResponse);
                             break;
                         default:
                             log.warn("Unsupported LLM type '{}' for model '{}'. Skipping node.", mappedModel.getLlmType(), finalModel);
                             continue;
                     }
-                    log.info("{} Chat node {} response: \n{}", sessionId, node.name(), nodeJson);
-                    llmContext.put(node.name(), nodeJson);
+                    log.info("{} Chat model: {} node {} response: \n{}", sessionId, mappedModel.getLlmType().name(), node.name(), nodeJson);
+                    llmContext.put(mappedModel.getLlmType().name() + node.name(), nodeJson);
                 } catch (JSONException e) {
                     log.error("Chat JSONException",e);
                 }
