@@ -2,6 +2,8 @@ package org.alicebot.ab.utils;
 
 import org.alicebot.ab.model.Report;
 import org.alicebot.ab.model.Param;
+
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -14,4 +16,6 @@ public interface AlicebotContextProvider {
     String getRecord(String parameter);
     String updateRecord(String parameter);
     String updateRecordStatus(String parameter);
+    Long getRecordId(String campaignName, String phoneNum);
+    List<String> getcampaigns(String phoneNum, boolean active);
 }

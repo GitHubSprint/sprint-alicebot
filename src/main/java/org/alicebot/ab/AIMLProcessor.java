@@ -46,6 +46,7 @@ import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
+import org.jetbrains.annotations.Nullable;
 import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -529,19 +530,12 @@ public class AIMLProcessor {
             group = Integer.parseInt(getAttributeOrTagValue(node, ps, "group")); 
         } catch (Exception e) {
             log.warn("regex parseInt Exception setting to default 0.");
-        } 
-        
-        
-        String input; 
-        if(parameter == null)        
-            input = evalTagContent(node, ps, null);     
-        else
-            input = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter; 
-        
-        
+        }
+
+
+        String input = getParameter(node, ps, parameter);
+
+
         Pattern compiledPattern = Pattern.compile(pattern);
         Matcher matcher = null;
         if (input != null) {
@@ -704,17 +698,10 @@ public class AIMLProcessor {
      */
     
     private static String pesel(Node node, ParseState ps) {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-                                                                     
-        String pesel; 
-        if(parameter == null)        
-            pesel = evalTagContent(node, ps, null);     
-        else
-            pesel = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(pesel.equals(MagicStrings.unknown_property_value))
-            pesel = parameter; 
-        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String pesel = getParameter(node, ps, parameter);
+
         String result = Validator.pesel(pesel);
 
         log.info("pesel  parameter name: {} parameter: {} result: {}", parameter, pesel, result);
@@ -725,17 +712,10 @@ public class AIMLProcessor {
     
     private static String currency(Node node, ParseState ps) {
         
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");                                                     
-        
-        String input; 
-        if(parameter == null)        
-            input = evalTagContent(node, ps, null);     
-        else
-            input = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter; 
-        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input = getParameter(node, ps, parameter);
+
         String result = Validator.currency(input);
 
         log.info("currency  parameter name: {} parameter: {} result: {}",
@@ -751,17 +731,10 @@ public class AIMLProcessor {
         if(language == null || language.isEmpty())
             language = "PL";
         
-        language = language.toUpperCase(); 
-        
-        String input; 
-        if(parameter == null)        
-            input = evalTagContent(node, ps, null);     
-        else
-            input = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter;  
-                                        
+        language = language.toUpperCase();
+
+        String input = getParameter(node, ps, parameter);
+
         String result = Validator.WordsToNumbers(language, input);
 
         log.info("txt2num  parameter: {} input: {} result: {}", parameter, input, result);
@@ -778,14 +751,7 @@ public class AIMLProcessor {
 
         language = language.toUpperCase();
 
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
-
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter;
+        String input = getParameter(node, ps, parameter);
 
         String result = Validator.WordsToNumbersDec(language, input);
 
@@ -803,17 +769,10 @@ public class AIMLProcessor {
         if(country == null || country.isEmpty())
             country = "PL";
         
-        country = country.toUpperCase(); 
-        
-        String input; 
-        if(parameter == null)        
-            input = evalTagContent(node, ps, null);     
-        else
-            input = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter;  
-                                        
+        country = country.toUpperCase();
+
+        String input = getParameter(node, ps, parameter);
+
         String result = Validator.zip(country, input);
 
         log.info("zip  parameter: {} input: {} result: {}", parameter, input, result);
@@ -825,14 +784,7 @@ public class AIMLProcessor {
 
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
-
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter;
+        String input = getParameter(node, ps, parameter);
 
 
         String result = AlicebotContext.getProvider().getRecord(input);
@@ -842,10 +794,8 @@ public class AIMLProcessor {
         return checkEmpty(result);
     }
 
-    private static String getRecordStatus(Node node, ParseState ps) {
-
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");
-
+    @Nullable
+    private static String getParameter(Node node, ParseState ps, String parameter) {
         String input;
         if(parameter == null)
             input = evalTagContent(node, ps, null);
@@ -854,6 +804,40 @@ public class AIMLProcessor {
 
         if(input.equals(MagicStrings.unknown_property_value))
             input = parameter;
+        return input;
+    }
+
+    private static String getRecordId(Node node, ParseState ps) {
+        String campaign = getPredicateOrValue(getAttributeOrTagValue(node, ps, "campaign"), ps);
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String phonenum = getParameter(node, ps, parameter);
+
+        Long result = AlicebotContext.getProvider().getRecordId(campaign, phonenum);
+
+        log.info("getRecordId campaign: {} phonenum: {} result: {}", campaign, phonenum, result);
+
+        return result == null ? MagicStrings.unknown_property_value : result.toString();
+    }
+
+    private static String getCampaign(Node node, ParseState ps) {
+        String active = getPredicateOrValue(getAttributeOrTagValue(node, ps, "active"), ps);
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String phonenum = getParameter(node, ps, parameter);
+
+        List<String> result = AlicebotContext.getProvider().getcampaigns(phonenum, Boolean.parseBoolean(active));
+
+        log.info("getCampaign active: {} parameter: {} phonenum: {} campaigns: {}", active, parameter, phonenum, result);
+
+        return (result == null || result.isEmpty()) ? MagicStrings.unknown_property_value : String.join("###", result);
+    }
+
+    private static String getRecordStatus(Node node, ParseState ps) {
+
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String input = getParameter(node, ps, parameter);
 
         String result  = AlicebotContext.getProvider().getRecordStatus(input);
 
@@ -863,14 +847,7 @@ public class AIMLProcessor {
     }
     private static String getData(Node node, ParseState ps) {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
-
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter;
+        String input = getParameter(node, ps, parameter);
 
         Map<String,String> data = AlicebotContext.getProvider().getSessionData(ps.chatSession.sessionId);
         String result = data.get(input);
@@ -916,14 +893,7 @@ public class AIMLProcessor {
 
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
-
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter;
+        String input = getParameter(node, ps, parameter);
 
         String result = AlicebotContext.getProvider().updateRecord(input);
         log.info("updateRecord  parameter: {} input: {} result: {}", parameter, input, result);
@@ -934,14 +904,7 @@ public class AIMLProcessor {
 
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
-
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter;
+        String input = getParameter(node, ps, parameter);
 
         String result = AlicebotContext.getProvider().updateRecordStatus(input);
         log.info("updateRecordStatus  parameter: {} input: {} result: {}", parameter, input, result);
@@ -952,14 +915,7 @@ public class AIMLProcessor {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
 
 
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
-
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter;
+        String input = getParameter(node, ps, parameter);
 
         if (input == null) {
             log.warn("{} setData invalid input", ps.chatSession.sessionId);
@@ -994,23 +950,9 @@ public class AIMLProcessor {
         if(locale == null || locale.isEmpty())
             locale = "pl";
 
-        String input;
-        if(parameter == null)
-            input = evalTagContent(node, ps, null);
-        else
-            input = ps.chatSession.predicates.get(parameter);
+        String input = getParameter(node, ps, parameter);
 
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter;
-
-        String _days;
-        if(days == null)
-            _days = evalTagContent(node, ps, null);
-        else
-            _days = ps.chatSession.predicates.get(days);
-
-        if(_days.equals(MagicStrings.unknown_property_value))
-            _days = days;
+        String _days = getParameter(node, ps, days);
 
 
         Locale loc = Locale.forLanguageTag(locale);
@@ -1037,16 +979,9 @@ public class AIMLProcessor {
         String values = getAttributeOrTagValue(node, ps, "values");
         String variables = getAttributeOrTagValue(node, ps, "variables");
         String delimiter = getAttributeOrTagValue(node, ps, "delimiter");
-        
-        
-        String input; 
-        if(values == null)        
-            input = evalTagContent(node, ps, null);     
-        else
-            input = ps.chatSession.predicates.get(values);  
-                                                       
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = values;  
+
+
+        String input = getParameter(node, ps, values);
 
         String[] vars = variables.split(delimiter);
         String[] vals = input.split(delimiter);
@@ -1071,17 +1006,10 @@ public class AIMLProcessor {
         if(language == null || language.isEmpty())
             language = "PL";
         
-        language = language.toUpperCase(); 
-        
-        String input; 
-        if(parameter == null)        
-            input = evalTagContent(node, ps, null);     
-        else
-            input = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(input.equals(MagicStrings.unknown_property_value))
-            input = parameter; 
-                       
+        language = language.toUpperCase();
+
+        String input = getParameter(node, ps, parameter);
+
         long  num = 0;
         try {
             num = Long.parseLong(input);
@@ -1102,17 +1030,10 @@ public class AIMLProcessor {
      * @return M = Men, K = Woman, "unknown" = invalid input
      */    
     private static String sexpesel(Node node, ParseState ps) {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        
-        String pesel; 
-        if(parameter == null)        
-            pesel = evalTagContent(node, ps, null);     
-        else
-            pesel = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(pesel.equals(MagicStrings.unknown_property_value))
-            pesel = parameter; 
-                        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String pesel = getParameter(node, ps, parameter);
+
         String result = Validator.getSexByPesel(pesel);
 
         log.info("sexpesel  parameter: {} pesel: {} result: {}", parameter, pesel, result);
@@ -1126,16 +1047,9 @@ public class AIMLProcessor {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");  
         String format = getAttributeOrTagValue(node, ps, "format");
         
-        if(format == null) format="dd/MM/yyyy"; 
-        
-        String pesel; 
-        if(parameter == null)        
-            pesel = evalTagContent(node, ps, null);     
-        else
-            pesel = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(pesel.equals(MagicStrings.unknown_property_value))
-            pesel = parameter;
+        if(format == null) format="dd/MM/yyyy";
+
+        String pesel = getParameter(node, ps, parameter);
 
         if(pesel == null)
             return MagicStrings.unknown_property_value;
@@ -1153,17 +1067,10 @@ public class AIMLProcessor {
         return checkEmpty(result);
     }
     private static String nip(Node node, ParseState ps) {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        
-        String nip; 
-        if(parameter == null)        
-            nip = evalTagContent(node, ps, null);     
-        else
-            nip = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(nip.equals(MagicStrings.unknown_property_value))
-            nip = parameter; 
-        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String nip = getParameter(node, ps, parameter);
+
         if(nip == null)
             return MagicStrings.unknown_property_value;
 
@@ -1177,17 +1084,10 @@ public class AIMLProcessor {
 
     
     private static String nums(Node node, ParseState ps) {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        
-        String nums; 
-        if(parameter == null)        
-            nums = evalTagContent(node, ps, null);     
-        else
-            nums = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(nums.equals(MagicStrings.unknown_property_value))
-            nums = parameter; 
-        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String nums = getParameter(node, ps, parameter);
+
         String result = Validator.nums(nums);
 
         log.info("nums  parameter: {} nums: {} result: {}", parameter, nums, result);
@@ -1197,17 +1097,10 @@ public class AIMLProcessor {
     
     
     private static String implode(Node node, ParseState ps) {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        
-        String temp; 
-        if(parameter == null)        
-            temp = evalTagContent(node, ps, null);     
-        else
-            temp = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(temp.equals(MagicStrings.unknown_property_value))
-            temp = parameter; 
-        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String temp = getParameter(node, ps, parameter);
+
         if(temp == null)
             return MagicStrings.unknown_property_value;
         
@@ -1226,16 +1119,9 @@ public class AIMLProcessor {
     }
     
     private static String increment(Node node, ParseState ps) {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
-        
-        String num;
-        if(parameter == null)        
-            num = evalTagContent(node, ps, null);
-        else
-            num = ps.chatSession.predicates.get(parameter);
-                                                       
-        if(num.equals(MagicStrings.unknown_property_value))
-            num = parameter;
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String num = getParameter(node, ps, parameter);
 
         String result = MagicStrings.unknown_property_value;
 
@@ -1254,15 +1140,8 @@ public class AIMLProcessor {
         return result;
     }
     private static String decrement(Node node, ParseState ps) {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");                  
-        String num;
-        if(parameter == null)        
-            num = evalTagContent(node, ps, null);
-        else
-            num = ps.chatSession.predicates.get(parameter);
-                                                       
-        if(num.equals(MagicStrings.unknown_property_value))
-            num = parameter;
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+        String num = getParameter(node, ps, parameter);
 
 
         String result = MagicStrings.unknown_property_value;
@@ -1295,14 +1174,7 @@ public class AIMLProcessor {
         String parameter = getAttributeOrTagValue(node, ps, "parameter");
         boolean ext = Boolean.parseBoolean(getAttributeOrTagValue(node, ps, "ext"));
 
-        String phone; 
-        if(parameter == null)        
-            phone = evalTagContent(node, ps, null);     
-        else
-            phone = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(phone.equals(MagicStrings.unknown_property_value))
-            phone = parameter; 
+        String phone = getParameter(node, ps, parameter);
 
         String result;
 
@@ -1318,17 +1190,10 @@ public class AIMLProcessor {
     }
 
     private static String txt2time(Node node, ParseState ps) throws Exception {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        
-        String time; 
-        if(parameter == null)        
-            time = evalTagContent(node, ps, null);     
-        else
-            time = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(time.equals(MagicStrings.unknown_property_value))
-            time = parameter; 
-        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String time = getParameter(node, ps, parameter);
+
         String result = Validator.convertTime(time);
 
         log.info("txt2time  parameter: {} time: {} result: {}", parameter, time, result);
@@ -1338,17 +1203,10 @@ public class AIMLProcessor {
     
     
     private static String bankAccount(Node node, ParseState ps) {
-        String parameter = getAttributeOrTagValue(node, ps, "parameter");  
-        
-        String account; 
-        if(parameter == null)        
-            account = evalTagContent(node, ps, null);     
-        else
-            account = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(account.equals(MagicStrings.unknown_property_value))
-            account = parameter; 
-        
+        String parameter = getAttributeOrTagValue(node, ps, "parameter");
+
+        String account = getParameter(node, ps, parameter);
+
         String result = Validator.bankAccount(account);
 
         log.info("bankAccount  parameter: {} account: {} result: {}",
@@ -1609,17 +1467,10 @@ public class AIMLProcessor {
             locale = "pl";
 
         if(format == null)
-            format="dd/MM/yyyy"; 
-        
-        String date; 
-        if(parameter == null)        
-            date = evalTagContent(node, ps, null);     
-        else
-            date = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(date.equals(MagicStrings.unknown_property_value))
-            date = parameter; 
-        
+            format="dd/MM/yyyy";
+
+        String date = getParameter(node, ps, parameter);
+
         String result = MagicStrings.unknown_property_value; 
         try {
             result = Validator.dateFormat(date, format, isPast,  locale);
@@ -1643,17 +1494,10 @@ public class AIMLProcessor {
             locale = "pl";
         
         if(format == null)
-            format="dd/MM/yyyy"; 
-        
-        String date; 
-        if(parameter == null)        
-            date = evalTagContent(node, ps, null);     
-        else
-            date = ps.chatSession.predicates.get(parameter);  
-                                                       
-        if(date.equals(MagicStrings.unknown_property_value))
-            date = parameter; 
-        
+            format="dd/MM/yyyy";
+
+        String date = getParameter(node, ps, parameter);
+
         String result = MagicStrings.unknown_property_value; 
         try {
             result = Validator.txt2dateTime(date, format, isPast, locale);
@@ -2935,6 +2779,10 @@ public class AIMLProcessor {
                 return dbSelect(node, ps);
            else if (nodeName.equals("timestamp"))
                 return timestamp(node, ps);
+           else if(nodeName.equals("getrecordid"))
+                return getRecordId(node, ps);
+            else if(nodeName.equals("getcampaign"))
+                return getCampaign(node, ps);
 
            //Survey
            else if (nodeName.equals("survey-prompt"))
