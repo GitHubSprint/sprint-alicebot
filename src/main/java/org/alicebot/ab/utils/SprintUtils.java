@@ -31,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SprintUtils {
     private static final Map<File, SharedClassLoader> sharedClassLoaderMap = new ConcurrentHashMap<>();
     private static final Logger log = LoggerFactory.getLogger(SprintUtils.class);
+    private static final String DEFAULT_JSON = "default.json";
 
     public static String shorten(String input) {
         int maxLength = 255; // Set your desired maximum length here
@@ -41,7 +42,10 @@ public class SprintUtils {
     }
 
     public static Block getBlock(String botName) {
-        File file = new File(MagicStrings.bot_path + File.separator + botName + File.separator + "block" + File.separator + botName + ".json");
+        File file = new File(MagicStrings.bot_path + File.separator + botName + File.separator + "block" + File.separator + DEFAULT_JSON);
+        if(!file.exists()) {
+            file = new File(MagicStrings.bot_path + File.separator + botName + File.separator + "block" + File.separator + botName + ".json");
+        }
         log.info("getBlock file path: {}", file.getAbsolutePath());
         if(file.exists()) {
             try {

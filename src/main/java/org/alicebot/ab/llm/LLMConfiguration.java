@@ -16,10 +16,6 @@ public class LLMConfiguration {
     public static int timeout = 10;
     public static int httpVersion = 2;
 
-    public static String gptDefaultModel;
-    public static String ollamaDefaultModel;
-    public static String geminiDefaultModel;
-
     public static int gptMaxHistory;
     public static int ollamaMaxHistory;
     public static int geminiMaxHistory;
