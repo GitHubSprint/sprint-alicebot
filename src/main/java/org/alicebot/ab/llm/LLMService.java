@@ -2,6 +2,7 @@ package org.alicebot.ab.llm;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.alicebot.ab.MagicStrings;
 import org.alicebot.ab.exception.InternalServerException;
 import org.alicebot.ab.llm.dto.gpt.Choice;
@@ -98,30 +99,48 @@ public class LLMService {
     }
 
     public static String chatGemini(String json, String token, String model) throws Exception {
-        if(LLMConfiguration.geminiApiUrl == null || token == null) {
+        if (LLMConfiguration.geminiApiUrl == null || token == null) {
             logger.warn("chatGemini invalid llmConfiguration: {}", LLMConfiguration.geminiApiUrl);
             throw new InternalServerException(invalid_llm_configuration);
         }
 
         String report = "";
-        int idxReport = json.indexOf("{\"report\":");
-        if(idxReport >= 0) {
-            CustomReport customReport = mapper.readValue(json.substring(idxReport), CustomReport.class);
-            if(customReport != null) {
-                report = mapper.writeValueAsString(customReport);
+        String requestBody = json;
+
+        try {
+            JsonNode rootInputNode = mapper.readTree(json);
+            boolean isModified = false;
+            if (rootInputNode instanceof ObjectNode objectNode) {
+                if (objectNode.has("report")) {
+                    JsonNode reportNode = objectNode.get("report");
+                    report = mapper.writeValueAsString(mapper.treeToValue(reportNode, CustomReport.class));
+                    objectNode.remove("report");
+                    isModified = true;
+                }
+
+                if (objectNode.has("modelname")) {
+                    objectNode.remove("modelname");
+                    isModified = true;
+                }
+                if (isModified) {
+                    requestBody = mapper.writeValueAsString(objectNode);
+                }
             }
-            json = json.substring(0, idxReport);
+        } catch (Exception e) {
+            logger.warn("Nie udało się zmodyfikować wejściowego JSON-a, wysyłam oryginał: {}", e.getMessage());
         }
 
+        String baseUrl = LLMConfiguration.geminiApiUrl.trim();
+        String fullUrl = String.format("%s/%s:generateContent?key=%s", baseUrl, model, token);
 
-        String fullUrl = LLMConfiguration.geminiApiUrl.trim() + "/" + model + ":generateContent?key=";
-
-        logger.info("chatGemini request to URL: {} with body: \n{}\n", fullUrl, json);
+        if (logger.isInfoEnabled()) {
+            logger.info("chatGemini request to URL: {}/{}:generateContent with body: \n{}\n", baseUrl, model, requestBody);
+        }
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(fullUrl + token))
+                .uri(URI.create(fullUrl))
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
                 .build();
 
         HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
@@ -131,23 +150,21 @@ public class LLMService {
             return MagicStrings.error_bot_response();
         }
 
-        // UWAGA: Musisz dostosować klasy GeminiChatResponse, bo struktura 'predictions'
-        // dotyczyła Vertex AI. Nowe Gemini API zwraca 'candidates' bezpośrednio.
-        JsonNode rootNode = mapper.readTree(httpResponse.body());
-
         try {
-            // Nowa struktura: root -> candidates[] -> content -> parts[] -> text
+            JsonNode rootNode = mapper.readTree(httpResponse.body());
             JsonNode candidates = rootNode.path("candidates");
+
             if (candidates.isArray() && !candidates.isEmpty()) {
-                JsonNode firstCandidate = candidates.get(0);
-                JsonNode parts = firstCandidate.path("content").path("parts");
+                JsonNode parts = candidates.get(0).path("content").path("parts");
                 if (parts.isArray() && !parts.isEmpty()) {
                     String textResponse = parts.get(0).path("text").asText();
                     return textResponse + report;
                 }
             }
+
+            logger.warn("Odpowiedź Gemini ma nieprawidłową strukturę: {}", httpResponse.body());
         } catch (Exception e) {
-            logger.error("Błąd podczas parsowania odpowiedzi Gemini: {}", e.getMessage());
+            logger.error("Błąd podczas parsowania odpowiedzi Gemini: {}", e.getMessage(), e);
         }
 
         return MagicStrings.error_bot_response();
@@ -156,7 +173,7 @@ public class LLMService {
 
     public static String chatOllama(String json) throws Exception {
         if(LLMConfiguration.ollamaApiUrl == null) {
-            logger.warn("chatOllama invalid llmConfiguration: {}", LLMConfiguration.ollamaApiUrl);
+            logger.warn("chatOllama invalid llmConfiguration!");
             throw new InternalServerException(invalid_llm_configuration);
         }
 
