@@ -92,7 +92,7 @@ public class Main {
         AB.ab(bot);
         AB.terminalInteraction(bot) ;
     }
-    private static String json = null;
+
     public static void testChat (Bot bot, boolean traceMode) {
         Chat chatSession = new Chat(bot);
 
@@ -113,8 +113,7 @@ public class Main {
                 default -> {
 
                     log.debug("STATE={}:THAT={}:TOPIC={}", textLine, chatSession.thatHistory.get(0).get(0), chatSession.predicates.get("topic"));
-                    String response = chatSession.multisentenceRespond(textLine, json, "ostatnia odpowiedź");
-                    json = response.substring(4);
+                    String response = chatSession.multisentenceRespond(textLine, "ostatnia odpowiedź");
 
 
                     while (response.contains("&lt;")) response = response.replace("&lt;", "<");

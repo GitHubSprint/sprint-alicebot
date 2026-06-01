@@ -4,8 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,96 +17,85 @@ public class GenAIHelper {
             "top_k", "topK"
     );
 
-    public static String gptRequest(String addparams, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
-        Map<String, String> additionalParameters = parseParams(addparams);
-
-        if (json == null || (assistant != null && !assistant.isEmpty() && system != null && !system.isEmpty())) {
-            return createGPTResponse(model, system, null, assistant, additionalParameters).toString();
-        } else {
-            if (assistant != null && !assistant.isEmpty())
-                json = addGptMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-            if (system != null && !system.isEmpty())
-                json = addGptMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-
-            return json;
-        }
-    }
-
-    public static String ollamaRequest(String addparams, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
-        Map<String, String> additionalParameters = parseParams(addparams);
-
-        if (json == null) {
-            return createOllamaResponse(model, system, null, false, additionalParameters).toString();
-        } else {
-            if (system != null && !system.isEmpty())
-                json = addOllamaMessageToJSON(json, "system", system.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-            if (assistant != null && !assistant.isEmpty())
-                json = addOllamaMessageToJSON(json, "assistant", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-
-            return json;
-        }
-    }
-
-    public static String geminiRequest(String addparams, String assistant, String system, String json, String model, int iMaxResponse) throws JSONException {
-        Map<String, String> additionalParameters = parseParams(addparams);
-
-        if (json == null) {
-            return createGeminiResponse(model, system, null, additionalParameters).toString();
-        } else {
-            if (assistant != null && !assistant.isEmpty())
-                json = addGeminiMessageToJSON(json, "model", assistant.replaceAll("\\<.*?\\>", ""), iMaxResponse);
-
-            return json;
-        }
-    }
-
+    // --- GPT ---
     @NotNull
-    public static JSONObject createGPTResponse(String model, String system, String user, String assistant, Map<String, String> addParams) throws JSONException {
+    public static JSONObject buildGptRequest(ChatContext context, String model, String addparams) throws JSONException {
         JSONObject jsonRequest = new JSONObject();
         jsonRequest.put("model", model);
+
         JSONArray messages = new JSONArray();
-        if (system != null && !system.isEmpty()) messages.put(new JSONObject().put("role", "system").put("content", system));
-        if (assistant != null && !assistant.isEmpty()) messages.put(new JSONObject().put("role", "assistant").put("content", assistant));
-        if(user !=null && !user.isEmpty()) messages.put(new JSONObject().put("role", "user").put("content", user));
+
+        if (context.getSystemPrompt() != null && !context.getSystemPrompt().isEmpty()) {
+            messages.put(new JSONObject().put("role", "system").put("content", context.getSystemPrompt()));
+        }
+
+        // Dodaj historię i bieżące wiadomości
+        for (ChatContext.ChatMessage msg : context.getMessages()) {
+            String roleStr = msg.role() == ChatContext.Role.ASSISTANT ? "assistant" : "user";
+            messages.put(new JSONObject().put("role", roleStr).put("content", msg.content()));
+        }
+
         jsonRequest.put("messages", messages);
-        applyParamsDirectly(jsonRequest, addParams);
+        applyParamsDirectly(jsonRequest, parseParams(addparams));
         return jsonRequest;
     }
 
+    // --- OLLAMA ---
     @NotNull
-    public static JSONObject createOllamaResponse(String model, String system, String user, boolean stream, Map<String, String> addParams) throws JSONException {
+    public static JSONObject buildOllamaRequest(ChatContext context, String model, boolean stream, String addparams) throws JSONException {
         JSONObject jsonRequest = new JSONObject();
         jsonRequest.put("model", model);
         jsonRequest.put("stream", stream);
+
         JSONArray messages = new JSONArray();
-        if (system != null && !system.isEmpty()) messages.put(new JSONObject().put("role", "system").put("content", system));
-        if(user !=null && !user.isEmpty()) messages.put(new JSONObject().put("role", "user").put("content", user));
+
+        if (context.getSystemPrompt() != null && !context.getSystemPrompt().isEmpty()) {
+            messages.put(new JSONObject().put("role", "system").put("content", context.getSystemPrompt()));
+        }
+
+        for (ChatContext.ChatMessage msg : context.getMessages()) {
+            String roleStr = msg.role() == ChatContext.Role.ASSISTANT ? "assistant" : "user";
+            messages.put(new JSONObject().put("role", roleStr).put("content", msg.content()));
+        }
+
         jsonRequest.put("messages", messages);
-        if (addParams != null) {
+
+        Map<String, String> params = parseParams(addparams);
+        if (!params.isEmpty()) {
             JSONObject options = new JSONObject();
-            applyParamsDirectly(options, addParams);
+            applyParamsDirectly(options, params);
             jsonRequest.put("options", options);
         }
         return jsonRequest;
     }
 
+    // --- GEMINI ---
     @NotNull
-    public static JSONObject createGeminiResponse(String model, String system, String user, Map<String, String> addParams) throws JSONException {
+    public static JSONObject buildGeminiRequest(ChatContext context, String model, String addparams) throws JSONException {
         JSONObject jsonRequest = new JSONObject();
         jsonRequest.put("modelname", model);
-        if (system != null && !system.isEmpty()) {
-            jsonRequest.put("systemInstruction", new JSONObject().put("parts", new JSONArray().put(new JSONObject().put("text", system))));
+
+        if (context.getSystemPrompt() != null && !context.getSystemPrompt().isEmpty()) {
+            jsonRequest.put("systemInstruction", new JSONObject().put("parts",
+                    new JSONArray().put(new JSONObject().put("text", context.getSystemPrompt()))));
         }
 
-        if(user !=null && !user.isEmpty()) {
-            JSONArray contents = new JSONArray();
-            contents.put(new JSONObject().put("role", "user").put("parts", new JSONArray().put(new JSONObject().put("text", user))));
+        JSONArray contents = new JSONArray();
+        for (ChatContext.ChatMessage msg : context.getMessages()) {
+            // Gemini używa "model" zamiast "assistant"
+            String roleStr = msg.role() == ChatContext.Role.ASSISTANT ? "model" : "user";
+            contents.put(new JSONObject().put("role", roleStr).put("parts",
+                    new JSONArray().put(new JSONObject().put("text", msg.content()))));
+        }
+
+        if (contents.length() > 0) {
             jsonRequest.put("contents", contents);
         }
 
-        if (addParams != null) {
+        Map<String, String> params = parseParams(addparams);
+        if (!params.isEmpty()) {
             JSONObject genConfig = new JSONObject();
-            for (Map.Entry<String, String> entry : addParams.entrySet()) {
+            for (Map.Entry<String, String> entry : params.entrySet()) {
                 String geminiKey = GEMINI_PARAM_MAP.getOrDefault(entry.getKey(), entry.getKey());
                 if (isNumeric(entry.getValue())) genConfig.put(geminiKey, Double.parseDouble(entry.getValue()));
                 else genConfig.put(geminiKey, entry.getValue());
@@ -118,35 +105,7 @@ public class GenAIHelper {
         return jsonRequest;
     }
 
-
-    public static String addGptMessageToJSON(String jsonString, String role, String content, int maxResponse) throws JSONException {
-        JSONObject jsonObject = new JSONObject(jsonString);
-        JSONArray messages = jsonObject.optJSONArray("messages");
-        if (messages == null) messages = new JSONArray();
-        if (messages.length() > 1 && messages.length() > maxResponse) messages.remove(1);
-        messages.put(new JSONObject().put("role", role).put("content", content));
-        return jsonObject.put("messages", messages).toString();
-    }
-
-    public static String addOllamaMessageToJSON(String jsonString, String role, String content, int maxResponse) throws JSONException {
-        return addGptMessageToJSON(jsonString, role, content, maxResponse); // Ollama używa tego samego formatu messages
-    }
-
-    public static String addGeminiMessageToJSON(String jsonString, String role, String content, int maxResponse) throws JSONException {
-        JSONObject jsonObject = new JSONObject(jsonString);
-        JSONArray contents = jsonObject.optJSONArray("contents");
-        if (contents == null) contents = new JSONArray();
-        if (contents.length() > 1 && contents.length() > maxResponse) contents.remove(1);
-
-        String geminiRole = role.equalsIgnoreCase("assistant") || role.equalsIgnoreCase("model") ? "model" : "user";
-
-        JSONObject newMessage = new JSONObject().put("role", geminiRole)
-                .put("parts", new JSONArray().put(new JSONObject().put("text", content)));
-        contents.put(newMessage);
-        return jsonObject.put("contents", contents).toString();
-    }
-
-
+    // --- UTILS ---
     private static Map<String, String> parseParams(String addparams) {
         Map<String, String> additionalParameters = new HashMap<>();
         if (addparams != null && !addparams.isEmpty()) {

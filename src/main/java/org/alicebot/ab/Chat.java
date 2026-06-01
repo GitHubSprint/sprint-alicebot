@@ -3,14 +3,13 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.util.*;
 
-import org.alicebot.ab.llm.GenAIHelper;
+import org.alicebot.ab.llm.ChatContext;
 import org.alicebot.ab.llm.LLMConfiguration;
 import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
 import org.alicebot.ab.model.block.Block;
 import org.alicebot.ab.model.block.Node;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
-import org.json.JSONException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 /* Program AB Reference AIML 2.0 implementation
@@ -52,13 +51,12 @@ public class Chat {
     public static String latitude;
 
     public String currentQuestion;
-    public String json;
+
     public String lastResponse;
     public int maxHistory = 0;
     public String channel;
-    public Map<String, String> llmContext = new HashMap<>();
+    public Map<String, ChatContext> llmContext = new HashMap<>();
     public String symbol;
-    public String curentReply;
 
     /**
      * Constructor  (defualt customer ID)
@@ -80,6 +78,7 @@ public class Chat {
         this.sessionCreated = Calendar.getInstance().getTime();
         this.channel = channel;
         this.symbol = symbol;
+
         History<String> contextThatHistory = new History<>();
         contextThatHistory.add(MagicStrings.default_that);
         thatHistory.add(contextThatHistory);
@@ -95,38 +94,32 @@ public class Chat {
 
         if(block != null && !block.nodes().isEmpty()) {
             for(Node node : block.nodes()) {
-                log.info("Chat Node: {}", node);
+                log.info("Chat Node: {}", node.name());
                 try {
                     final String finalModel = node.model();
+
                     AliceBotLlmModelMapper mappedModel = LLMConfiguration.AliceBotLlmModelMappers.stream()
                             .filter(mapper -> mapper.getModelLabel().equals(finalModel) && mapper.getSymbol().equals(symbol))
                             .findFirst()
                             .orElse(null);
 
-                    String nodeJson;
-
                     if(mappedModel == null) {
                         log.warn("No model mapping found for model '{}'. Continue", finalModel);
                         continue;
                     }
-                    switch (mappedModel.getLlmType()) {
-                        case GPT:
-                            nodeJson = GenAIHelper.gptRequest(node.addparams(), node.assistant(), node.system(), json, mappedModel.getModelName(), iMaxResponse);
-                            break;
-                        case OLLAMA:
-                            nodeJson = GenAIHelper.ollamaRequest(node.addparams(), node.assistant(), node.system(), json, mappedModel.getModelName(), iMaxResponse);
-                            break;
-                        case GEMINI:
-                            nodeJson = GenAIHelper.geminiRequest(node.addparams(), node.assistant(), node.system(), json, mappedModel.getModelName(), iMaxResponse);
-                            break;
-                        default:
-                            log.warn("Unsupported LLM type '{}' for model '{}'. Skipping node.", mappedModel.getLlmType(), finalModel);
-                            continue;
-                    }
-                    log.info("{} Chat model: {} node {} response: \n{}", sessionId, mappedModel.getLlmType().name(), node.name(), nodeJson);
-                    llmContext.put(mappedModel.getLlmType().name() + node.name(), nodeJson);
-                } catch (JSONException e) {
-                    log.error("Chat JSONException",e);
+
+                    ChatContext nodeContext = new ChatContext();
+                    nodeContext.setMaxHistory(iMaxResponse);
+                    nodeContext.setSystemPrompt(node.system());
+                    nodeContext.addAssistantMessage(node.assistant());
+                    nodeContext.setAddParams(node.addparams());
+                    nodeContext.setModel(mappedModel.getModelName());
+
+                    log.info("{} Chat model: {} node {} response: \n{}", sessionId, mappedModel.getLlmType().name(), node.name(), nodeContext);
+                    llmContext.put(node.name(), nodeContext);
+
+                } catch (Exception e) {
+                    log.error("Chat error",e);
                 }
             }
         }
@@ -233,8 +226,7 @@ public class Chat {
         else that = hist.getString(0);
         return respond(input, that, predicates.get("topic"), contextThatHistory);
     }
-    public String multisentenceRespond(String request, String gptJson, String lastResponse) {
-        this.json = gptJson;
+    public String multisentenceRespond(String request, String lastResponse) {
         this.lastResponse = lastResponse;
         return multisentenceRespond(request);
     }
@@ -295,7 +287,6 @@ public class Chat {
                 String reply = respond(sentence, contextThatHistory);
                 response.append("  ").append(reply);
                 log.info("{} Robot: {}", sessionId, reply);
-                curentReply = reply;
             }
             requestHistory.add(request);
             responseHistory.add(response.toString());
