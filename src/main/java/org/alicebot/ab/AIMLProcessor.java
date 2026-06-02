@@ -1676,17 +1676,16 @@ public class AIMLProcessor {
             log.info("{}\tLLM get context name: {}", sessionId, targetContextKey);
         }
 
-
-        context.setModel(mappedModel.getModelName());
-        context.setAddParams(addparams);
-
         if(system != null && !system.isEmpty()) {
-            context.setSystemPrompt(system);
             if(shouldClearContext) {
                 log.info("{}\tLLM clearing (creating new) context for name: {}", sessionId, targetContextKey);
                 context = new ChatContext(iMaxResponse);
             }
+            context.setSystemPrompt(system);
         }
+
+        context.setModel(mappedModel.getModelName());
+        context.setAddParams(addparams);
 
         if(assistant != null && !assistant.isEmpty()) {
             context.addAssistantMessage(assistant);
