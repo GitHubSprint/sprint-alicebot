@@ -1554,7 +1554,7 @@ public class AIMLProcessor {
         return response;
     }
 
-    private static String saveContext(Node node, ParseState ps) {
+    private static void saveContext(Node node, ParseState ps) {
         String contextName = getAttributeOrTagValue(node, ps, "name");
 
         if (contextName == null) {
@@ -1567,7 +1567,6 @@ public class AIMLProcessor {
 
         if (contextName == null || contextName.isEmpty() || contextName.equals(MagicStrings.unknown_property_value)) {
             log.warn("{}\tsaveContext missing or invalid target name", sessionId);
-            return "";
         }
 
         ChatContext defaultContext = ps.chatSession.llmContext.get(DEFAULT_CONTEXT_KEY);
@@ -1583,8 +1582,6 @@ public class AIMLProcessor {
             newContext.setMaxHistory(ps.chatSession.maxHistory);
             ps.chatSession.llmContext.put(contextName, newContext);
         }
-
-        return "";
     }
 
 
@@ -1596,6 +1593,9 @@ public class AIMLProcessor {
         String contextName = getAttributeOrTagValue(node, ps, "context");
         String addparams = getAttributeOrTagValue(node, ps, "addparams");
         String system = getAttributeOrTagValue(node, ps, "system");
+        String clearContext = getAttributeOrTagValue(node, ps, "clear_context");
+        boolean shouldClearContext = clearContext != null && (clearContext.equalsIgnoreCase("true"));
+
 
         if(contextName == null)
             contextName = evalTagContent(node, ps, null);
@@ -1624,9 +1624,6 @@ public class AIMLProcessor {
             assistant = evalTagContent(node, ps, null);
         else
             assistant = ps.chatSession.predicates.get(assistant);
-
-//        if(assistant == null || assistant.equals(MagicStrings.unknown_property_value) || assistant.isEmpty())
-//            assistant = ps.chatSession.lastResponse;
 
 
         if(model == null)
@@ -1673,28 +1670,31 @@ public class AIMLProcessor {
 
         if (context == null) {
             log.info("{}\tLLM creating new context for name: {}", sessionId, targetContextKey);
-            context = new ChatContext();
-            context.setMaxHistory(iMaxResponse);
+            context = new ChatContext(iMaxResponse);
             ps.chatSession.llmContext.put(targetContextKey, context);
         } else {
             log.info("{}\tLLM get context name: {}", sessionId, targetContextKey);
         }
 
-
-        log.debug("{} LLM Context before request: {}", sessionId, context);
+        if(shouldClearContext) {
+            log.info("{}\tLLM clearing (creating new) context for name: {}", sessionId, targetContextKey);
+            context = new ChatContext(iMaxResponse);
+        }
 
         context.setModel(mappedModel.getModelName());
         context.setAddParams(addparams);
-
-        if(assistant != null && !assistant.isEmpty()) {
-            context.addAssistantMessage(assistant);
-        }
 
         if(system != null && !system.isEmpty()) {
             context.setSystemPrompt(system);
         }
 
+        if(assistant != null && !assistant.isEmpty()) {
+            context.addAssistantMessage(assistant);
+        }
+
         context.addUserMessage(user);
+
+        log.debug("{} LLM Context before request: {}", sessionId, context);
 
         String responseText = switch (mappedModel.getLlmType()) {
             case GPT -> gpt(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId);
@@ -2627,10 +2627,10 @@ public class AIMLProcessor {
                 return llm(node, ps);
             else if (nodeName.equals("llm")) //sprint
                 return llm(node, ps);
-//            else if (nodeName.equals("gemini")) //sprint
-//                return gemini(node, ps);
-            else if (nodeName.equals("save-context")) //sprint
-                return saveContext(node, ps);
+            else if (nodeName.equals("save-context")) {
+                saveContext(node, ps);
+                return "";
+            }
             else if (nodeName.equals("predictf")) //sprint
                 return ml(node, ps);
             else if (nodeName.equals("ml")) //sprint

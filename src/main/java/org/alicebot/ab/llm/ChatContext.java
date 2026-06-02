@@ -24,6 +24,10 @@ public class ChatContext {
         }
     }
 
+    public ChatContext(int maxHistory) {
+        this.maxHistory = maxHistory;
+    }
+
     public ChatContext() {}
 
     public void setSystemPrompt(String systemPrompt) {
