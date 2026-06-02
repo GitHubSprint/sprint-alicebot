@@ -1594,8 +1594,8 @@ public class AIMLProcessor {
         String addparams = getAttributeOrTagValue(node, ps, "addparams");
         String system = getAttributeOrTagValue(node, ps, "system");
         String clearContext = getAttributeOrTagValue(node, ps, "clear_context");
-        boolean shouldClearContext = clearContext != null && (clearContext.equalsIgnoreCase("true"));
 
+        boolean shouldClearContext = !"false".equalsIgnoreCase(clearContext);
 
         if(contextName == null)
             contextName = evalTagContent(node, ps, null);
@@ -1676,16 +1676,16 @@ public class AIMLProcessor {
             log.info("{}\tLLM get context name: {}", sessionId, targetContextKey);
         }
 
-        if(shouldClearContext) {
-            log.info("{}\tLLM clearing (creating new) context for name: {}", sessionId, targetContextKey);
-            context = new ChatContext(iMaxResponse);
-        }
 
         context.setModel(mappedModel.getModelName());
         context.setAddParams(addparams);
 
         if(system != null && !system.isEmpty()) {
             context.setSystemPrompt(system);
+            if(shouldClearContext) {
+                log.info("{}\tLLM clearing (creating new) context for name: {}", sessionId, targetContextKey);
+                context = new ChatContext(iMaxResponse);
+            }
         }
 
         if(assistant != null && !assistant.isEmpty()) {
