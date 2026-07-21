@@ -2,6 +2,7 @@ package org.alicebot.ab.llm;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.alicebot.ab.MagicStrings;
 import org.alicebot.ab.exception.InternalServerException;
@@ -49,29 +50,66 @@ public class LLMService {
         client = createHttpClient(LLMConfiguration.timeout, version);
     }
 
-    public static String chatGpt(String json, String token) throws Exception {
+    public static String chatGpt(String json, String token, String rag) throws Exception {
         if(LLMConfiguration.gptApiUrl == null || token == null) {
             logger.warn("chatGpt invalid llmConfiguration: {}", LLMConfiguration.gptApiUrl);
             throw new InternalServerException(invalid_llm_configuration);
         }
 
         String report = "";
-        int idxReport = json.indexOf("{\"report\":");
-        if(idxReport >= 0) {
-            CustomReport customReport = mapper.readValue(json.substring(idxReport), CustomReport.class);
-            if(customReport != null) {
-                report = mapper.writeValueAsString(customReport);
+        String requestBody = json;
+
+        try {
+            JsonNode rootInputNode = mapper.readTree(json);
+            boolean isModified = false;
+            if (rootInputNode instanceof ObjectNode objectNode) {
+                if (objectNode.has("report")) {
+                    JsonNode reportNode = objectNode.get("report");
+                    report = mapper.writeValueAsString(mapper.treeToValue(reportNode, CustomReport.class));
+                    objectNode.remove("report");
+                    isModified = true;
+                }
+                if (rag != null && !rag.isBlank()) {
+                    ArrayNode messagesNode = (ArrayNode) objectNode.get("messages");
+
+                    if (messagesNode != null) {
+                        boolean systemFound = false;
+
+                        for (JsonNode msg : messagesNode) {
+                            if ("system".equals(msg.path("role").asText())) {
+                                String currentContent = msg.path("content").asText("");
+                                String updatedContent = currentContent + "\n\nContext:\n" + rag;
+                                ((ObjectNode) msg).put("content", updatedContent);
+                                systemFound = true;
+                                break;
+                            }
+                        }
+
+                        if (!systemFound) {
+                            ObjectNode systemMsg = mapper.createObjectNode();
+                            systemMsg.put("role", "system");
+                            systemMsg.put("content", "Context:\n" + rag);
+                            messagesNode.insert(0, systemMsg);
+                        }
+
+                        isModified = true;
+                    }
+                }
+                if (isModified) {
+                    requestBody = mapper.writeValueAsString(objectNode);
+                }
             }
-            json = json.substring(0,idxReport);
+        } catch (Exception e) {
+            logger.warn("chatGpt problem modifying input JSON, sending original: {}", e.getMessage());
         }
 
-        logger.info("chatGpt URI: {} json: \n\n{}\n\n", LLMConfiguration.gptApiUrl, json);
+        logger.info("chatGpt URI: {} json: \n\n{}\n\n", LLMConfiguration.gptApiUrl, requestBody);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(LLMConfiguration.gptApiUrl.trim()))
                 .header("Authorization", "Bearer " + token)
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
                 .build();
 
 
@@ -80,7 +118,7 @@ public class LLMService {
         logger.debug("chatGpt httpResponse statusCode: {}, body: {}", httpResponse.statusCode(), httpResponse.body());
 
         if (httpResponse.statusCode() != 200) {
-            logger.error("Błąd API GPT! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            logger.error("GPT API error! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
             return MagicStrings.error_bot_response();
         }
 
@@ -98,7 +136,7 @@ public class LLMService {
         return MagicStrings.error_bot_response();
     }
 
-    public static String chatGemini(String json, String token, String model) throws Exception {
+    public static String chatGemini(String json, String token, String model, String rag) throws Exception {
         if (LLMConfiguration.geminiApiUrl == null || token == null) {
             logger.warn("chatGemini invalid llmConfiguration: {}", LLMConfiguration.geminiApiUrl);
             throw new InternalServerException(invalid_llm_configuration);
@@ -118,6 +156,42 @@ public class LLMService {
                     isModified = true;
                 }
 
+                if (rag != null && !rag.isBlank()) {
+                    ObjectNode systemInstruction;
+
+                    if (objectNode.has("systemInstruction")) {
+                        systemInstruction = (ObjectNode) objectNode.get("systemInstruction");
+                    } else {
+                        systemInstruction = mapper.createObjectNode();
+                        objectNode.set("systemInstruction", systemInstruction);
+                    }
+
+                    ArrayNode partsNode;
+                    if (systemInstruction.has("parts") && systemInstruction.get("parts").isArray()) {
+                        partsNode = (ArrayNode) systemInstruction.get("parts");
+                    } else {
+                        partsNode = mapper.createArrayNode();
+                        systemInstruction.set("parts", partsNode);
+                    }
+
+                    String existingText = "";
+                    if (!partsNode.isEmpty() && partsNode.get(0).has("text")) {
+                        existingText = partsNode.get(0).get("text").asText();
+                    }
+
+                    String updatedText = existingText.isBlank()
+                            ? "Context:\n" + rag
+                            : existingText + "\n\nContext:\n" + rag;
+
+                    ObjectNode textPart = mapper.createObjectNode();
+                    textPart.put("text", updatedText);
+
+                    partsNode.removeAll(); // czyszczenie starych parts
+                    partsNode.add(textPart);
+
+                    isModified = true;
+                }
+
                 if (objectNode.has("modelname")) {
                     objectNode.remove("modelname");
                     isModified = true;
@@ -127,15 +201,14 @@ public class LLMService {
                 }
             }
         } catch (Exception e) {
-            logger.warn("Nie udało się zmodyfikować wejściowego JSON-a, wysyłam oryginał: {}", e.getMessage());
+            logger.warn("Failed to modify input JSON, sending original: {}", e.getMessage());
         }
 
         String baseUrl = LLMConfiguration.geminiApiUrl.trim();
         String fullUrl = String.format("%s/%s:generateContent?key=%s", baseUrl, model, token);
 
-        if (logger.isInfoEnabled()) {
-            logger.info("chatGemini request to URL: {}/{}:generateContent with body: \n{}\n", baseUrl, model, requestBody);
-        }
+        logger.info("chatGemini request to URL: {}/{}:generateContent with body: \n\n{}\n\n", baseUrl, model, requestBody);
+
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(fullUrl))
@@ -146,7 +219,7 @@ public class LLMService {
         HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
         if (httpResponse.statusCode() != 200) {
-            logger.error("Błąd API Gemini! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            logger.error("Gemini API error! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
             return MagicStrings.error_bot_response();
         }
 
@@ -161,44 +234,80 @@ public class LLMService {
                     return textResponse + report;
                 }
             }
-
-            logger.warn("Odpowiedź Gemini ma nieprawidłową strukturę: {}", httpResponse.body());
+            logger.warn("Gemini response has an invalid structure: {}", httpResponse.body());
         } catch (Exception e) {
-            logger.error("Błąd podczas parsowania odpowiedzi Gemini: {}", e.getMessage(), e);
+            logger.error("Error parsing Gemini response: {}", e.getMessage(), e);
         }
 
         return MagicStrings.error_bot_response();
     }
 
 
-    public static String chatOllama(String json) throws Exception {
+    public static String chatOllama(String json, String rag) throws Exception {
         if(LLMConfiguration.ollamaApiUrl == null) {
             logger.warn("chatOllama invalid llmConfiguration!");
             throw new InternalServerException(invalid_llm_configuration);
         }
 
-        logger.info("chatOllama json: \n{}\n", json);
-
         String report = "";
-        int idxReport = json.indexOf("{\"report\":");
-        if(idxReport >= 0) {
-            CustomReport customReport = mapper.readValue(json.substring(idxReport), CustomReport.class);
-            if(customReport != null) {
-                report = mapper.writeValueAsString(customReport);
+        String requestBody = json;
+
+        try {
+            JsonNode rootInputNode = mapper.readTree(json);
+            boolean isModified = false;
+            if (rootInputNode instanceof ObjectNode objectNode) {
+                if (objectNode.has("report")) {
+                    JsonNode reportNode = objectNode.get("report");
+                    report = mapper.writeValueAsString(mapper.treeToValue(reportNode, CustomReport.class));
+                    objectNode.remove("report");
+                    isModified = true;
+                }
+                if (rag != null && !rag.isBlank()) {
+                    ArrayNode messagesNode = (ArrayNode) objectNode.get("messages");
+                    if (messagesNode != null) {
+                        boolean systemFound = false;
+
+                        for (JsonNode msg : messagesNode) {
+                            if ("system".equals(msg.path("role").asText())) {
+                                String currentContent = msg.path("content").asText("");
+                                String updatedContent = currentContent + "\n\nContext:\n" + rag;
+                                ((ObjectNode) msg).put("content", updatedContent);
+                                systemFound = true;
+                                break;
+                            }
+                        }
+
+                        if (!systemFound) {
+                            ObjectNode systemMsg = mapper.createObjectNode();
+                            systemMsg.put("role", "system");
+                            systemMsg.put("content", "Context:\n" + rag);
+                            messagesNode.insert(0, systemMsg);
+                        }
+
+                        isModified = true;
+                    }
+                }
+                if (isModified) {
+                    requestBody = mapper.writeValueAsString(objectNode);
+                }
             }
-            json = json.substring(0,idxReport);
+        } catch (Exception e) {
+            logger.warn("chatOllama problem modifying input JSON, sending original: {}", e.getMessage());
         }
+
+
+        logger.info("chatOllama URI: {} json: \n\n{}\n\n", LLMConfiguration.ollamaApiUrl, requestBody);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(URI.create(LLMConfiguration.ollamaApiUrl))
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8))
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
                 .build();
 
         HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
 
         if (httpResponse.statusCode() != 200) {
-            logger.error("Błąd API OLLAMA! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            logger.error("OLLAMA API error! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
             return MagicStrings.error_bot_response();
         }
 
@@ -210,9 +319,5 @@ public class LLMService {
             return response.getMessage().getContent() + report;
         }
         return MagicStrings.error_bot_response();
-    }
-
-    private static boolean isNull(String test){
-        return test == null || test.isEmpty();
     }
 }

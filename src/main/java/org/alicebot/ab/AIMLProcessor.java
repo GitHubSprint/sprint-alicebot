@@ -38,7 +38,6 @@ import org.alicebot.ab.model.Param;
 import org.alicebot.ab.model.SayResponse;
 import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
 import org.alicebot.ab.model.block.Block;
-import org.alicebot.ab.model.block.LlmType;
 import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
@@ -1595,6 +1594,8 @@ public class AIMLProcessor {
         String system = getAttributeOrTagValue(node, ps, "system");
         String clearContext = getAttributeOrTagValue(node, ps, "clear_context");
 
+        String rag = getAttributeOrTagValue(node, ps, "rag");
+
         boolean shouldClearContext = !"false".equalsIgnoreCase(clearContext);
 
         if(contextName == null)
@@ -1634,6 +1635,20 @@ public class AIMLProcessor {
         if(model == null || model.equals(MagicStrings.unknown_property_value) || model.isEmpty()) {
             return "ERR|LLM Invalid model";
         }
+
+
+        if(rag == null)
+            rag = evalTagContent(node, ps, null);
+        else
+            rag = ps.chatSession.predicates.get(rag);
+
+
+        if(rag.equalsIgnoreCase(MagicStrings.unknown_property_value) || rag.isEmpty()) {
+            rag = null;
+        }
+
+        log.info("{}\tllm Requested model: {} symbol: {} rag: {} ", sessionId, model, ps.chatSession.symbol, shorten(rag));
+
         final String finalModel = model;
         final String symbol = ps.chatSession.symbol;
         log.info("{}\tllm Requested model: {} symbol: {} ", sessionId, finalModel, symbol);
@@ -1696,9 +1711,9 @@ public class AIMLProcessor {
         log.debug("{} LLM Context before request: {}", sessionId, context);
 
         String responseText = switch (mappedModel.getLlmType()) {
-            case GPT -> gpt(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId);
-            case OLLAMA -> ollama(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId);
-            case GEMINI -> gemini(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId);
+            case GPT -> gpt(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
+            case OLLAMA -> ollama(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
+            case GEMINI -> gemini(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
         };
         ps.chatSession.llmContext.put(targetContextKey, context);
         return responseText;
@@ -1714,19 +1729,16 @@ public class AIMLProcessor {
                               String assistant,
                               String addParams,
                               int iMaxResponse,
-                              String sessionId) throws Exception
+                              String sessionId,
+                              String rag) throws Exception
     {
-
 
         String botname = ps.chatSession.bot.name;
 
         log.info("{}\tGPT botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} ",
                 sessionId, botname, iMaxResponse, model, addParams, user, shorten(system), shorten(assistant));
 
-
         JSONObject request = GenAIHelper.buildGptRequest(context, model, addParams);
-
-
 
         int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
                 10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
@@ -1739,7 +1751,9 @@ public class AIMLProcessor {
             log.info("{}\tGPT new timeout: {} httpVersion: {}", sessionId, timeout, httpVersion);
         }
 
-        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatGpt(request.toString(), LLMConfiguration.gptTokens.get(botname)));
+        String gptResponse = LLMService.chatGpt(request.toString(), LLMConfiguration.gptTokens.get(botname), rag);
+
+        String response = aiCheckResponse(ps.chatSession.channel, gptResponse);
         ps.chatSession.lastResponse = response;
 
         context.addAssistantMessage(response);
@@ -1758,12 +1772,13 @@ public class AIMLProcessor {
                                  String assistant,
                                  String addParams,
                                  int iMaxResponse,
-                                 String sessionId) throws Exception
+                                 String sessionId,
+                                 String rag) throws Exception
     {
         String botname = ps.chatSession.bot.name;
 
-        log.info("{}\tOLLAMA botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} ",
-                sessionId, botname, iMaxResponse, model, addParams, user, shorten(system), shorten(assistant));
+        log.info("{}\tOLLAMA botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} \nRAG: {}",
+                sessionId, botname, iMaxResponse, model, addParams, user, shorten(system), shorten(assistant), shorten(rag));
 
         JSONObject request = GenAIHelper.buildOllamaRequest(context, model, false, addParams);
 
@@ -1778,7 +1793,10 @@ public class AIMLProcessor {
             LLMService.setParameters(timeout, httpVersion);
             log.info("{}\tOLLAMA new timeout: {} httpVersion: {}", sessionId, timeout, httpVersion);
         }
-        String response = aiCheckResponse(ps.chatSession.channel, LLMService.chatOllama(request.toString()));
+
+        String ollamaResponse = LLMService.chatOllama(request.toString(), rag);
+
+        String response = aiCheckResponse(ps.chatSession.channel, ollamaResponse);
         ps.chatSession.lastResponse = response;
 
         log.info("{}\tOLLAMA response: \n{}", sessionId,response);
@@ -1787,7 +1805,17 @@ public class AIMLProcessor {
 
     }
 
-    private static String gemini(ParseState ps, ChatContext context, String model, String user, String system, String assistant, String addParams, int iMaxResponse, String sessionId) throws Exception {
+    private static String gemini(ParseState ps,
+                                 ChatContext context,
+                                 String model,
+                                 String user,
+                                 String system,
+                                 String assistant,
+                                 String addParams,
+                                 int iMaxResponse,
+                                 String sessionId,
+                                 String rag) throws Exception
+    {
         String botname = ps.chatSession.bot.name;
         log.info("{}\tGEMINI botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} ",
                 sessionId, botname, iMaxResponse, model, addParams, user, shorten(system), shorten(assistant));
@@ -1807,7 +1835,7 @@ public class AIMLProcessor {
 
 
         String apiKey = LLMConfiguration.geminiTokens.get(botname);
-        String rawResponse = LLMService.chatGemini(request.toString(), apiKey, model);
+        String rawResponse = LLMService.chatGemini(request.toString(), apiKey, model, rag);
         String response = aiCheckResponse(ps.chatSession.channel, rawResponse);
 
         ps.chatSession.lastResponse = response;

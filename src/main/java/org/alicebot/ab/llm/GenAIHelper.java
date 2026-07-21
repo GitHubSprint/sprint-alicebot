@@ -82,13 +82,12 @@ public class GenAIHelper {
 
         JSONArray contents = new JSONArray();
         for (ChatContext.ChatMessage msg : context.getMessages()) {
-            // Gemini używa "model" zamiast "assistant"
             String roleStr = msg.role() == ChatContext.Role.ASSISTANT ? "model" : "user";
             contents.put(new JSONObject().put("role", roleStr).put("parts",
                     new JSONArray().put(new JSONObject().put("text", msg.content()))));
         }
 
-        if (contents.length() > 0) {
+        if (!contents.isEmpty()) {
             jsonRequest.put("contents", contents);
         }
 
