@@ -1799,6 +1799,8 @@ public class AIMLProcessor {
         String response = aiCheckResponse(ps.chatSession.channel, ollamaResponse);
         ps.chatSession.lastResponse = response;
 
+        context.addAssistantMessage(response);
+
         log.info("{}\tOLLAMA response: \n{}", sessionId,response);
 
         return response;
@@ -1839,6 +1841,9 @@ public class AIMLProcessor {
         String response = aiCheckResponse(ps.chatSession.channel, rawResponse);
 
         ps.chatSession.lastResponse = response;
+
+        context.addAssistantMessage(response);
+
         log.info("{}\tGEMINI final response: \n{}", sessionId,response);
 
         return response;
