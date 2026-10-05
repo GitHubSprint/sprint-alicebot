@@ -174,6 +174,7 @@ public class AIMLProcessor {
     }
 
     public static int sraiCount = 0;
+    private static final ThreadLocal<Integer> sraiCountThreadLocal = ThreadLocal.withInitial(() -> 0);
     public static int repeatCount = 0;
     // Helper functions:
     public static int checkForRepeat(String input, Chat chatSession) {
@@ -210,18 +211,27 @@ public class AIMLProcessor {
         String response;
         if (input == null || input.isEmpty()) input = MagicStrings.null_input;
         sraiCount = srCnt;
+        int previousSrCnt = sraiCountThreadLocal.get();
+        sraiCountThreadLocal.set(srCnt);
         response = MagicStrings.default_bot_response();
         
          try {
-            Nodemapper leaf = chatSession.bot.brain.match(input, that, topic);
-            if (leaf == null) {return(response);}
+            MatchResult matchResult = chatSession.bot.brain.matchWithBindings(input, that, topic);
+            if (matchResult == null || matchResult.getNode() == null) {return(response);}
+            Nodemapper leaf = matchResult.getNode();
             //log.info("Template="+leaf.category.getTemplate());
-            ParseState ps = new ParseState(0, chatSession, input, that, topic, leaf);
+            ParseState ps = new ParseState(0, chatSession, input, that, topic, leaf, matchResult.getStarBindings());
             //chatSession.matchTrace += leaf.category.getTemplate()+"\n";
             response = evalTemplate(leaf.category.getTemplate(), ps);
             //log.info("That="+that);
         } catch (Exception ex) {
              log.error("respond Error", ex);
+        } finally {
+            if (srCnt == 0) {
+                sraiCountThreadLocal.remove();
+            } else {
+                sraiCountThreadLocal.set(previousSrCnt);
+            }
         }
         return response;
     }
@@ -339,8 +349,10 @@ public class AIMLProcessor {
      *
      */
     private static String srai(Node node, ParseState ps) {
-        sraiCount++;
-        if (sraiCount > MagicNumbers.max_recursion) 
+        int currentCount = sraiCountThreadLocal.get() + 1;
+        sraiCountThreadLocal.set(currentCount);
+        sraiCount = currentCount;
+        if (currentCount > MagicNumbers.max_recursion) 
         {            
             return MagicStrings.too_much_recursion();
         }
@@ -355,10 +367,11 @@ public class AIMLProcessor {
                 log.info(trace_count+". <srai>"+result+"</srai> from "+ps.leaf.category.inputThatTopic()+" topic="+topic+") ");
                 trace_count++;
             }
-            Nodemapper leaf = ps.chatSession.bot.brain.match(result, ps.that, topic);
-            if (leaf == null) {return(response);}
+            MatchResult matchResult = ps.chatSession.bot.brain.matchWithBindings(result, ps.that, topic);
+            if (matchResult == null || matchResult.getNode() == null) {return(response);}
+            Nodemapper leaf = matchResult.getNode();
             //log.info("Srai returned "+leaf.category.inputThatTopic()+":"+leaf.category.getTemplate());
-            response = evalTemplate(leaf.category.getTemplate(), new ParseState(ps.depth+1, ps.chatSession, ps.input, ps.that, topic, leaf));
+            response = evalTemplate(leaf.category.getTemplate(), new ParseState(ps.depth+1, ps.chatSession, ps.input, ps.that, topic, leaf, matchResult.getStarBindings()));
             //log.info("That="+that);
         } catch (Exception ex) {
             log.error("srai Error", ex);
@@ -2023,11 +2036,24 @@ public class AIMLProcessor {
      * @param ps       AIML parse state
      * @return         the word sequence matching a wildcard
      */
+    private static StarBindings getStarBindings(ParseState ps) {
+        if (ps != null) {
+            if (ps.starBindings != null) {
+                return ps.starBindings;
+            }
+            if (ps.leaf != null && ps.leaf.starBindings != null) {
+                return ps.leaf.starBindings;
+            }
+        }
+        return null;
+    }
+
     private static String inputStar(Node node, ParseState ps) {
         int index=getIndexValue(node, ps);
 //        log.info(ps.chatSession.sessionId + " inputStar index: " + index);
-        if (ps.leaf.starBindings.inputStars.star(index)==null) return "";
-        else return ps.leaf.starBindings.inputStars.star(index).trim();
+        StarBindings sb = getStarBindings(ps);
+        if (sb == null || sb.inputStars == null || sb.inputStars.star(index)==null) return "";
+        else return sb.inputStars.star(index).trim();
     }
     /**
      * implements {@code <thatstar index="N"/>}
@@ -2039,8 +2065,9 @@ public class AIMLProcessor {
      */
     private static String thatStar(Node node, ParseState ps) {
         int index=getIndexValue(node, ps);
-        if (ps.leaf.starBindings.thatStars.star(index)==null) return "";
-        else return ps.leaf.starBindings.thatStars.star(index).trim();
+        StarBindings sb = getStarBindings(ps);
+        if (sb == null || sb.thatStars == null || sb.thatStars.star(index)==null) return "";
+        else return sb.thatStars.star(index).trim();
     }
     /**
      * implements <topicstar/> and <topicstar index="N"/>
@@ -2052,8 +2079,9 @@ public class AIMLProcessor {
      */
     private static String topicStar(Node node, ParseState ps) {
         int index=getIndexValue(node, ps);
-        if (ps.leaf.starBindings.topicStars.star(index)==null) return "";
-        else return ps.leaf.starBindings.topicStars.star(index).trim();
+        StarBindings sb = getStarBindings(ps);
+        if (sb == null || sb.topicStars == null || sb.topicStars.star(index)==null) return "";
+        else return sb.topicStars.star(index).trim();
     }
 
     /**
@@ -2299,7 +2327,10 @@ public class AIMLProcessor {
         String result;
         if (node.hasChildNodes())
           result = evalTagContent(node, ps, null);
-        else result = ps.leaf.starBindings.inputStars.star(0);   // for <person/>
+        else {
+            StarBindings sb = getStarBindings(ps);
+            result = (sb != null && sb.inputStars != null && sb.inputStars.star(0) != null) ? sb.inputStars.star(0) : "";
+        }
         result = " "+result+" ";
         result = ps.chatSession.bot.preProcessor.person(result);
         return result.trim();
@@ -2316,7 +2347,10 @@ public class AIMLProcessor {
         String result;
         if (node.hasChildNodes())
             result = evalTagContent(node, ps, null);
-        else result = ps.leaf.starBindings.inputStars.star(0);   // for <person2/>
+        else {
+            StarBindings sb = getStarBindings(ps);
+            result = (sb != null && sb.inputStars != null && sb.inputStars.star(0) != null) ? sb.inputStars.star(0) : "";
+        }
         result = " "+result+" ";
         result = ps.chatSession.bot.preProcessor.person2(result);
         return result.trim();
@@ -2626,8 +2660,11 @@ public class AIMLProcessor {
                 return loopCondition(node, ps);
             else if (nodeName.equals("srai"))
                 return srai(node, ps);
-            else if (nodeName.equals("sr"))
-                  return respond(ps.leaf.starBindings.inputStars.star(0), ps.that, ps.topic, ps.chatSession, sraiCount);
+            else if (nodeName.equals("sr")) {
+                StarBindings sb = getStarBindings(ps);
+                String star0 = (sb != null && sb.inputStars != null && sb.inputStars.star(0) != null) ? sb.inputStars.star(0) : "";
+                return respond(star0, ps.that, ps.topic, ps.chatSession, sraiCountThreadLocal.get());
+            }
 //            else if (nodeName.equals("sraix"))
 //                return sraix(node, ps);
             else if (nodeName.equals("set"))

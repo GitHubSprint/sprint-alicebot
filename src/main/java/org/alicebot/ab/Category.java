@@ -185,7 +185,7 @@ public class Category {
      *
      * @param input      matching input
      */
-    public void addMatch (String input) {
+    public synchronized void addMatch (String input) {
         if (matches == null) {
             String setName = this.inputThatTopic().replace("*", "STAR").replace("_", "UNDERSCORE").replace(" ","-").replace("<THAT>","THAT").replace("<TOPIC>","TOPIC");
            // log.info("Created match set "+setName);

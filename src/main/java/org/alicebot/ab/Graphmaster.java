@@ -216,64 +216,75 @@ public class Graphmaster {
      * @param topic              current topic
      * @return                   matching leaf node or null if no match is found
      */
-    public final Nodemapper match(String input, String that, String topic) {
-        Nodemapper n = null;
+    public final MatchResult matchWithBindings(String input, String that, String topic) {
+        MatchResult result = null;
         try {
-         String inputThatTopic = inputThatTopic(input, that, topic);
-         //log.info("Matching: "+inputThatTopic);
-         Path p = Path.sentenceToPath(inputThatTopic);
-         //p.print();
-         n = match(p, inputThatTopic);
-         if (MagicBooleans.trace_mode) {
-             if (n != null) {
-                log.debug("Matched: "+n.category.inputThatTopic()+" "+n.category.getFilename());
-             }
-             else log.debug("No match.");
-         }
+            String inputThatTopic = inputThatTopic(input, that, topic);
+            Path p = Path.sentenceToPath(inputThatTopic);
+            result = matchWithBindings(p, inputThatTopic);
+            if (MagicBooleans.trace_mode) {
+                if (result != null && result.getNode() != null) {
+                    log.debug("Matched: "+result.getNode().category.inputThatTopic()+" "+result.getNode().category.getFilename());
+                }
+                else log.debug("No match.");
+            }
         } catch (Exception ex) {
             log.error("match Error", ex);
-            n = null;
+            result = null;
         }
         if (MagicBooleans.trace_mode && Chat.matchTrace.length() < MagicNumbers.max_trace_length) {
-            if (n != null) {
-				Chat.setMatchTrace(Chat.matchTrace + n.category.inputThatTopic()+"\n");
-			}
+            if (result != null && result.getNode() != null) {
+                Chat.setMatchTrace(Chat.matchTrace + result.getNode().category.inputThatTopic()+"\n");
+            }
         }
-        return n;
+        return result;
     }
 
-    /**
-     * Find the matching leaf node given a path of the form "{@code input <THAT> that <TOPIC> topic}"
-     * @param path
-     * @param inputThatTopic
-     * @return  matching leaf node or null if no match is found
-     */
-    final Nodemapper match(Path path, String inputThatTopic) {
+    final MatchResult matchWithBindings(Path path, String inputThatTopic) {
         try {
-        String[] inputStars = new String[MagicNumbers.max_stars];
-        String[] thatStars = new String[MagicNumbers.max_stars];
-        String[] topicStars = new String[MagicNumbers.max_stars];
-        String starState = "inputStar";
-        String matchTrace = "";
-        
-        if(MagicBooleans.trace_mode)
-            log.debug("match: " + inputThatTopic);
-        
-        Nodemapper n = match(path, root, inputThatTopic, starState, 0, inputStars, thatStars, topicStars, matchTrace);
-        if (n != null) {
-            StarBindings sb = new StarBindings();
-            for (int i=0; inputStars[i] != null && i < MagicNumbers.max_stars; i++) sb.inputStars.add(inputStars[i]);
-            for (int i=0; thatStars[i] != null && i < MagicNumbers.max_stars; i++) sb.thatStars.add(thatStars[i]);
-            for (int i=0; topicStars[i] != null && i < MagicNumbers.max_stars; i++) sb.topicStars.add(topicStars[i]);
-            n.starBindings = sb;
-        }
-        //if (!n.category.getPattern().contains("*")) log.info("adding match "+inputThatTopic);
-        if (n != null) n.category.addMatch(inputThatTopic);
-        return n;
+            String[] inputStars = new String[MagicNumbers.max_stars];
+            String[] thatStars = new String[MagicNumbers.max_stars];
+            String[] topicStars = new String[MagicNumbers.max_stars];
+            String starState = "inputStar";
+            String matchTrace = "";
+
+            if(MagicBooleans.trace_mode)
+                log.debug("match: " + inputThatTopic);
+
+            Nodemapper n = match(path, root, inputThatTopic, starState, 0, inputStars, thatStars, topicStars, matchTrace);
+            if (n != null) {
+                StarBindings sb = new StarBindings();
+                for (int i=0; inputStars[i] != null && i < MagicNumbers.max_stars; i++) sb.inputStars.add(inputStars[i]);
+                for (int i=0; thatStars[i] != null && i < MagicNumbers.max_stars; i++) sb.thatStars.add(thatStars[i]);
+                for (int i=0; topicStars[i] != null && i < MagicNumbers.max_stars; i++) sb.topicStars.add(topicStars[i]);
+                n.category.addMatch(inputThatTopic);
+                return new MatchResult(n, sb);
+            }
+            return null;
         } catch (Exception ex) {
             log.error("match Error", ex);
             return null;
         }
+    }
+
+    public final Nodemapper match(String input, String that, String topic) {
+        MatchResult mr = matchWithBindings(input, that, topic);
+        if (mr != null) {
+            Nodemapper n = mr.getNode();
+            n.starBindings = mr.getStarBindings();
+            return n;
+        }
+        return null;
+    }
+
+    final Nodemapper match(Path path, String inputThatTopic) {
+        MatchResult mr = matchWithBindings(path, inputThatTopic);
+        if (mr != null) {
+            Nodemapper n = mr.getNode();
+            n.starBindings = mr.getStarBindings();
+            return n;
+        }
+        return null;
     }
 
     /**

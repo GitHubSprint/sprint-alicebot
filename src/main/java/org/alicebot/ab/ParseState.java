@@ -29,6 +29,7 @@ public class ParseState {
     public Chat chatSession;
     public int depth;
     public Predicates vars;
+    public StarBindings starBindings;
 
      /**
       * Constructor - class has public members
@@ -41,6 +42,10 @@ public class ParseState {
       * @param leaf          node containing the category processed
       */
     public ParseState(int depth, Chat chatSession, String input, String that, String topic, Nodemapper leaf) {
+        this(depth, chatSession, input, that, topic, leaf, leaf != null ? leaf.starBindings : null);
+    }
+
+    public ParseState(int depth, Chat chatSession, String input, String that, String topic, Nodemapper leaf, StarBindings starBindings) {
         this.chatSession = chatSession;
         this.input = input;
         this.that = that;
@@ -48,5 +53,6 @@ public class ParseState {
         this.leaf = leaf;
         this.depth = depth;  // to prevent runaway recursion
         this.vars = new Predicates();
+        this.starBindings = starBindings != null ? starBindings : (leaf != null ? leaf.starBindings : null);
     }
 }
