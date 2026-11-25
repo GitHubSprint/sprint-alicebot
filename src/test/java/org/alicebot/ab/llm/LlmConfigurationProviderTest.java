@@ -60,6 +60,65 @@ public class LlmConfigurationProviderTest {
         assertThrows(InternalServerException.class, () -> LLMService.chatGemini("{}", new LlmProviderConfig(null, "key", 15), "gemini-2.0-flash", null));
         assertThrows(InternalServerException.class, () -> LLMService.chatOllama("{}", new LlmProviderConfig("   ", 15), null));
         assertThrows(InternalServerException.class, () -> LLMService.chatVllm("{}", new LlmProviderConfig("   ", 15), null));
+        assertThrows(InternalServerException.class, () -> LLMService.chatVertexAi("{}", new LlmProviderConfig("https://europe-central2-aiplatform.googleapis.com", null, 15), "gemini-2.5-flash", null));
+    }
+
+    @Test
+    public void testVertexAiUsesBearerAuthorizationHeader() throws Exception {
+        AtomicReference<String> receivedAuthHeader = new AtomicReference<>();
+        AtomicReference<String> receivedQuery = new AtomicReference<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/projects/demo/locations/europe-central2/publishers/google/models/gemini-2.5-flash:generateContent", exchange -> {
+            receivedAuthHeader.set(exchange.getRequestHeaders().getFirst("Authorization"));
+            receivedQuery.set(exchange.getRequestURI().getQuery());
+            String body = "{\"candidates\":[{\"content\":{\"parts\":[{\"text\":\"Hello from mock Vertex AI\"}]}}]}";
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
+        });
+        server.start();
+
+        try {
+            String baseUrl = "http://127.0.0.1:" + server.getAddress().getPort()
+                    + "/v1/projects/demo/locations/europe-central2/publishers/google/models";
+            AlicebotContext.setProvider(new StubContextProvider() {
+                @Override
+                public LlmProviderConfig getLlmProviderConfig(LlmType llmType, String botName, String symbol) {
+                    assertEquals(LlmType.VERTEX_AI, llmType);
+                    return new LlmProviderConfig(baseUrl, "ya29.mock-oauth-token", 20);
+                }
+
+                @Override
+                public AliceBotLlmModelMapper getLlmModelMapper(String modelLabel, String symbol) {
+                    if ("vertex-flash".equals(modelLabel) && "sprint".equals(symbol)) {
+                        return new AliceBotLlmModelMapper(3L, LlmType.VERTEX_AI, "gemini-2.5-flash", "vertex-flash", "desc", "sprint");
+                    }
+                    return null;
+                }
+            });
+
+            Bot bot = new Bot("testBot", System.getProperty("java.io.tmpdir"), "none");
+            bot.brain.addCategory(new Category(
+                    0,
+                    "VERTEX *",
+                    "*",
+                    "*",
+                    "<think><set name=\"model\">vertex-flash</set><set name=\"user\"><star/></set></think><llm model=\"model\" user=\"user\"/>",
+                    "test.aiml"
+            ));
+
+            Chat chat = new Chat(bot, "session-vertex", "CHAT", "sprint");
+            String response = AIMLProcessor.respond("VERTEX hi", "that", "*", chat);
+            assertEquals("Hello from mock Vertex AI", response.trim());
+            assertEquals("Bearer ya29.mock-oauth-token", receivedAuthHeader.get());
+            assertNull(receivedQuery.get());
+            assertEquals(20, chat.maxHistory);
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test

@@ -1738,6 +1738,7 @@ public class AIMLProcessor {
             case OLLAMA -> ollama(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
             case GEMINI -> gemini(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
             case VLLM -> vllm(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
+            case VERTEX_AI -> vertexAi(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
         };
         ps.chatSession.llmContext.put(targetContextKey, context);
         return responseText;
@@ -1884,6 +1885,38 @@ public class AIMLProcessor {
         context.addAssistantMessage(response);
 
         log.info("{}\tVLLM response: \n{}", sessionId, response);
+
+        return response;
+    }
+
+    private static String vertexAi(ParseState ps,
+                                   LlmProviderConfig providerConfig,
+                                   ChatContext context,
+                                   String model,
+                                   String user,
+                                   String system,
+                                   String assistant,
+                                   String addParams,
+                                   int iMaxResponse,
+                                   String sessionId,
+                                   String rag) throws Exception
+    {
+        String botname = ps.chatSession.bot.name;
+        log.info("{}\tVERTEX_AI botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} ",
+                sessionId, botname, iMaxResponse, model, addParams, user, shorten(system), shorten(assistant));
+
+        JSONObject request = GenAIHelper.buildGeminiRequest(context, model, addParams);
+
+        configureHttpClient(ps);
+
+        String rawResponse = LLMService.chatVertexAi(request.toString(), providerConfig, model, rag);
+        String response = aiCheckResponse(ps.chatSession.channel, rawResponse);
+
+        ps.chatSession.lastResponse = response;
+
+        context.addAssistantMessage(response);
+
+        log.info("{}\tVERTEX_AI final response: \n{}", sessionId, response);
 
         return response;
     }

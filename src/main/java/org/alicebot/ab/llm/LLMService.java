@@ -171,9 +171,19 @@ public class LLMService {
             throw new InternalServerException(invalid_llm_configuration);
         }
 
-        String baseUrl = config.apiUrl().trim();
-        String token = config.apiKey();
+        return chatGeminiCompatible("chatGemini", "Gemini", json, config.apiUrl().trim(), config.apiKey(), false, model, rag);
+    }
 
+    public static String chatVertexAi(String json, LlmProviderConfig config, String model, String rag) throws Exception {
+        if (config == null || config.apiUrl() == null || config.apiUrl().isBlank() || config.apiKey() == null || config.apiKey().isBlank()) {
+            logger.warn("chatVertexAi invalid llmConfiguration: {}", config != null ? config.apiUrl() : null);
+            throw new InternalServerException(invalid_llm_configuration);
+        }
+
+        return chatGeminiCompatible("chatVertexAi", "Vertex AI", json, config.apiUrl().trim(), config.apiKey(), true, model, rag);
+    }
+
+    private static String chatGeminiCompatible(String methodName, String providerLabel, String json, String baseUrl, String token, boolean useBearerAuth, String model, String rag) throws Exception {
         String report = "";
         String requestBody = json;
 
@@ -233,24 +243,28 @@ public class LLMService {
                 }
             }
         } catch (Exception e) {
-            logger.warn("Failed to modify input JSON, sending original: {}", e.getMessage());
+            logger.warn("{} failed to modify input JSON, sending original: {}", methodName, e.getMessage());
         }
 
-        String fullUrl = String.format("%s/%s:generateContent?key=%s", baseUrl, model, token);
+        String fullUrl = useBearerAuth
+                ? String.format("%s/%s:generateContent", baseUrl, model)
+                : String.format("%s/%s:generateContent?key=%s", baseUrl, model, token);
 
-        logger.info("chatGemini request to URL: {}/{}:generateContent with body: \n\n{}\n\n", baseUrl, model, requestBody);
+        logger.info("{} request to URL: {}/{}:generateContent with body: \n\n{}\n\n", methodName, baseUrl, model, requestBody);
 
-
-        HttpRequest httpRequest = HttpRequest.newBuilder()
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                 .uri(URI.create(fullUrl))
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
-                .build();
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8));
 
-        HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        if (useBearerAuth) {
+            requestBuilder.header("Authorization", "Bearer " + token);
+        }
+
+        HttpResponse<String> httpResponse = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
 
         if (httpResponse.statusCode() != 200) {
-            logger.error("Gemini API error! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            logger.error("{} API error! Status: {}, Body: {}", providerLabel, httpResponse.statusCode(), httpResponse.body());
             return MagicStrings.error_bot_response();
         }
 
@@ -265,9 +279,9 @@ public class LLMService {
                     return textResponse + report;
                 }
             }
-            logger.warn("Gemini response has an invalid structure: {}", httpResponse.body());
+            logger.warn("{} response has an invalid structure: {}", providerLabel, httpResponse.body());
         } catch (Exception e) {
-            logger.error("Error parsing Gemini response: {}", e.getMessage(), e);
+            logger.error("Error parsing {} response: {}", providerLabel, e.getMessage(), e);
         }
 
         return MagicStrings.error_bot_response();
