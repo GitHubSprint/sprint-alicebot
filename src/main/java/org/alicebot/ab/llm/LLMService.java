@@ -24,10 +24,12 @@ import static org.alicebot.ab.MagicStrings.invalid_llm_configuration;
 public class LLMService {
     private static final Logger logger = LoggerFactory.getLogger(LLMService.class);
     private static final ObjectMapper mapper = new ObjectMapper();
-    private static HttpClient client;
+    private static volatile int timeout = 10;
+    private static volatile int httpVersion = 2;
+    private static volatile HttpClient client;
 
     static {
-        client = createHttpClient(LLMConfiguration.timeout, LLMConfiguration.httpVersion);
+        client = createHttpClient(timeout, httpVersion);
     }
 
     private static HttpClient createHttpClient(int timeout, int version) {
@@ -44,17 +46,33 @@ public class LLMService {
         }
     }
 
-    public static void setParameters(int timeout, int version) {
-        LLMConfiguration.timeout = timeout;
-        LLMConfiguration.httpVersion = version;
-        client = createHttpClient(LLMConfiguration.timeout, version);
+    public static synchronized void setParameters(int newTimeout, int newVersion) {
+        timeout = newTimeout;
+        httpVersion = newVersion;
+        client = createHttpClient(newTimeout, newVersion);
     }
 
-    public static String chatGpt(String json, String token, String rag) throws Exception {
-        if(LLMConfiguration.gptApiUrl == null || token == null) {
-            logger.warn("chatGpt invalid llmConfiguration: {}", LLMConfiguration.gptApiUrl);
+    public static void ensureClientParameters(int newTimeout, int newVersion) {
+        if (timeout != newTimeout || httpVersion != newVersion) {
+            synchronized (LLMService.class) {
+                if (timeout != newTimeout || httpVersion != newVersion) {
+                    timeout = newTimeout;
+                    httpVersion = newVersion;
+                    client = createHttpClient(newTimeout, newVersion);
+                    logger.info("LLMService HTTP client updated - timeout: {}, httpVersion: {}", newTimeout, newVersion);
+                }
+            }
+        }
+    }
+
+    public static String chatGpt(String json, LlmProviderConfig config, String rag) throws Exception {
+        if (config == null || config.apiUrl() == null || config.apiUrl().isBlank() || config.apiKey() == null || config.apiKey().isBlank()) {
+            logger.warn("chatGpt invalid llmConfiguration: {}", config != null ? config.apiUrl() : null);
             throw new InternalServerException(invalid_llm_configuration);
         }
+
+        String gptApiUrl = config.apiUrl().trim();
+        String token = config.apiKey();
 
         String report = "";
         String requestBody = json;
@@ -103,10 +121,10 @@ public class LLMService {
             logger.warn("chatGpt problem modifying input JSON, sending original: {}", e.getMessage());
         }
 
-        logger.info("chatGpt URI: {} json: \n\n{}\n\n", LLMConfiguration.gptApiUrl, requestBody);
+        logger.info("chatGpt URI: {} json: \n\n{}\n\n", gptApiUrl, requestBody);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(LLMConfiguration.gptApiUrl.trim()))
+                .uri(URI.create(gptApiUrl))
                 .header("Authorization", "Bearer " + token)
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
@@ -136,11 +154,14 @@ public class LLMService {
         return MagicStrings.error_bot_response();
     }
 
-    public static String chatGemini(String json, String token, String model, String rag) throws Exception {
-        if (LLMConfiguration.geminiApiUrl == null || token == null) {
-            logger.warn("chatGemini invalid llmConfiguration: {}", LLMConfiguration.geminiApiUrl);
+    public static String chatGemini(String json, LlmProviderConfig config, String model, String rag) throws Exception {
+        if (config == null || config.apiUrl() == null || config.apiUrl().isBlank() || config.apiKey() == null || config.apiKey().isBlank()) {
+            logger.warn("chatGemini invalid llmConfiguration: {}", config != null ? config.apiUrl() : null);
             throw new InternalServerException(invalid_llm_configuration);
         }
+
+        String baseUrl = config.apiUrl().trim();
+        String token = config.apiKey();
 
         String report = "";
         String requestBody = json;
@@ -204,7 +225,6 @@ public class LLMService {
             logger.warn("Failed to modify input JSON, sending original: {}", e.getMessage());
         }
 
-        String baseUrl = LLMConfiguration.geminiApiUrl.trim();
         String fullUrl = String.format("%s/%s:generateContent?key=%s", baseUrl, model, token);
 
         logger.info("chatGemini request to URL: {}/{}:generateContent with body: \n\n{}\n\n", baseUrl, model, requestBody);
@@ -243,11 +263,13 @@ public class LLMService {
     }
 
 
-    public static String chatOllama(String json, String rag) throws Exception {
-        if(LLMConfiguration.ollamaApiUrl == null) {
+    public static String chatOllama(String json, LlmProviderConfig config, String rag) throws Exception {
+        if (config == null || config.apiUrl() == null || config.apiUrl().isBlank()) {
             logger.warn("chatOllama invalid llmConfiguration!");
             throw new InternalServerException(invalid_llm_configuration);
         }
+
+        String ollamaApiUrl = config.apiUrl().trim();
 
         String report = "";
         String requestBody = json;
@@ -296,10 +318,10 @@ public class LLMService {
         }
 
 
-        logger.info("chatOllama URI: {} json: \n\n{}\n\n", LLMConfiguration.ollamaApiUrl, requestBody);
+        logger.info("chatOllama URI: {} json: \n\n{}\n\n", ollamaApiUrl, requestBody);
 
         HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(LLMConfiguration.ollamaApiUrl))
+                .uri(URI.create(ollamaApiUrl))
                 .header("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
                 .build();

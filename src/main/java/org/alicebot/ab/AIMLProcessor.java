@@ -31,8 +31,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.alicebot.ab.llm.ChatContext;
 import org.alicebot.ab.llm.GenAIHelper;
-import org.alicebot.ab.llm.LLMConfiguration;
 import org.alicebot.ab.llm.LLMService;
+import org.alicebot.ab.llm.LlmProviderConfig;
 import org.alicebot.ab.model.Report;
 import org.alicebot.ab.model.Param;
 import org.alicebot.ab.model.SayResponse;
@@ -42,6 +42,7 @@ import org.alicebot.ab.model.feedback.Feedback;
 import org.alicebot.ab.model.say.Say;
 import org.alicebot.ab.model.say.SayButton;
 import org.alicebot.ab.model.survey.*;
+import org.alicebot.ab.utils.AlicebotContextProvider;
 import org.alicebot.ab.utils.CalendarUtils;
 import org.alicebot.ab.utils.DomUtils;
 import org.alicebot.ab.utils.IOUtils;
@@ -1666,10 +1667,13 @@ public class AIMLProcessor {
         final String symbol = ps.chatSession.symbol;
         log.info("{}\tllm Requested model: {} symbol: {} ", sessionId, finalModel, symbol);
 
-        AliceBotLlmModelMapper mappedModel = LLMConfiguration.AliceBotLlmModelMappers.stream()
-                .filter(mapper -> mapper.getModelLabel().equals(finalModel) && mapper.getSymbol().equals(symbol))
-                .findFirst()
-                .orElse(null);
+        AlicebotContextProvider provider = AlicebotContext.getProvider();
+        if (provider == null) {
+            log.error("{}\tAlicebotContextProvider is not initialized!", sessionId);
+            return "ERR|AlicebotContextProvider not configured!";
+        }
+
+        AliceBotLlmModelMapper mappedModel = provider.getLlmModelMapper(finalModel, symbol);
 
         if(mappedModel == null) {
             return "ERR|Model " + finalModel + " not configured!";
@@ -1677,10 +1681,16 @@ public class AIMLProcessor {
 
         log.info("{}\tllm Mapped model: {} llmType: {} ", sessionId, mappedModel.getModelName(), mappedModel.getLlmType());
 
+        LlmProviderConfig providerConfig = provider.getLlmProviderConfig(
+                mappedModel.getLlmType(),
+                ps.chatSession.bot.name,
+                symbol
+        );
+
         int iMaxResponse = ps.chatSession.maxHistory;
         if(iMaxResponse == 0) {
             if (max_history == null || max_history.equals(MagicStrings.unknown_property_value)) {
-                iMaxResponse = LLMConfiguration.gptMaxHistory;
+                iMaxResponse = providerConfig != null ? providerConfig.maxHistory() : 0;
             } else {
                 iMaxResponse = Integer.parseInt(max_history);
             }
@@ -1724,17 +1734,28 @@ public class AIMLProcessor {
         log.debug("{} LLM Context before request: {}", sessionId, context);
 
         String responseText = switch (mappedModel.getLlmType()) {
-            case GPT -> gpt(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
-            case OLLAMA -> ollama(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
-            case GEMINI -> gemini(ps, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
+            case GPT -> gpt(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
+            case OLLAMA -> ollama(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
+            case GEMINI -> gemini(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
         };
         ps.chatSession.llmContext.put(targetContextKey, context);
         return responseText;
 
     }
 
+    private static void configureHttpClient(ParseState ps) {
+        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
+                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
+
+        int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
+                2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
+
+        LLMService.ensureClientParameters(timeout, httpVersion);
+    }
+
 
     private static String gpt(ParseState ps,
+                              LlmProviderConfig providerConfig,
                               ChatContext context,
                               String model,
                               String user,
@@ -1753,18 +1774,9 @@ public class AIMLProcessor {
 
         JSONObject request = GenAIHelper.buildGptRequest(context, model, addParams);
 
-        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
-                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
+        configureHttpClient(ps);
 
-        int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
-                2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
-
-        if(LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
-            LLMService.setParameters(timeout, httpVersion);
-            log.info("{}\tGPT new timeout: {} httpVersion: {}", sessionId, timeout, httpVersion);
-        }
-
-        String gptResponse = LLMService.chatGpt(request.toString(), LLMConfiguration.gptTokens.get(botname), rag);
+        String gptResponse = LLMService.chatGpt(request.toString(), providerConfig, rag);
 
         String response = aiCheckResponse(ps.chatSession.channel, gptResponse);
         ps.chatSession.lastResponse = response;
@@ -1778,6 +1790,7 @@ public class AIMLProcessor {
     }
 
     private static String ollama(ParseState ps,
+                                 LlmProviderConfig providerConfig,
                                  ChatContext context,
                                  String model,
                                  String user,
@@ -1795,19 +1808,9 @@ public class AIMLProcessor {
 
         JSONObject request = GenAIHelper.buildOllamaRequest(context, model, false, addParams);
 
+        configureHttpClient(ps);
 
-        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
-                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
-
-        int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
-                2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
-
-        if(LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
-            LLMService.setParameters(timeout, httpVersion);
-            log.info("{}\tOLLAMA new timeout: {} httpVersion: {}", sessionId, timeout, httpVersion);
-        }
-
-        String ollamaResponse = LLMService.chatOllama(request.toString(), rag);
+        String ollamaResponse = LLMService.chatOllama(request.toString(), providerConfig, rag);
 
         String response = aiCheckResponse(ps.chatSession.channel, ollamaResponse);
         ps.chatSession.lastResponse = response;
@@ -1821,6 +1824,7 @@ public class AIMLProcessor {
     }
 
     private static String gemini(ParseState ps,
+                                 LlmProviderConfig providerConfig,
                                  ChatContext context,
                                  String model,
                                  String user,
@@ -1837,20 +1841,9 @@ public class AIMLProcessor {
 
         JSONObject request = GenAIHelper.buildGeminiRequest(context, model, addParams);
 
+        configureHttpClient(ps);
 
-        int timeout = Objects.equals(ps.chatSession.bot.properties.get("timeout"), MagicStrings.unknown_property_value) ?
-                10 : Integer.parseInt(ps.chatSession.bot.properties.get("timeout"));
-
-        int httpVersion = Objects.equals(ps.chatSession.bot.properties.get("http_version"), MagicStrings.unknown_property_value) ?
-                2 : Integer.parseInt(ps.chatSession.bot.properties.get("http_version"));
-        if(LLMConfiguration.timeout != timeout || LLMConfiguration.httpVersion != httpVersion) {
-            LLMService.setParameters(timeout, httpVersion);
-            log.info("{}\tGEMINI new timeout: {} httpVersion: {}", sessionId, timeout, httpVersion);
-        }
-
-
-        String apiKey = LLMConfiguration.geminiTokens.get(botname);
-        String rawResponse = LLMService.chatGemini(request.toString(), apiKey, model, rag);
+        String rawResponse = LLMService.chatGemini(request.toString(), providerConfig, model, rag);
         String response = aiCheckResponse(ps.chatSession.channel, rawResponse);
 
         ps.chatSession.lastResponse = response;
@@ -2031,8 +2024,6 @@ public class AIMLProcessor {
     /**
      * implements {@code <star index="N"/>}
      * returns the value of input words matching the Nth wildcard (or AIML Set).
-     *
-     * @param node     current XML parse node
      * @param ps       AIML parse state
      * @return         the word sequence matching a wildcard
      */

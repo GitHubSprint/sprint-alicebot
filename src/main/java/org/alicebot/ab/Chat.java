@@ -4,10 +4,12 @@ import java.io.FileWriter;
 import java.util.*;
 
 import org.alicebot.ab.llm.ChatContext;
-import org.alicebot.ab.llm.LLMConfiguration;
+import org.alicebot.ab.llm.LlmProviderConfig;
 import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
 import org.alicebot.ab.model.block.Block;
+import org.alicebot.ab.model.block.LlmType;
 import org.alicebot.ab.model.block.Node;
+import org.alicebot.ab.utils.AlicebotContextProvider;
 import org.alicebot.ab.utils.IOUtils;
 import org.alicebot.ab.utils.SprintUtils;
 import org.slf4j.Logger;
@@ -87,39 +89,48 @@ public class Chat {
 
         Block block = SprintUtils.getBlock(bot.name);
 
-        int iMaxResponse = maxHistory;
-        if(iMaxResponse == 0) {
-            iMaxResponse = LLMConfiguration.gptMaxHistory;
-        }
-
         if(block != null && !block.nodes().isEmpty()) {
-            for(Node node : block.nodes()) {
-                log.info("Chat Node: {}", node.name());
-                try {
-                    final String finalModel = node.model();
+            AlicebotContextProvider provider = AlicebotContext.getProvider();
+            if (provider == null) {
+                log.warn("{} AlicebotContextProvider is not initialized. Skipping block LLM initialization.", sessionId);
+            } else {
+                Map<LlmType, LlmProviderConfig> providerConfigCache = new EnumMap<>(LlmType.class);
+                for(Node node : block.nodes()) {
+                    log.info("Chat Node: {}", node.name());
+                    try {
+                        final String finalModel = node.model();
 
-                    AliceBotLlmModelMapper mappedModel = LLMConfiguration.AliceBotLlmModelMappers.stream()
-                            .filter(mapper -> mapper.getModelLabel().equals(finalModel) && mapper.getSymbol().equals(symbol))
-                            .findFirst()
-                            .orElse(null);
+                        AliceBotLlmModelMapper mappedModel = provider.getLlmModelMapper(finalModel, symbol);
 
-                    if(mappedModel == null) {
-                        log.warn("No model mapping found for model '{}'. Continue", finalModel);
-                        continue;
+                        if(mappedModel == null) {
+                            log.warn("No model mapping found for model '{}'. Continue", finalModel);
+                            continue;
+                        }
+
+                        int iMaxResponse = maxHistory;
+                        if(iMaxResponse == 0) {
+                            LlmProviderConfig providerConfig = providerConfigCache.computeIfAbsent(
+                                    mappedModel.getLlmType(),
+                                    type -> provider.getLlmProviderConfig(type, bot.name, symbol)
+                            );
+                            if (providerConfig != null) {
+                                iMaxResponse = providerConfig.maxHistory();
+                            }
+                        }
+
+                        ChatContext nodeContext = new ChatContext();
+                        nodeContext.setMaxHistory(iMaxResponse);
+                        nodeContext.setSystemPrompt(node.system());
+                        nodeContext.addAssistantMessage(node.assistant());
+                        nodeContext.setAddParams(node.addparams());
+                        nodeContext.setModel(mappedModel.getModelName());
+
+                        log.info("{} Chat model: {} node {} response: \n{}", sessionId, mappedModel.getLlmType().name(), node.name(), nodeContext);
+                        llmContext.put(node.name(), nodeContext);
+
+                    } catch (Exception e) {
+                        log.error("Chat error",e);
                     }
-
-                    ChatContext nodeContext = new ChatContext();
-                    nodeContext.setMaxHistory(iMaxResponse);
-                    nodeContext.setSystemPrompt(node.system());
-                    nodeContext.addAssistantMessage(node.assistant());
-                    nodeContext.setAddParams(node.addparams());
-                    nodeContext.setModel(mappedModel.getModelName());
-
-                    log.info("{} Chat model: {} node {} response: \n{}", sessionId, mappedModel.getLlmType().name(), node.name(), nodeContext);
-                    llmContext.put(node.name(), nodeContext);
-
-                } catch (Exception e) {
-                    log.error("Chat error",e);
                 }
             }
         }
@@ -203,11 +214,10 @@ public class Chat {
         String normResponse = bot.preProcessor.normalize(response);
 
         String sentences[] = bot.preProcessor.sentenceSplit(normResponse);
-        for (int i = 0; i < sentences.length; i++) {
-          that = sentences[i];
-          //log.info("That "+i+" '"+that+"'");
-          if (that.trim().isEmpty()) that = MagicStrings.default_that;
-          contextThatHistory.add(that);
+        for (String sentence : sentences) {
+            that = sentence;
+            if (that.trim().isEmpty()) that = MagicStrings.default_that;
+            contextThatHistory.add(that);
         }
         return response.trim()+"  ";
     }
@@ -239,7 +249,7 @@ public class Chat {
      * return a compound response to a multiple-sentence request. "Multiple" means one or more.
      *
      * @param text      client's multiple-sentence input
-     * @return
+     * @return    bot's compound response
      */
     private static String removePunctuation(String text) {
         return text

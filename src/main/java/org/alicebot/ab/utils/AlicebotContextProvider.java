@@ -1,7 +1,10 @@
 package org.alicebot.ab.utils;
 
+import org.alicebot.ab.llm.LlmProviderConfig;
 import org.alicebot.ab.model.Report;
 import org.alicebot.ab.model.Param;
+import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
+import org.alicebot.ab.model.block.LlmType;
 
 import java.util.List;
 import java.util.Map;
@@ -18,4 +21,7 @@ public interface AlicebotContextProvider {
     String updateRecordStatus(String parameter);
     Long getRecordId(String campaignName, String phoneNum);
     List<String> getcampaigns(String phoneNum, boolean active);
+
+    LlmProviderConfig getLlmProviderConfig(LlmType llmType, String botName, String symbol);
+    AliceBotLlmModelMapper getLlmModelMapper(String modelLabel, String symbol);
 }

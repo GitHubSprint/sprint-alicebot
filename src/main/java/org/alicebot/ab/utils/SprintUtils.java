@@ -8,9 +8,7 @@ package org.alicebot.ab.utils;
 import com.mayabot.nlp.fasttext.FastText;
 import com.mayabot.nlp.fasttext.ScoreLabelPair;
 import org.alicebot.ab.MagicStrings;
-import org.alicebot.ab.llm.LLMConfiguration;
 import org.alicebot.ab.model.block.Block;
-import org.alicebot.ab.model.block.AliceBotLlmModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,40 +58,12 @@ public class SprintUtils {
         return null;
     }
 
-    public static void updateLLMConfiguration(Map<String, String> gptTokens,
-                                              String gptApiUrl,
-                                              String ollamaApiUrl,
-                                              Map<String, String> geminiTokens,
-                                              String geminiApiUrl,
-                                              int gptMaxHistory,
-                                              int ollamaMaxHistory,
-                                              int geminiMaxHistory,
-                                              List<AliceBotLlmModelMapper> AliceBotLlmModelMappers)
-    {
-        LLMConfiguration.gptTokens = new HashMap<>(gptTokens);
-        LLMConfiguration.gptApiUrl = gptApiUrl;
-        LLMConfiguration.ollamaApiUrl = ollamaApiUrl;
-        LLMConfiguration.geminiTokens = new HashMap<>(geminiTokens);
-        LLMConfiguration.geminiApiUrl = geminiApiUrl;
-        LLMConfiguration.gptMaxHistory = gptMaxHistory;
-        LLMConfiguration.ollamaMaxHistory = ollamaMaxHistory;
-        LLMConfiguration.geminiMaxHistory = geminiMaxHistory;
-
-        LLMConfiguration.AliceBotLlmModelMappers = AliceBotLlmModelMappers;
-
-        log.info("updateLLMConfiguration gptApiUrl: {} ollamaApiUrl: {}  geminiApiUrl: {}", LLMConfiguration.gptApiUrl, LLMConfiguration.ollamaApiUrl, LLMConfiguration.geminiApiUrl);
-
-        log.info("updateLLMConfiguration gptMaxHistory: {} ollamaMaxHistory: {} geminiMaxHistory: {}", LLMConfiguration.gptMaxHistory, LLMConfiguration.ollamaMaxHistory, LLMConfiguration.geminiMaxHistory);
-        log.info("updateLLMConfiguration llmModelMappers: {}", LLMConfiguration.AliceBotLlmModelMappers);
-    }
-
-
     public static Map<String, FastText> mlModels;
     /**
      * Replace polish marks in string.
-     * @param src
-     * @param isPolishMarks
-     * @return 
+     * @param src string to replace
+     * @param isPolishMarks if true, replace polish marks, if false, replace all non-ascii characters
+     * @return the string with replaced characters
      */
     @Deprecated
     public static String unaccent(String src, boolean isPolishMarks) {
