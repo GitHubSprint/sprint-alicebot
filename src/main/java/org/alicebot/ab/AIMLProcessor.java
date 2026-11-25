@@ -1739,6 +1739,7 @@ public class AIMLProcessor {
             case GEMINI -> gemini(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
             case VLLM -> vllm(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
             case VERTEX_AI -> vertexAi(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
+            case CLAUDE -> claude(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
         };
         ps.chatSession.llmContext.put(targetContextKey, context);
         return responseText;
@@ -1917,6 +1918,38 @@ public class AIMLProcessor {
         context.addAssistantMessage(response);
 
         log.info("{}\tVERTEX_AI final response: \n{}", sessionId, response);
+
+        return response;
+    }
+
+    private static String claude(ParseState ps,
+                                 LlmProviderConfig providerConfig,
+                                 ChatContext context,
+                                 String model,
+                                 String user,
+                                 String system,
+                                 String assistant,
+                                 String addParams,
+                                 int iMaxResponse,
+                                 String sessionId,
+                                 String rag) throws Exception
+    {
+        String botname = ps.chatSession.bot.name;
+        log.info("{}\tCLAUDE botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} ",
+                sessionId, botname, iMaxResponse, model, addParams, user, shorten(system), shorten(assistant));
+
+        JSONObject request = GenAIHelper.buildClaudeRequest(context, model, addParams);
+
+        configureHttpClient(ps);
+
+        String rawResponse = LLMService.chatClaude(request.toString(), providerConfig, rag);
+        String response = aiCheckResponse(ps.chatSession.channel, rawResponse);
+
+        ps.chatSession.lastResponse = response;
+
+        context.addAssistantMessage(response);
+
+        log.info("{}\tCLAUDE final response: \n{}", sessionId, response);
 
         return response;
     }

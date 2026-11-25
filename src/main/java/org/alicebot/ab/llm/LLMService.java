@@ -367,4 +367,86 @@ public class LLMService {
         }
         return MagicStrings.error_bot_response();
     }
+
+    public static String chatClaude(String json, LlmProviderConfig config, String rag) throws Exception {
+        if (config == null || config.apiUrl() == null || config.apiUrl().isBlank() || config.apiKey() == null || config.apiKey().isBlank()) {
+            logger.warn("chatClaude invalid llmConfiguration: {}", config != null ? config.apiUrl() : null);
+            throw new InternalServerException(invalid_llm_configuration);
+        }
+
+        String claudeApiUrl = config.apiUrl().trim();
+        String apiKey = config.apiKey();
+        String anthropicVersion = config.getExtraProperty("anthropicVersion", "2023-06-01");
+
+        String report = "";
+        String requestBody = json;
+
+        try {
+            JsonNode rootInputNode = mapper.readTree(json);
+            boolean isModified = false;
+            if (rootInputNode instanceof ObjectNode objectNode) {
+                if (objectNode.has("report")) {
+                    JsonNode reportNode = objectNode.get("report");
+                    report = mapper.writeValueAsString(mapper.treeToValue(reportNode, CustomReport.class));
+                    objectNode.remove("report");
+                    isModified = true;
+                }
+                if (rag != null && !rag.isBlank()) {
+                    String existingSystem = objectNode.path("system").asText("");
+                    String updatedSystem = existingSystem.isBlank()
+                            ? "Context:\n" + rag
+                            : existingSystem + "\n\nContext:\n" + rag;
+                    objectNode.put("system", updatedSystem);
+                    isModified = true;
+                }
+                if (isModified) {
+                    requestBody = mapper.writeValueAsString(objectNode);
+                }
+            }
+        } catch (Exception e) {
+            logger.warn("chatClaude problem modifying input JSON, sending original: {}", e.getMessage());
+        }
+
+        logger.info("chatClaude URI: {} version: {} json: \n\n{}\n\n", claudeApiUrl, anthropicVersion, requestBody);
+
+        HttpRequest httpRequest = HttpRequest.newBuilder()
+                .uri(URI.create(claudeApiUrl))
+                .header("x-api-key", apiKey)
+                .header("anthropic-version", anthropicVersion)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
+                .build();
+
+        HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+
+        logger.debug("chatClaude httpResponse statusCode: {}, body: {}", httpResponse.statusCode(), httpResponse.body());
+
+        if (httpResponse.statusCode() != 200) {
+            logger.error("Claude API error! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            return MagicStrings.error_bot_response();
+        }
+
+        try {
+            JsonNode rootNode = mapper.readTree(httpResponse.body());
+            JsonNode content = rootNode.path("content");
+            if (content.isArray() && !content.isEmpty()) {
+                StringBuilder textBuilder = new StringBuilder();
+                for (JsonNode block : content) {
+                    if ("text".equals(block.path("type").asText()) && block.has("text")) {
+                        textBuilder.append(block.get("text").asText());
+                    }
+                }
+                if (!textBuilder.isEmpty()) {
+                    String responseMessage = textBuilder + report;
+                    logger.info("chatClaude responseMessage: {}", responseMessage);
+                    return responseMessage;
+                }
+            }
+            logger.warn("Claude response has an invalid structure: {}", httpResponse.body());
+        } catch (Exception e) {
+            logger.error("Error parsing Claude response: {}", e.getMessage(), e);
+        }
+
+        return MagicStrings.error_bot_response();
+    }
 }

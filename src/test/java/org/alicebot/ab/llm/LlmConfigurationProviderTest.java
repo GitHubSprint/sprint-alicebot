@@ -61,6 +61,64 @@ public class LlmConfigurationProviderTest {
         assertThrows(InternalServerException.class, () -> LLMService.chatOllama("{}", new LlmProviderConfig("   ", 15), null));
         assertThrows(InternalServerException.class, () -> LLMService.chatVllm("{}", new LlmProviderConfig("   ", 15), null));
         assertThrows(InternalServerException.class, () -> LLMService.chatVertexAi("{}", new LlmProviderConfig("https://europe-central2-aiplatform.googleapis.com", null, 15), "gemini-2.5-flash", null));
+        assertThrows(InternalServerException.class, () -> LLMService.chatClaude("{}", new LlmProviderConfig("https://api.anthropic.com/v1/messages", null, 15), null));
+    }
+
+    @Test
+    public void testClaudeUsesAnthropicHeadersAndFormat() throws Exception {
+        AtomicReference<String> receivedApiKey = new AtomicReference<>();
+        AtomicReference<String> receivedVersion = new AtomicReference<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/messages", exchange -> {
+            receivedApiKey.set(exchange.getRequestHeaders().getFirst("x-api-key"));
+            receivedVersion.set(exchange.getRequestHeaders().getFirst("anthropic-version"));
+            String body = "{\"id\":\"msg_1\",\"type\":\"message\",\"role\":\"assistant\",\"content\":[{\"type\":\"text\",\"text\":\"Hello from mock Claude\"}]}";
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
+        });
+        server.start();
+
+        try {
+            String url = "http://127.0.0.1:" + server.getAddress().getPort() + "/v1/messages";
+            AlicebotContext.setProvider(new StubContextProvider() {
+                @Override
+                public LlmProviderConfig getLlmProviderConfig(LlmType llmType, String botName, String symbol) {
+                    assertEquals(LlmType.CLAUDE, llmType);
+                    return new LlmProviderConfig(url, "sk-ant-mock-key", 16, Map.of("anthropicVersion", "2023-06-01"));
+                }
+
+                @Override
+                public AliceBotLlmModelMapper getLlmModelMapper(String modelLabel, String symbol) {
+                    if ("claude-sonnet".equals(modelLabel) && "sprint".equals(symbol)) {
+                        return new AliceBotLlmModelMapper(4L, LlmType.CLAUDE, "claude-sonnet-4-20250514", "claude-sonnet", "desc", "sprint");
+                    }
+                    return null;
+                }
+            });
+
+            Bot bot = new Bot("testBot", System.getProperty("java.io.tmpdir"), "none");
+            bot.brain.addCategory(new Category(
+                    0,
+                    "CLAUDE *",
+                    "*",
+                    "*",
+                    "<think><set name=\"model\">claude-sonnet</set><set name=\"user\"><star/></set></think><llm model=\"model\" user=\"user\"/>",
+                    "test.aiml"
+            ));
+
+            Chat chat = new Chat(bot, "session-claude", "CHAT", "sprint");
+            String response = AIMLProcessor.respond("CLAUDE hi", "that", "*", chat);
+            assertEquals("Hello from mock Claude", response.trim());
+            assertEquals("sk-ant-mock-key", receivedApiKey.get());
+            assertEquals("2023-06-01", receivedVersion.get());
+            assertEquals(16, chat.maxHistory);
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test

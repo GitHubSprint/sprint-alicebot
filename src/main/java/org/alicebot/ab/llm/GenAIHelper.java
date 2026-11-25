@@ -104,6 +104,43 @@ public class GenAIHelper {
         return jsonRequest;
     }
 
+    // --- CLAUDE (Anthropic Messages API) ---
+    @NotNull
+    public static JSONObject buildClaudeRequest(ChatContext context, String model, String addparams) throws JSONException {
+        JSONObject jsonRequest = new JSONObject();
+        jsonRequest.put("model", model);
+        jsonRequest.put("max_tokens", 1024);
+
+        if (context.getSystemPrompt() != null && !context.getSystemPrompt().isEmpty()) {
+            jsonRequest.put("system", context.getSystemPrompt());
+        }
+
+        JSONArray messages = new JSONArray();
+        for (ChatContext.ChatMessage msg : context.getMessages()) {
+            String roleStr = msg.role() == ChatContext.Role.ASSISTANT ? "assistant" : "user";
+            messages.put(new JSONObject().put("role", roleStr).put("content", msg.content()));
+        }
+        jsonRequest.put("messages", messages);
+
+        Map<String, String> params = parseParams(addparams);
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            String key = entry.getKey();
+            String val = entry.getValue();
+            if ("max_tokens".equals(key) || "top_k".equals(key)) {
+                try {
+                    jsonRequest.put(key, Integer.parseInt(val));
+                } catch (NumberFormatException e) {
+                    if (isNumeric(val)) jsonRequest.put(key, (int) Double.parseDouble(val));
+                }
+            } else if (isNumeric(val)) {
+                jsonRequest.put(key, Double.parseDouble(val));
+            } else {
+                jsonRequest.put(key, val);
+            }
+        }
+        return jsonRequest;
+    }
+
     // --- UTILS ---
     private static Map<String, String> parseParams(String addparams) {
         Map<String, String> additionalParameters = new HashMap<>();
