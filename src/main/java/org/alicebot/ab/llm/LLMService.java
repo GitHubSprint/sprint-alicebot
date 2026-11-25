@@ -71,9 +71,19 @@ public class LLMService {
             throw new InternalServerException(invalid_llm_configuration);
         }
 
-        String gptApiUrl = config.apiUrl().trim();
-        String token = config.apiKey();
+        return chatOpenAiCompatible("chatGpt", "GPT", json, config.apiUrl().trim(), config.apiKey(), rag);
+    }
 
+    public static String chatVllm(String json, LlmProviderConfig config, String rag) throws Exception {
+        if (config == null || config.apiUrl() == null || config.apiUrl().isBlank()) {
+            logger.warn("chatVllm invalid llmConfiguration: {}", config != null ? config.apiUrl() : null);
+            throw new InternalServerException(invalid_llm_configuration);
+        }
+
+        return chatOpenAiCompatible("chatVllm", "vLLM", json, config.apiUrl().trim(), config.apiKey(), rag);
+    }
+
+    private static String chatOpenAiCompatible(String methodName, String providerLabel, String json, String apiUrl, String token, String rag) throws Exception {
         String report = "";
         String requestBody = json;
 
@@ -118,37 +128,38 @@ public class LLMService {
                 }
             }
         } catch (Exception e) {
-            logger.warn("chatGpt problem modifying input JSON, sending original: {}", e.getMessage());
+            logger.warn("{} problem modifying input JSON, sending original: {}", methodName, e.getMessage());
         }
 
-        logger.info("chatGpt URI: {} json: \n\n{}\n\n", gptApiUrl, requestBody);
+        logger.info("{} URI: {} json: \n\n{}\n\n", methodName, apiUrl, requestBody);
 
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                .uri(URI.create(gptApiUrl))
-                .header("Authorization", "Bearer " + token)
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
+                .uri(URI.create(apiUrl))
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8))
-                .build();
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody, StandardCharsets.UTF_8));
 
+        if (token != null && !token.isBlank()) {
+            requestBuilder.header("Authorization", "Bearer " + token);
+        }
 
-        HttpResponse<String> httpResponse = client.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        HttpResponse<String> httpResponse = client.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
 
-        logger.debug("chatGpt httpResponse statusCode: {}, body: {}", httpResponse.statusCode(), httpResponse.body());
+        logger.debug("{} httpResponse statusCode: {}, body: {}", methodName, httpResponse.statusCode(), httpResponse.body());
 
         if (httpResponse.statusCode() != 200) {
-            logger.error("GPT API error! Status: {}, Body: {}", httpResponse.statusCode(), httpResponse.body());
+            logger.error("{} API error! Status: {}, Body: {}", providerLabel, httpResponse.statusCode(), httpResponse.body());
             return MagicStrings.error_bot_response();
         }
 
         GptChatResponse response = mapper.readValue(httpResponse.body(), GptChatResponse.class);
 
-        logger.info("chatGpt response: {}", response);
+        logger.info("{} response: {}", methodName, response);
 
         if(response != null && response.getChoices() != null && !response.getChoices().isEmpty()) {
             Choice choice = response.getChoices().getFirst();
 
             String responseMessage = choice.getMessage().getContent() + report;
-            logger.info("chatGpt responseMessage: {}", responseMessage);
+            logger.info("{} responseMessage: {}", methodName, responseMessage);
             return responseMessage;
         }
         return MagicStrings.error_bot_response();

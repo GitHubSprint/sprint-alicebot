@@ -1737,6 +1737,7 @@ public class AIMLProcessor {
             case GPT -> gpt(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
             case OLLAMA -> ollama(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
             case GEMINI -> gemini(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
+            case VLLM -> vllm(ps, providerConfig, context, mappedModel.getModelName(), user, system, assistant, addparams, iMaxResponse, sessionId, rag);
         };
         ps.chatSession.llmContext.put(targetContextKey, context);
         return responseText;
@@ -1851,6 +1852,38 @@ public class AIMLProcessor {
         context.addAssistantMessage(response);
 
         log.info("{}\tGEMINI final response: \n{}", sessionId,response);
+
+        return response;
+    }
+
+    private static String vllm(ParseState ps,
+                               LlmProviderConfig providerConfig,
+                               ChatContext context,
+                               String model,
+                               String user,
+                               String system,
+                               String assistant,
+                               String addParams,
+                               int iMaxResponse,
+                               String sessionId,
+                               String rag) throws Exception
+    {
+        String botname = ps.chatSession.bot.name;
+        log.info("{}\tVLLM botname: {} maxResponse: {} model: {} addparams: {} \nuser: {} \nsystem: {} \nassistant: {} \nRAG: {}",
+                sessionId, botname, iMaxResponse, model, addParams, user, shorten(system), shorten(assistant), shorten(rag));
+
+        JSONObject request = GenAIHelper.buildGptRequest(context, model, addParams);
+
+        configureHttpClient(ps);
+
+        String vllmResponse = LLMService.chatVllm(request.toString(), providerConfig, rag);
+
+        String response = aiCheckResponse(ps.chatSession.channel, vllmResponse);
+        ps.chatSession.lastResponse = response;
+
+        context.addAssistantMessage(response);
+
+        log.info("{}\tVLLM response: \n{}", sessionId, response);
 
         return response;
     }

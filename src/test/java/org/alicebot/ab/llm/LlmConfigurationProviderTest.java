@@ -59,6 +59,61 @@ public class LlmConfigurationProviderTest {
         assertThrows(InternalServerException.class, () -> LLMService.chatGpt("{}", new LlmProviderConfig("https://api.openai.com", null, 15), null));
         assertThrows(InternalServerException.class, () -> LLMService.chatGemini("{}", new LlmProviderConfig(null, "key", 15), "gemini-2.0-flash", null));
         assertThrows(InternalServerException.class, () -> LLMService.chatOllama("{}", new LlmProviderConfig("   ", 15), null));
+        assertThrows(InternalServerException.class, () -> LLMService.chatVllm("{}", new LlmProviderConfig("   ", 15), null));
+    }
+
+    @Test
+    public void testVllmWorksWithoutApiKey() throws Exception {
+        AtomicReference<String> receivedAuthHeader = new AtomicReference<>("NOT_CALLED");
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/chat/completions", exchange -> {
+            receivedAuthHeader.set(exchange.getRequestHeaders().getFirst("Authorization"));
+            String body = "{\"choices\":[{\"message\":{\"role\":\"assistant\",\"content\":\"Hello from mock vLLM\"}}]}";
+            byte[] bytes = body.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, bytes.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(bytes);
+            }
+        });
+        server.start();
+
+        try {
+            String url = "http://127.0.0.1:" + server.getAddress().getPort() + "/v1/chat/completions";
+            AlicebotContext.setProvider(new StubContextProvider() {
+                @Override
+                public LlmProviderConfig getLlmProviderConfig(LlmType llmType, String botName, String symbol) {
+                    assertEquals(LlmType.VLLM, llmType);
+                    return new LlmProviderConfig(url, 18);
+                }
+
+                @Override
+                public AliceBotLlmModelMapper getLlmModelMapper(String modelLabel, String symbol) {
+                    if ("vllm-local".equals(modelLabel) && "sprint".equals(symbol)) {
+                        return new AliceBotLlmModelMapper(2L, LlmType.VLLM, "Qwen/Qwen2.5-7B-Instruct", "vllm-local", "desc", "sprint");
+                    }
+                    return null;
+                }
+            });
+
+            Bot bot = new Bot("testBot", System.getProperty("java.io.tmpdir"), "none");
+            bot.brain.addCategory(new Category(
+                    0,
+                    "VLLM *",
+                    "*",
+                    "*",
+                    "<think><set name=\"model\">vllm-local</set><set name=\"user\"><star/></set></think><llm model=\"model\" user=\"user\"/>",
+                    "test.aiml"
+            ));
+
+            Chat chat = new Chat(bot, "session-vllm", "CHAT", "sprint");
+            String response = AIMLProcessor.respond("VLLM hi", "that", "*", chat);
+            assertEquals("Hello from mock vLLM", response.trim());
+            assertNull(receivedAuthHeader.get());
+            assertEquals(18, chat.maxHistory);
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test
